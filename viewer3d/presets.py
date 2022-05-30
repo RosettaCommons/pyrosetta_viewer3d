@@ -3,6 +3,7 @@ Display preset custom viewers for routine visualizations.
 """
 
 import logging
+import viewer3d
 
 from pyrosetta.rosetta.core.chemical import ResidueProperty
 from pyrosetta.rosetta.core.select.residue_selector import (
@@ -28,38 +29,18 @@ def coreBoundarySurface(packed_and_poses_and_pdbs=None, *args, **kwargs):
     surface_selector = LayerSelector()
     surface_selector.set_layers(False, False, True)
 
-    view = viewer.init(
-        packed_and_poses_and_pdbs=packed_and_poses_and_pdbs, *args, **kwargs
-    )
-    view.add(viewer.setStyle())
+    view = viewer3d.init(packed_and_poses_and_pdbs=packed_and_poses_and_pdbs, *args, **kwargs)
+    view.add(viewer3d.setStyle())
     view.add(
-        viewer.setStyle(
-            residue_selector=core_selector,
-            style="stick",
-            colorscheme="blackCarbon",
-            radius=0.25,
-            label=False,
-        )
+        viewer3d.setStyle(residue_selector=core_selector, style="stick", colorscheme="blackCarbon", radius=0.25, label=False)
     )
     view.add(
-        viewer.setStyle(
-            residue_selector=boundary_selector,
-            style="stick",
-            colorscheme="greyCarbon",
-            radius=0.25,
-            label=False,
-        )
+        viewer3d.setStyle(residue_selector=boundary_selector, style="stick", colorscheme="greyCarbon", radius=0.25, label=False)
     )
     view.add(
-        viewer.setStyle(
-            residue_selector=surface_selector,
-            style="stick",
-            colorscheme="whiteCarbon",
-            radius=0.25,
-            label=False,
-        )
+        viewer3d.setStyle(residue_selector=surface_selector, style="stick", colorscheme="whiteCarbon", radius=0.25, label=False)
     )
-    view.add(viewer.setDisulfides(radius=0.25))
+    view.add(viewer3d.setDisulfides(radius=0.25))
 
     return view.show()
 
@@ -75,36 +56,15 @@ def ligandsAndMetals(packed_and_poses_and_pdbs=None, *args, **kwargs):
     metals_selector = ResiduePropertySelector(ResidueProperty.METAL)
     ligands_selector = ResiduePropertySelector(ResidueProperty.LIGAND)
 
-    view = (
-        viewer.init(
-            packed_and_poses_and_pdbs=packed_and_poses_and_pdbs, *args, **kwargs
-        )
-        + viewer.setStyle(style="stick", colorscheme="lightgreyCarbon", radius=0.15)
-        + viewer.setStyle(
-            residue_selector=ligands_selector,
-            style="stick",
-            colorscheme="brownCarbon",
-            radius=0.5,
-            label=True,
-        )
-        + viewer.setStyle(
-            residue_selector=metals_selector,
-            style="sphere",
-            colorscheme="chainHetatm",
-            radius=1.5,
-            label=True,
-        )
-        + viewer.setHydrogenBonds()
-        + viewer.setDisulfides(radius=0.15)
-        + viewer.setHydrogens(color="white", radius=0.033, polar_only=True)
-        + viewer.setSurface(
-            residue_selector=ligands_selector,
-            surface_type="VDW",
-            opacity=0.5,
-            colorscheme="brownCarbon",
-        )
-        + viewer.setZoomTo(residue_selector=ligands_selector)
-    )
+    view = viewer3d.init(packed_and_poses_and_pdbs=packed_and_poses_and_pdbs, *args, **kwargs) \
+        + viewer3d.setStyle(style="stick", colorscheme="lightgreyCarbon", radius=0.15) \
+        + viewer3d.setStyle(residue_selector=ligands_selector, style="stick", colorscheme="brownCarbon", radius=0.5, label=True) \
+        + viewer3d.setStyle(residue_selector=metals_selector, style="sphere", colorscheme="chainHetatm", radius=1.5, label=True) \
+        + viewer3d.setHydrogenBonds() \
+        + viewer3d.setDisulfides(radius=0.15) \
+        + viewer3d.setHydrogens(color="white", radius=0.033, polar_only=True) \
+        + viewer3d.setSurface(residue_selector=ligands_selector, surface_type="VDW", opacity=0.5, colorscheme="brownCarbon") \
+        + viewer3d.setZoomTo(residue_selector=ligands_selector)
 
     return view()
 
@@ -113,9 +73,7 @@ def templatePreset(packed_and_poses_and_pdbs=None, *args, **kwargs):
     """
     Add a description of the preset Viewer here
     """
-    view = viewer.init(
-        packed_and_poses_and_pdbs=packed_and_poses_and_pdbs, *args, **kwargs
-    )
+    view = viewer3d.init(packed_and_poses_and_pdbs=packed_and_poses_and_pdbs, *args, **kwargs)
 
     # Add custom Viewer commands here
 
