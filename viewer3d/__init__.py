@@ -122,8 +122,8 @@ viewer3d.presets.coreBoundarySurface(poses, window_size=(800, 600), continuous_u
 
 import warnings
 
-from core import expand_notebook, init
-from modules import (
+from viewer3d.core import expand_notebook, init
+from viewer3d.modules import (
     setBackgroundColor,
     setDisulfides,
     setHydrogenBonds,
