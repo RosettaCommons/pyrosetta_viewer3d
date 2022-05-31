@@ -133,7 +133,7 @@ from viewer3d.modules import (
     setZoom,
     setZoomTo,
 )
-import viewer3d.presets
+import viewer3d.presets as presets
 
 __all__ = [
     "expand_notebook",
