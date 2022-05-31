@@ -6,6 +6,13 @@ import tempfile
 import unittest
 import viewer3d
 
+from pyrosetta.rosetta.core.chemical import ResidueProperty
+from pyrosetta.rosetta.core.select.residue_selector import (
+    ChainSelector,
+    ResiduePropertySelector,
+    SecondaryStructureSelector,
+)
+
 
 class TestViewer(unittest.TestCase):
 
@@ -76,21 +83,15 @@ class TestViewer(unittest.TestCase):
             view.reset()
             self.assertIsNone(view.modules)
 
-            metals_selector = pyrosetta.rosetta.core.select.residue_selector.ResiduePropertySelector(
-                 pyrosetta.rosetta.core.chemical.ResidueProperty(31)
-            )
-            ligands_selector = pyrosetta.rosetta.core.select.residue_selector.ResiduePropertySelector(
-                 pyrosetta.rosetta.core.chemical.ResidueProperty(2)
-            )
+            metals_selector = ResiduePropertySelector(ResidueProperty(31))
+            ligands_selector = ResiduePropertySelector(ResidueProperty(2))
             view = viewer3d.init(poses, window_size=(800, 600)) \
                 + viewer3d.setStyle() \
                 + viewer3d.setStyle(residue_selector=ligands_selector, style="stick", colorscheme="magentaCarbon", radius=0.5) \
                 + viewer3d.setStyle(residue_selector=metals_selector, style="sphere", colorscheme="chainHetatm", radius=1.5)
             view.reset()
 
-            polar_residue_selector = pyrosetta.rosetta.core.select.residue_selector.ResiduePropertySelector(
-                pyrosetta.rosetta.core.chemical.ResidueProperty(52)
-            )
+            polar_residue_selector = ResiduePropertySelector(ResidueProperty(52))
             view = viewer3d.init(packed_poses)
             view.add(viewer3d.setStyle(radius=0.1))
             view.add(viewer3d.setStyle(residue_selector=polar_residue_selector, colorscheme="whiteCarbon", radius=0.25, label=False))
@@ -112,8 +113,8 @@ class TestViewer(unittest.TestCase):
 
             command_tuple = {"hetflag": True}, {"stick": {"singleBond": False, "colorscheme": "whiteCarbon", "radius": 0.25}}
             command_dict = {"hetflag": True}
-            chA = pyrosetta.rosetta.core.select.residue_selector.ChainSelector("A")
-            chB = pyrosetta.rosetta.core.select.residue_selector.ChainSelector("B")
+            chA = ChainSelector("A")
+            chB = ChainSelector("B")
             view = sum(
                 [
                     viewer3d.init(poses),
@@ -129,9 +130,9 @@ class TestViewer(unittest.TestCase):
             view()
             view.reset()
 
-            helix_selector = pyrosetta.rosetta.core.select.residue_selector.SecondaryStructureSelector("H")
-            sheet_selector = pyrosetta.rosetta.core.select.residue_selector.SecondaryStructureSelector("E")
-            loop_selector = pyrosetta.rosetta.core.select.residue_selector.SecondaryStructureSelector("L")
+            helix_selector = SecondaryStructureSelector("H")
+            sheet_selector = SecondaryStructureSelector("E")
+            loop_selector = SecondaryStructureSelector("L")
             modules = [
                 viewer3d.setBackgroundColor(color="black"),
                 viewer3d.setStyle(residue_selector=helix_selector, cartoon_color="blue", label=False, radius=0),
@@ -157,12 +158,8 @@ class TestViewer(unittest.TestCase):
                 Add a description of the preset Viewer here
                 """
                 # Add custrom ResidueSelectors
-                metals_selector = pyrosetta.rosetta.core.select.residue_selector.ResiduePropertySelector(
-                     pyrosetta.rosetta.core.chemical.ResidueProperty(31)
-                )
-                ligands_selector = pyrosetta.rosetta.core.select.residue_selector.ResiduePropertySelector(
-                     pyrosetta.rosetta.core.chemical.ResidueProperty(2)
-                )
+                metals_selector = ResiduePropertySelector(ResidueProperty(31))
+                ligands_selector = ResiduePropertySelector(ResidueProperty(2))
                 # Add custom Viewer commands
                 view = viewer3d.init(packed_and_poses_and_pdbs=packed_and_poses_and_pdbs, *args, **kwargs) \
                     + viewer3d.setBackgroundColor("white") \
