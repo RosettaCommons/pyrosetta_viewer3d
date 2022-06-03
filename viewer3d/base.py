@@ -11,11 +11,14 @@ from typing import Generic, Tuple, TypeVar
 
 _logger = logging.getLogger("viewer3d.base")
 
-BACKENDS: Tuple[str, str, str] = ("py3Dmol", "NGLview", "PyMOL")
+BACKENDS: Tuple[str, str, str] = ("py3Dmol", "nglview", "pymol")
 
 
 @attr.s(kw_only=False, slots=False, frozen=False)
 class ViewerBase:
+    def __attrs_pre_init__(self):
+        self._toggle_scrolling()
+
     def __add__(self, other, *args, **kwargs):
 
         self.modules += [other]

@@ -18,19 +18,18 @@ from viewer3d.modules import ModuleBase
 
 _logger = logging.getLogger("viewer3d.core")
 ModuleType = TypeVar("M", bound=ModuleBase)
+import py3Dmol
 
 try:
     import numpy
-    import py3Dmol
     from ipywidgets import interact, IntSlider
 except ImportError:
     print(
         "Importing 'viewer3d' requires the third-party packages "
-        + "'numpy', 'py3Dmol', and 'ipywidgets' as dependencies!\n"
+        + "'numpy', and 'ipywidgets' as dependencies!\n"
         + "Please install these packages into your python environment. "
         + "For installation instructions, visit:\n"
         + "https://pypi.org/project/numpy/\n"
-        + "https://pypi.org/project/py3Dmol/\n"
         + "https://ipywidgets.readthedocs.io/en/latest/user_install.html"
     )
     raise
@@ -46,10 +45,21 @@ class Py3DmolViewer(ViewerBase):
     modules = attr.ib(type=list)
     delay = attr.ib(type=float)
     continuous_update = attr.ib(type=bool)
+    backend = attr.ib(type=str)
 
     def __attrs_post_init__(self):
-        self._toggle_window(self.window_size)
         self._toggle_scrolling()
+        if self.backend not in sys.modules:
+            try:
+                import py3Dmol
+            except ImportError:
+                print(
+                    f"Using the '{self.backend}' backend requires the third-party package `{self.backend}`.\n"
+                    + "Please install the package into your python environment. "
+                    + "For installation instructions, visit:\n"
+                    + "https://pypi.org/project/py3Dmol/\n"
+                )
+                raise
 
     def show(self):
         """Display Viewer in Jupyter notebook."""
@@ -104,8 +114,20 @@ class NGLviewViewer(ViewerBase):
     modules = attr.ib(type=list)
     delay = attr.ib(type=float)
     continuous_update = attr.ib(type=bool)
+    backend = attr.ib(type=str)
 
     def __attrs_post_init__(self):
+        if self.backend not in sys.modules:
+            try:
+                import nglview
+            except ImportError:
+                print(
+                    f"Using the '{self.backend}' backend requires the third-party package `{self.backend}`.\n"
+                    + "Please install the package into your python environment. "
+                    + "For installation instructions, visit:\n"
+                    + "https://pypi.org/project/py3Dmol/\n"
+                )
+                raise
         raise NotImplementedError(
             f"{self.__class__.__name__} is not currently supported."
         )
@@ -119,8 +141,20 @@ class PyMOLViewer:
     modules = attr.ib(type=list)
     delay = attr.ib(type=float)
     continuous_update = attr.ib(type=bool)
+    backend = attr.ib(type=str)
 
     def __attrs_post_init__(self):
+        if self.backend not in sys.modules:
+            try:
+                import pymol
+            except ImportError:
+                print(
+                    f"Using the '{self.backend}' backend requires the third-party package `{self.backend}`.\n"
+                    + "Please install the package into your python environment. "
+                    + "For installation instructions, visit:\n"
+                    + "https://pypi.org/project/py3Dmol/\n"
+                )
+                raise
         raise NotImplementedError(
             f"{self.__class__.__name__} is not currently supported."
         )
@@ -191,6 +225,7 @@ class SetupViewer:
             modules=self.modules,
             delay=self.delay,
             continuous_update=self.continuous_update,
+            backend=self.backend,
         )
         if self.backend == BACKENDS[0]:
             return Py3DmolViewer(**viewer_kwargs)
