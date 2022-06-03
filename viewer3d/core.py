@@ -125,7 +125,7 @@ class NGLviewViewer(ViewerBase):
                     f"Using the '{self.backend}' backend requires the third-party package `{self.backend}`.\n"
                     + "Please install the package into your python environment. "
                     + "For installation instructions, visit:\n"
-                    + "https://pypi.org/project/py3Dmol/\n"
+                    + "https://pypi.org/project/nglview/\n"
                 )
                 raise
         raise NotImplementedError(
@@ -152,7 +152,7 @@ class PyMOLViewer:
                     f"Using the '{self.backend}' backend requires the third-party package `{self.backend}`.\n"
                     + "Please install the package into your python environment. "
                     + "For installation instructions, visit:\n"
-                    + "https://pypi.org/project/py3Dmol/\n"
+                    + "https://anaconda.org/schrodinger/pymol\n"
                 )
                 raise
         raise NotImplementedError(
