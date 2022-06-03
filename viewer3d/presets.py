@@ -62,7 +62,7 @@ def coreBoundarySurface(packed_and_poses_and_pdbs=None, *args, **kwargs):
     )
     view.add(viewer3d.setDisulfides(radius=0.25))
 
-    return view.show()
+    view.show()
 
 
 def ligandsAndMetals(packed_and_poses_and_pdbs=None, *args, **kwargs):

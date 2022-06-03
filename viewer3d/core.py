@@ -47,7 +47,8 @@ class Py3DmolViewer(ViewerBase):
     backend = attr.ib(type=str)
 
     def __attrs_post_init__(self):
-        self._toggle_scrolling()
+        # self._toggle_scrolling()
+        # super().__init__()
         if self.backend not in sys.modules:
             try:
                 import py3Dmol
@@ -64,16 +65,16 @@ class Py3DmolViewer(ViewerBase):
 
         self.modules += [other]
 
-        #        return self
-        return Py3DmolViewer(
-            poses=self.poses,
-            pdbstrings=self.pdbstrings,
-            window_size=self.window_size,
-            modules=self.modules,
-            delay=self.delay,
-            continuous_update=self.continuous_update,
-            backend=self.backend,
-        )
+        return self
+        # return Py3DmolViewer(
+        #     poses=self.poses,
+        #     pdbstrings=self.pdbstrings,
+        #     window_size=self.window_size,
+        #     modules=self.modules,
+        #     delay=self.delay,
+        #     continuous_update=self.continuous_update,
+        #     backend=self.backend,
+        # )
 
     def show(self):
         """Display Viewer in Jupyter notebook."""
@@ -148,7 +149,7 @@ class NGLviewViewer(ViewerBase):
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
-class PyMOLViewer:
+class PyMOLViewer(ViewerBase):
     poses = attr.ib(type=Pose)
     pdbstrings = attr.ib(type=PackedPose)
     window_size = attr.ib(type=Tuple[Union[int, float]])
@@ -230,18 +231,30 @@ class SetupViewer:
         self.poses, self.pdbstrings = _to_poses_pdbstrings(
             self.packed_and_poses_and_pdbs
         )
-        self.viewer_kwargs = attr.asdict(self)
-        self.viewer_kwargs.pop("packed_and_poses_and_pdbs", None)
-        self.viewer_kwargs["poses"] = self.poses
-        self.viewer_kwargs["pdbstrings"] = self.pdbstrings
+        # import copy
+        # self.viewer_kwargs = copy.deepcopy(attr.asdict(self))
+        # self.viewer_kwargs.pop("packed_and_poses_and_pdbs", None)
+        # self.viewer_kwargs["poses"] = self.poses
+        # self.viewer_kwargs["pdbstrings"] = self.pdbstrings
+        self.viewer_kwargs = dict(
+            poses=self.poses,
+            pdbstrings=self.pdbstrings,
+            window_size=self.window_size,
+            modules=self.modules,
+            delay=self.delay,
+            continuous_update=self.continuous_update,
+            backend=self.backend,
+        )
 
     def initialize_viewer(self):
         if self.backend == BACKENDS[0]:
-            return Py3DmolViewer(**self.viewer_kwargs)
+            viewer = Py3DmolViewer(**self.viewer_kwargs)
         elif self.backend == BACKENDS[1]:
-            return NGLviewViewer(**self.viewer_kwargs)
+            viewer = NGLviewViewer(**self.viewer_kwargs)
         elif self.backend == BACKENDS[2]:
-            return PyMOLViewer(**self.viewer_kwargs)
+            viewer = PyMOLViewer(**self.viewer_kwargs)
+
+        return viewer
 
 
 def init(
@@ -251,8 +264,6 @@ def init(
     delay=None,
     continuous_update=None,
     backend=None,
-    *args,
-    **kwargs,
 ):
     """
     Initialize the Viewer object.
@@ -296,7 +307,7 @@ def init(
     -------
     A Viewer instance.
     """
-    return SetupViewer(
+    viewer = SetupViewer(
         packed_and_poses_and_pdbs=packed_and_poses_and_pdbs,
         window_size=window_size,
         modules=modules,
@@ -304,3 +315,7 @@ def init(
         continuous_update=continuous_update,
         backend=backend,
     ).initialize_viewer()
+    # if not modules:
+    #     viewer.reinit()
+
+    return viewer
