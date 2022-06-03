@@ -54,13 +54,14 @@ class Py3DmolViewer(ViewerBase):
                 raise ViewerImportError(
                     self.backend, "https://pypi.org/project/py3Dmol/"
                 )
+        self.py3Dmol = sys.modules[self.backend]
 
     def show(self):
         """Display Viewer in Jupyter notebook."""
 
         def view(i=0):
 
-            _viewer = py3Dmol.view(
+            _viewer = self.py3Dmol.view(
                 width=self.window_size[0],
                 height=self.window_size[1],
             )

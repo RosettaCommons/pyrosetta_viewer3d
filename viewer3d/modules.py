@@ -1,8 +1,8 @@
 import logging
-import py3Dmol
 import pyrosetta
 import pyrosetta.distributed
 import pyrosetta.distributed.io as io
+import sys
 
 from pyrosetta.rosetta.core.select.residue_selector import (
     ResidueSelector,
@@ -606,14 +606,8 @@ class setSurface(ModuleBase):
             raise ValueError(
                 "Input surface_type argument must be one of the strings: 'VDW', 'MS', 'SES', 'SAS'"
             )
-        _surface_types_dict = {
-            "VDW": py3Dmol.VDW,
-            "MS": py3Dmol.MS,
-            "SES": py3Dmol.SES,
-            "SAS": py3Dmol.SAS,
-        }
         self.residue_selector = residue_selector
-        self.surface_type = _surface_types_dict[surface_type]
+        self.surface_type = surface_type
         self.opacity = opacity
         self.color = color
         self.colorscheme = colorscheme
@@ -621,6 +615,14 @@ class setSurface(ModuleBase):
     @pyrosetta.distributed.requires_init
     def apply(self, viewer, pose, pdbstring, backend):
         if backend == BACKENDS[0]:
+            self.py3Dmol = sys.modules[backend]
+            _surface_types_dict = {
+                "VDW": self.py3Dmol.VDW,
+                "MS": self.py3Dmol.MS,
+                "SES": self.py3Dmol.SES,
+                "SAS": self.py3Dmol.SAS,
+            }
+
             if pose is not None:
                 pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -631,19 +633,19 @@ class setSurface(ModuleBase):
             else:
                 if self.colorscheme:
                     viewer.addSurface(
-                        self.surface_type,
+                        _surface_types_dict[self.surface_type],
                         {"opacity": self.opacity, "colorscheme": self.colorscheme},
                         {"resi": resi, "chain": chain},
                     )
                 elif self.color:
                     viewer.addSurface(
-                        self.surface_type,
+                        _surface_types_dict[self.surface_type],
                         {"opacity": self.opacity, "color": self.color},
                         {"resi": resi, "chain": chain},
                     )
                 else:
                     viewer.addSurface(
-                        self.surface_type,
+                        _surface_types_dict[self.surface_type],
                         {"opacity": self.opacity},
                         {"resi": resi, "chain": chain},
                     )
