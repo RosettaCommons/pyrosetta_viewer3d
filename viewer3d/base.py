@@ -16,14 +16,13 @@ _logger = logging.getLogger("viewer3d.base")
 @attr.s(kw_only=False, slots=False, frozen=False)
 class ViewerBase:
     def __attrs_pre_init__(self):
-        # self.reinit()
         self._toggle_scrolling()
 
-    # def __add__(self, other):
-    #
-    #     self.modules += [other]
-    #
-    #     return self
+    def __add__(self, other):
+
+        self.modules += [other]
+
+        return self
 
     def __radd__(self, other):
 

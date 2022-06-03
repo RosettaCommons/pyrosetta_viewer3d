@@ -47,8 +47,7 @@ class Py3DmolViewer(ViewerBase):
     backend = attr.ib(type=str)
 
     def __attrs_post_init__(self):
-        # self._toggle_scrolling()
-        # super().__init__()
+        self._toggle_window(self.window_size)
         if self.backend not in sys.modules:
             try:
                 import py3Dmol
@@ -60,21 +59,6 @@ class Py3DmolViewer(ViewerBase):
                     + "https://pypi.org/project/py3Dmol/\n"
                 )
                 raise
-
-    def __add__(self, other):
-
-        self.modules += [other]
-
-        return self
-        # return Py3DmolViewer(
-        #     poses=self.poses,
-        #     pdbstrings=self.pdbstrings,
-        #     window_size=self.window_size,
-        #     modules=self.modules,
-        #     delay=self.delay,
-        #     continuous_update=self.continuous_update,
-        #     backend=self.backend,
-        # )
 
     def show(self):
         """Display Viewer in Jupyter notebook."""
@@ -88,7 +72,7 @@ class Py3DmolViewer(ViewerBase):
             _pose = self.poses[i]
             _pdbstring = self.pdbstrings[i]
 
-            if _pose:
+            if _pose is not None:
                 _viewer.addModels(io.to_pdbstring(_pose), "pdb")
             else:
                 _viewer.addModels(_pdbstring, "pdb")
@@ -99,7 +83,7 @@ class Py3DmolViewer(ViewerBase):
 
             self._clear_output()
 
-            if _pose and _pose.pdb_info() and _pose.pdb_info().name():
+            if _pose is not None and _pose.pdb_info() and _pose.pdb_info().name():
                 _logger.debug("Decoy {0}: {1}".format(i, _pose.pdb_info().name()))
 
             return _viewer.show()
@@ -232,11 +216,6 @@ class SetupViewer:
         self.poses, self.pdbstrings = _to_poses_pdbstrings(
             self.packed_and_poses_and_pdbs
         )
-        # import copy
-        # self.viewer_kwargs = copy.deepcopy(attr.asdict(self))
-        # self.viewer_kwargs.pop("packed_and_poses_and_pdbs", None)
-        # self.viewer_kwargs["poses"] = self.poses
-        # self.viewer_kwargs["pdbstrings"] = self.pdbstrings
         self.viewer_kwargs = dict(
             poses=self.poses,
             pdbstrings=self.pdbstrings,
@@ -302,7 +281,12 @@ def init(
         `True` or `False`. When using the interactive slider widget, `False` restricts rendering to mouse release events.
         Default: False
 
-    TODO: backend
+    sixth : optional
+        `backend`
+
+        The viewer backend to for the visualization. Supported backends are 'py3Dmol', 'nglview', and 'pymol'.
+        Default: 'py3Dmol'
+
 
     Returns
     -------
@@ -316,7 +300,5 @@ def init(
         continuous_update=continuous_update,
         backend=backend,
     ).initialize_viewer()
-    # if not modules:
-    #     viewer.reinit()
 
     return viewer
