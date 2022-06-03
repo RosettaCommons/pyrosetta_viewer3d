@@ -6,19 +6,6 @@ import pyrosetta.distributed.io as io
 import sys
 import time
 
-from pyrosetta.rosetta.core.pose import Pose
-from pyrosetta.distributed.packed_pose.core import PackedPose
-from typing import Iterable, Tuple, Union
-
-from viewer3d.config import BACKENDS
-from viewer3d.converters import _to_float, _to_poses_pdbstrings
-from viewer3d.validators import _validate_int_float, _validate_window_size
-from viewer3d.modules import ModuleBase
-
-
-_logger = logging.getLogger("viewer3d.core")
-import py3Dmol
-
 try:
     import numpy
     from ipywidgets import interact, IntSlider
@@ -33,7 +20,19 @@ except ImportError:
     )
     raise
 
+from pyrosetta.rosetta.core.pose import Pose
+from pyrosetta.distributed.packed_pose.core import PackedPose
+from typing import Iterable, Tuple, Union
+
 from viewer3d.base import ViewerBase
+from viewer3d.config import BACKENDS
+from viewer3d.converters import _to_float, _to_poses_pdbstrings
+from viewer3d.exceptions import ViewerImportError
+from viewer3d.modules import ModuleBase
+from viewer3d.validators import _validate_int_float, _validate_window_size
+
+
+_logger = logging.getLogger("viewer3d.core")
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
@@ -52,13 +51,9 @@ class Py3DmolViewer(ViewerBase):
             try:
                 import py3Dmol
             except ImportError:
-                print(
-                    f"Using the '{self.backend}' backend requires the third-party package `{self.backend}`.\n"
-                    + "Please install the package into your python environment. "
-                    + "For installation instructions, visit:\n"
-                    + "https://pypi.org/project/py3Dmol/\n"
+                raise ViewerImportError(
+                    self.backend, "https://pypi.org/project/py3Dmol/"
                 )
-                raise
 
     def show(self):
         """Display Viewer in Jupyter notebook."""
@@ -125,13 +120,10 @@ class NGLviewViewer(ViewerBase):
             try:
                 import nglview
             except ImportError:
-                print(
-                    f"Using the '{self.backend}' backend requires the third-party package `{self.backend}`.\n"
-                    + "Please install the package into your python environment. "
-                    + "For installation instructions, visit:\n"
-                    + "https://pypi.org/project/nglview/\n"
+                raise ViewerImportError(
+                    self.backend, "https://pypi.org/project/nglview/"
                 )
-                raise
+
         raise NotImplementedError(
             f"{self.__class__.__name__} is not currently supported."
         )
@@ -152,13 +144,10 @@ class PyMOLViewer(ViewerBase):
             try:
                 import pymol
             except ImportError:
-                print(
-                    f"Using the '{self.backend}' backend requires the third-party package `{self.backend}`.\n"
-                    + "Please install the package into your python environment. "
-                    + "For installation instructions, visit:\n"
-                    + "https://anaconda.org/schrodinger/pymol\n"
+                raise ViewerImportError(
+                    self.backend, "https://anaconda.org/schrodinger/pymol"
                 )
-                raise
+
         raise NotImplementedError(
             f"{self.__class__.__name__} is not currently supported."
         )

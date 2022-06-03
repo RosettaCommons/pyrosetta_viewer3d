@@ -1,3 +1,6 @@
+import os
+
+
 class ViewerInputError(Exception):
     """Exception raised for errors with the input argument `packed_and_poses_and_pdbs`."""
 
@@ -26,4 +29,16 @@ class ModuleInputError(Exception):
                     obj
                 ).split()
             )
+        )
+
+
+class ViewerImportError(Exception):
+    """Exception raised upon importing backends."""
+
+    def __init__(self, backend, url):
+        super().__init__(
+            f"Using the '{backend}' backend requires the third-party package `{backend}`.{os.linesep}"
+            + "Please install the package into your python environment. "
+            + f"For installation instructions, visit:{os.linesep}"
+            + f"{url}{os.linesep}"
         )
