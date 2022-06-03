@@ -32,7 +32,7 @@ class ModuleInputError(Exception):
         )
 
 
-class ViewerImportError(Exception):
+class ViewerImportError(ImportError):
     """Exception raised upon importing backends."""
 
     def __init__(self, backend, url):
