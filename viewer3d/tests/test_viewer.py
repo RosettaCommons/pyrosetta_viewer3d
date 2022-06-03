@@ -41,9 +41,11 @@ class TestViewer(unittest.TestCase):
             pdbfiles = glob.glob(os.path.join(local_dir, "*.pdb"))
             viewer3d.presets.coreBoundarySurface(pdbfiles, continuous_update=True)
             viewer3d.presets.ligandsAndMetals(pdbfiles, window_size=(200.01, 200.01))
-            view = viewer3d.init(pdbfiles, (1600, 400), delay=0.1234567890) \
-                + viewer3d.setBackgroundColor("black") \
+            view = (
+                viewer3d.init(pdbfiles, (1600, 400), delay=0.1234567890)
+                + viewer3d.setBackgroundColor("black")
                 + viewer3d.setStyle(style="line", colorscheme="blueCarbon")
+            )
             view.show()
             self.assertEqual(view.poses, [None] * len(pdbfiles))
             self.assertEqual(len(view.modules), 2)
@@ -61,10 +63,14 @@ class TestViewer(unittest.TestCase):
             poses = [io.to_pose(p) for p in packed_poses]
             pose = poses[0]
             viewer3d.presets.coreBoundarySurface(packed_poses, delay=0)
-            viewer3d.presets.ligandsAndMetals(packed_poses, continuous_update=True, window_size=(100., 100.))
+            viewer3d.presets.ligandsAndMetals(
+                packed_poses, continuous_update=True, window_size=(100.0, 100.0)
+            )
             modules = [
                 viewer3d.setBackgroundColor("grey"),
-                viewer3d.setStyle(style="sphere", colorscheme="greenCarbon", radius=1.)
+                viewer3d.setStyle(
+                    style="sphere", colorscheme="greenCarbon", radius=1.0
+                ),
             ]
             view = sum([viewer3d.init(poses)] + modules)
             view()
@@ -85,16 +91,35 @@ class TestViewer(unittest.TestCase):
 
             metals_selector = ResiduePropertySelector(ResidueProperty(31))
             ligands_selector = ResiduePropertySelector(ResidueProperty(2))
-            view = viewer3d.init(poses, window_size=(800, 600)) \
-                + viewer3d.setStyle() \
-                + viewer3d.setStyle(residue_selector=ligands_selector, style="stick", colorscheme="magentaCarbon", radius=0.5) \
-                + viewer3d.setStyle(residue_selector=metals_selector, style="sphere", colorscheme="chainHetatm", radius=1.5)
+            view = (
+                viewer3d.init(poses, window_size=(800, 600))
+                + viewer3d.setStyle()
+                + viewer3d.setStyle(
+                    residue_selector=ligands_selector,
+                    style="stick",
+                    colorscheme="magentaCarbon",
+                    radius=0.5,
+                )
+                + viewer3d.setStyle(
+                    residue_selector=metals_selector,
+                    style="sphere",
+                    colorscheme="chainHetatm",
+                    radius=1.5,
+                )
+            )
             view.reset()
 
             polar_residue_selector = ResiduePropertySelector(ResidueProperty(52))
             view = viewer3d.init(packed_poses)
             view.add(viewer3d.setStyle(radius=0.1))
-            view.add(viewer3d.setStyle(residue_selector=polar_residue_selector, colorscheme="whiteCarbon", radius=0.25, label=False))
+            view.add(
+                viewer3d.setStyle(
+                    residue_selector=polar_residue_selector,
+                    colorscheme="whiteCarbon",
+                    radius=0.25,
+                    label=False,
+                )
+            )
             view.add(viewer3d.setHydrogens(color="white", polar_only=True, radius=0.1))
             view.add(viewer3d.setHydrogenBonds(color="black"))
             view.add(viewer3d.setDisulfides(radius=0.1))
@@ -104,14 +129,25 @@ class TestViewer(unittest.TestCase):
             view = sum(
                 [
                     viewer3d.init(poses),
-                    viewer3d.setStyle(cartoon=False, style="sphere", radius=1.5, colorscheme="darkgreyCarbon"),
-                    viewer3d.setZoom(factor=0.95)
+                    viewer3d.setStyle(
+                        cartoon=False,
+                        style="sphere",
+                        radius=1.5,
+                        colorscheme="darkgreyCarbon",
+                    ),
+                    viewer3d.setZoom(factor=0.95),
                 ]
             )
             view()
             view.reset()
 
-            command_tuple = {"hetflag": True}, {"stick": {"singleBond": False, "colorscheme": "whiteCarbon", "radius": 0.25}}
+            command_tuple = {"hetflag": True}, {
+                "stick": {
+                    "singleBond": False,
+                    "colorscheme": "whiteCarbon",
+                    "radius": 0.25,
+                }
+            }
             command_dict = {"hetflag": True}
             chA = ChainSelector("A")
             chB = ChainSelector("B")
@@ -119,12 +155,22 @@ class TestViewer(unittest.TestCase):
                 [
                     viewer3d.init(poses),
                     viewer3d.setStyle(cartoon_color="lightgrey", radius=0.25),
-                    viewer3d.setSurface(residue_selector=chA, colorscheme="greenCarbon", opacity=0.65, surface_type="VDW"),
-                    viewer3d.setSurface(residue_selector=chB, color="blue", opacity=0.75, surface_type="SAS"),
+                    viewer3d.setSurface(
+                        residue_selector=chA,
+                        colorscheme="greenCarbon",
+                        opacity=0.65,
+                        surface_type="VDW",
+                    ),
+                    viewer3d.setSurface(
+                        residue_selector=chB,
+                        color="blue",
+                        opacity=0.75,
+                        surface_type="SAS",
+                    ),
                     viewer3d.setDisulfides(radius=0.25),
                     viewer3d.setZoom(factor=1.5),
                     viewer3d.setStyle(command=command_tuple),
-                    viewer3d.setStyle(command=command_dict)
+                    viewer3d.setStyle(command=command_dict),
                 ]
             )
             view()
@@ -135,16 +181,33 @@ class TestViewer(unittest.TestCase):
             loop_selector = SecondaryStructureSelector("L")
             modules = [
                 viewer3d.setBackgroundColor(color="black"),
-                viewer3d.setStyle(residue_selector=helix_selector, cartoon_color="blue", label=False, radius=0),
-                viewer3d.setStyle(residue_selector=sheet_selector, cartoon_color="red", label=False, radius=0),
-                viewer3d.setStyle(residue_selector=loop_selector, cartoon_color="white", label=False, radius=0),
-                viewer3d.setZoomTo(residue_selector=sheet_selector)
+                viewer3d.setStyle(
+                    residue_selector=helix_selector,
+                    cartoon_color="blue",
+                    label=False,
+                    radius=0,
+                ),
+                viewer3d.setStyle(
+                    residue_selector=sheet_selector,
+                    cartoon_color="red",
+                    label=False,
+                    radius=0,
+                ),
+                viewer3d.setStyle(
+                    residue_selector=loop_selector,
+                    cartoon_color="white",
+                    label=False,
+                    radius=0,
+                ),
+                viewer3d.setZoomTo(residue_selector=sheet_selector),
             ]
             viewer3d.init(poses, window_size=(1200, 600), modules=modules).show()
 
-            view = viewer3d.init(pose, delay=0.15) \
-                + viewer3d.setStyle(radius=0.1) \
+            view = (
+                viewer3d.init(pose, delay=0.15)
+                + viewer3d.setStyle(radius=0.1)
                 + viewer3d.setDisulfides(radius=0.1)
+            )
             backrub = pyrosetta.rosetta.protocols.backrub.BackrubMover()
             minimize = pyrosetta.rosetta.protocols.minimization_packing.MinMover()
             for _ in range(3):
@@ -161,17 +224,49 @@ class TestViewer(unittest.TestCase):
                 metals_selector = ResiduePropertySelector(ResidueProperty(31))
                 ligands_selector = ResiduePropertySelector(ResidueProperty(2))
                 # Add custom Viewer commands
-                view = viewer3d.init(packed_and_poses_and_pdbs=packed_and_poses_and_pdbs, *args, **kwargs) \
-                    + viewer3d.setBackgroundColor("white") \
-                    + viewer3d.setStyle(style="stick", colorscheme="lightgreyCarbon", radius=0.15) \
-                    + viewer3d.setStyle(residue_selector=ligands_selector, style="stick", colorscheme="brownCarbon", radius=0.5, label=True) \
-                    + viewer3d.setStyle(residue_selector=metals_selector, style="sphere", colorscheme="chainHetatm", radius=1.5, label=True) \
-                    + viewer3d.setHydrogenBonds() \
-                    + viewer3d.setDisulfides(radius=0.15) \
-                    + viewer3d.setHydrogens(color="white", radius=0.033, polar_only=True) \
-                    + viewer3d.setSurface(residue_selector=ligands_selector, surface_type="VDW", opacity=0.5, color="magenta") \
-                    + viewer3d.setSurface(residue_selector=metals_selector, surface_type="VDW", opacity=0.5, color="magenta") \
+                view = (
+                    viewer3d.init(
+                        packed_and_poses_and_pdbs=packed_and_poses_and_pdbs,
+                        *args,
+                        **kwargs
+                    )
+                    + viewer3d.setBackgroundColor("white")
+                    + viewer3d.setStyle(
+                        style="stick", colorscheme="lightgreyCarbon", radius=0.15
+                    )
+                    + viewer3d.setStyle(
+                        residue_selector=ligands_selector,
+                        style="stick",
+                        colorscheme="brownCarbon",
+                        radius=0.5,
+                        label=True,
+                    )
+                    + viewer3d.setStyle(
+                        residue_selector=metals_selector,
+                        style="sphere",
+                        colorscheme="chainHetatm",
+                        radius=1.5,
+                        label=True,
+                    )
+                    + viewer3d.setHydrogenBonds()
+                    + viewer3d.setDisulfides(radius=0.15)
+                    + viewer3d.setHydrogens(
+                        color="white", radius=0.033, polar_only=True
+                    )
+                    + viewer3d.setSurface(
+                        residue_selector=ligands_selector,
+                        surface_type="VDW",
+                        opacity=0.5,
+                        color="magenta",
+                    )
+                    + viewer3d.setSurface(
+                        residue_selector=metals_selector,
+                        surface_type="VDW",
+                        opacity=0.5,
+                        color="magenta",
+                    )
                     + viewer3d.setZoomTo(residue_selector=ligands_selector)
+                )
                 return view()
 
             myCustomPreset(pose)
