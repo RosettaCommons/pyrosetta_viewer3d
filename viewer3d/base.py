@@ -1,14 +1,20 @@
+import attr
 import logging
-
-_logger = logging.getLogger("viewer3d.base")
 
 try:
     from IPython.core.display import display, HTML
     from IPython.display import clear_output
 except ImportError:
     _logger.error("IPython.core.display or IPython.display module cannot be imported.")
+from typing import Generic, Tuple, TypeVar
 
 
+_logger = logging.getLogger("viewer3d.base")
+
+BACKENDS: Tuple[str, str, str] = ("py3Dmol", "NGLview", "PyMOL")
+
+
+@attr.s(kw_only=False, slots=False, frozen=False)
 class ViewerBase:
     def __add__(self, other, *args, **kwargs):
 

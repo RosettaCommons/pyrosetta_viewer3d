@@ -1,21 +1,23 @@
+import attr
+import collections
 import logging
 import os
-import pyrosetta
 import pyrosetta.distributed.io as io
 import sys
 import time
 
 from pyrosetta.rosetta.core.pose import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
+from typing import Iterable, Tuple, TypeVar, Union
 
-if sys.version_info.major >= 3:
-    from functools import singledispatch
-else:
-    from pkgutil import simplegeneric as singledispatch
+from viewer3d.converters import _to_float, _to_poses_pdbstrings
+from viewer3d.validators import _validate_int_float, _validate_window_size
+from viewer3d.base import BACKENDS
+from viewer3d.modules import ModuleBase
 
 
 _logger = logging.getLogger("viewer3d.core")
-
+ModuleType = TypeVar("M", bound=ModuleBase)
 
 try:
     import numpy
@@ -36,25 +38,16 @@ except ImportError:
 from viewer3d.base import ViewerBase
 
 
-class Viewer(ViewerBase):
-    def __init__(
-        self,
-        poses,
-        pdbstrings,
-        window_size,
-        modules,
-        delay,
-        continuous_update,
-        *args,
-        **kwargs
-    ):
+@attr.s(kw_only=True, slots=False, frozen=False)
+class Py3DmolViewer(ViewerBase):
+    poses = attr.ib(type=Pose)
+    pdbstrings = attr.ib(type=PackedPose)
+    window_size = attr.ib(type=Tuple[Union[int, float]])
+    modules = attr.ib(type=list)
+    delay = attr.ib(type=float)
+    continuous_update = attr.ib(type=bool)
 
-        self.poses = poses
-        self.pdbstrings = pdbstrings
-        self.window_size = window_size
-        self.modules = modules
-        self.delay = delay
-        self.continuous_update = continuous_update
+    def __attrs_post_init__(self):
         self._toggle_window(self.window_size)
         self._toggle_scrolling()
 
@@ -103,21 +96,108 @@ class Viewer(ViewerBase):
         return widget
 
 
-class ViewerInputError(Exception):
-    """Exception raised for errors with the input argument `packed_and_poses_and_pdbs`."""
+@attr.s(kw_only=True, slots=False, frozen=False)
+class NGLviewViewer(ViewerBase):
+    poses = attr.ib(type=Pose)
+    pdbstrings = attr.ib(type=PackedPose)
+    window_size = attr.ib(type=Tuple[Union[int, float]])
+    modules = attr.ib(type=list)
+    delay = attr.ib(type=float)
+    continuous_update = attr.ib(type=bool)
 
-    def __init__(self, obj):
-
-        super().__init__(
-            " ".join(
-                "Input argument 'packed_and_poses_and_pdbs' should be an instance of \
-                pyrosetta.rosetta.core.pose.Pose, pyrosetta.distributed.packed_pose.core.PackedPose, \
-                or a valid path string to a .pdb file, or a list, set, or tuple of these objects. \
-                Input argument 'packed_and_poses_and_pdbs' was invoked with: {0}".format(
-                    obj
-                ).split()
-            )
+    def __attrs_post_init__(self):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} is not currently supported."
         )
+
+
+@attr.s(kw_only=True, slots=False, frozen=False)
+class PyMOLViewer:
+    poses = attr.ib(type=Pose)
+    pdbstrings = attr.ib(type=PackedPose)
+    window_size = attr.ib(type=Tuple[Union[int, float]])
+    modules = attr.ib(type=list)
+    delay = attr.ib(type=float)
+    continuous_update = attr.ib(type=bool)
+
+    def __attrs_post_init__(self):
+        raise NotImplementedError(
+            f"{self.__class__.__name__} is not currently supported."
+        )
+
+
+@attr.s(kw_only=True, slots=False, frozen=False)
+class SetupViewer:
+    packed_and_poses_and_pdbs = attr.ib(
+        type=Union[PackedPose, Pose, Iterable[Union[PackedPose, Pose]], None],
+        default=None,
+    )
+    poses = attr.ib(type=Iterable[Pose], init=False)
+    pdbstrings = attr.ib(type=Iterable[str], init=False)
+    window_size = attr.ib(
+        type=Tuple[int, int],
+        default=None,
+        validator=[
+            attr.validators.deep_iterable(
+                member_validator=attr.validators.instance_of((int, float)),
+                iterable_validator=attr.validators.instance_of(
+                    collections.abc.Iterable
+                ),
+            ),
+            _validate_window_size,
+        ],
+        converter=attr.converters.default_if_none(default=(1200, 800)),
+    )
+    modules = attr.ib(
+        type=list,
+        default=None,
+        validator=attr.validators.deep_iterable(
+            member_validator=attr.validators.instance_of(ModuleType),
+            iterable_validator=attr.validators.instance_of(collections.abc.Iterable),
+        ),
+        converter=attr.converters.default_if_none(default=[]),
+    )
+    delay = attr.ib(
+        type=float,
+        default=None,
+        validator=_validate_int_float,
+        converter=attr.converters.pipe(
+            attr.converters.default_if_none(0.25), _to_float
+        ),
+    )
+    continuous_update = attr.ib(
+        type=bool,
+        default=None,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
+    backend = attr.ib(
+        type=str,
+        default=None,
+        validator=[attr.validators.instance_of(str), attr.validators.in_(BACKENDS)],
+        converter=attr.converters.default_if_none(default="py3Dmol"),
+    )
+
+    def __attrs_post_init__(self):
+        self.poses, self.pdbstrings = _to_poses_pdbstrings(
+            self.packed_and_poses_and_pdbs
+        )
+
+    def initialize_viewer(self):
+        viewer_kwargs = dict(
+            poses=self.poses,
+            pdbstrings=self.pdbstrings,
+            window_size=self.window_size,
+            modules=self.modules,
+            delay=self.delay,
+            continuous_update=self.continuous_update,
+        )
+        if self.backend == BACKENDS[0]:
+            return Py3DmolViewer(**viewer_kwargs)
+        elif self.backend == BACKENDS[1]:
+            return NGLviewViewer(**viewer_kwargs)
+        elif self.backend == BACKENDS[2]:
+            return PyMOLViewer(**viewer_kwargs)
 
 
 def init(
@@ -126,8 +206,9 @@ def init(
     modules=None,
     delay=None,
     continuous_update=None,
+    backend=None,
     *args,
-    **kwargs
+    **kwargs,
 ):
     """
     Initialize the Viewer object.
@@ -165,121 +246,17 @@ def init(
         `True` or `False`. When using the interactive slider widget, `False` restricts rendering to mouse release events.
         Default: False
 
+    TODO: backend
+
     Returns
     -------
     A Viewer instance.
     """
-
-    _default_window_size = (1200, 800)
-    _default_modules = []
-    _default_delay = 0.25  # seconds
-    _default_continuous_update = False
-
-    @singledispatch
-    def to_pose(obj):
-        raise ViewerInputError(obj)
-
-    to_pose.register(type(None), lambda obj: None)
-    to_pose.register(PackedPose, lambda obj: io.to_pose(obj))
-    to_pose.register(Pose, lambda obj: obj)
-    to_pose.register(str, lambda obj: None)
-
-    @singledispatch
-    def to_pdbstring(obj):
-        raise ViewerInputError(obj)
-
-    @to_pdbstring.register(type(None))
-    def _(obj):
-        raise ViewerInputError(obj)
-
-    to_pdbstring.register(PackedPose, lambda obj: io.to_pdbstring(obj))
-    to_pdbstring.register(Pose, lambda obj: io.to_pdbstring(obj))
-
-    @to_pdbstring.register(str)
-    def _(obj):
-        if not os.path.isfile(obj):
-            raise ViewerInputError(obj)
-        else:
-            with open(obj, "r") as f:
-                return f.read()
-
-    if isinstance(packed_and_poses_and_pdbs, (list, set, tuple)):
-        poses, pdbstrings = map(
-            list,
-            zip(*[(to_pose(p), to_pdbstring(p)) for p in packed_and_poses_and_pdbs]),
-        )
-    else:
-        poses = [to_pose(packed_and_poses_and_pdbs)]
-        pdbstrings = [to_pdbstring(packed_and_poses_and_pdbs)]
-
-    @singledispatch
-    def to_window_size(obj):
-        _logger.warning(
-            "Input argument 'window_size' cannot be parsed. Setting 'window_size' to default."
-        )
-        return _default_window_size
-
-    to_window_size.register(type(None), lambda obj: _default_window_size)
-
-    @to_window_size.register(tuple)
-    @to_window_size.register(list)
-    def _(obj):
-        assert (
-            len(obj) == 2
-        ), "Input argument 'window_size' must be a list or tuple of length 2."
-        return obj
-
-    window_size = to_window_size(window_size)
-
-    if not modules:
-        modules = _default_modules
-    assert isinstance(
-        modules, list
-    ), "Input argument 'modules' should be an instance of list."
-
-    @singledispatch
-    def to_delay(obj):
-        _logger.warning(
-            "Input argument 'delay' should be an instance of float that is >= 0. Setting 'delay' to default."
-        )
-        return _default_delay
-
-    to_delay.register(type(None), lambda obj: _default_delay)
-    to_delay.register(int, lambda obj: float(obj))
-
-    @to_delay.register(float)
-    def _(obj):
-        assert (
-            obj >= 0
-        ), "Input argument 'delay' must be an instance of float that is >= 0."
-        return obj
-
-    @to_delay.register(str)
-    def _(obj):
-        try:
-            _delay = float(obj)
-        except ValueError:
-            _logger.warning(
-                "Input argument 'delay' cannot be parsed. Setting 'delay' to default."
-            )
-            _delay = _default_delay
-        return _delay
-
-    delay = to_delay(delay)
-
-    if not continuous_update:
-        continuous_update = _default_continuous_update
-    assert (
-        type(continuous_update) == bool
-    ), "Input argument 'continuous_update' must be boolean."
-
-    return Viewer(
-        poses=poses,
-        pdbstrings=pdbstrings,
+    return SetupViewer(
+        packed_and_poses_and_pdbs=packed_and_poses_and_pdbs,
         window_size=window_size,
         modules=modules,
         delay=delay,
         continuous_update=continuous_update,
-        *args,
-        **kwargs
-    )
+        backend=backend,
+    ).initialize_viewer()
