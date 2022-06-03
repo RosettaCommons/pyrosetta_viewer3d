@@ -8,6 +8,7 @@ setup(
     author="Jason C. Klima",
     license="MIT",
     packages=[
+        "attrs>=21.4.0",
         "ipywidgets>=7.5.1",
         "jupyter>=1.0.0",
         "numpy>=1.18.1",
