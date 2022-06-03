@@ -1,3 +1,4 @@
+import collections
 import logging
 import pyrosetta
 import pyrosetta.distributed.io as io
@@ -11,7 +12,6 @@ from pyrosetta.rosetta.core.pose.full_model_info import (
     get_chains_from_pdb_info,
 )
 from pyrosetta.rosetta.core.select import get_residues_from_subset
-from typing import Iterable
 
 from viewer3d.exceptions import ViewerInputError
 
@@ -47,7 +47,7 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
             with open(obj, "r") as f:
                 return f.read()
 
-    if isinstance(packed_and_poses_and_pdbs, Iterable):
+    if isinstance(packed_and_poses_and_pdbs, collections.abc.Iterable):
         poses, pdbstrings = map(
             list,
             zip(*[(to_pose(p), to_pdbstring(p)) for p in packed_and_poses_and_pdbs]),

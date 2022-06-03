@@ -132,6 +132,7 @@ class NGLviewViewer(ViewerBase):
     backend = attr.ib(type=str)
 
     def __attrs_post_init__(self):
+        # super().__init__()
         if self.backend not in sys.modules:
             try:
                 import nglview
@@ -202,7 +203,7 @@ class SetupViewer:
         default=None,
         validator=attr.validators.deep_iterable(
             member_validator=attr.validators.instance_of(ModuleBase),
-            iterable_validator=attr.validators.instance_of(collections.abc.Iterable),
+            iterable_validator=attr.validators.instance_of(list),
         ),
         converter=attr.converters.default_if_none(default=[]),
     )
