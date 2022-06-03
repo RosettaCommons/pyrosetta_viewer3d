@@ -241,7 +241,7 @@ class SetupViewer:
             poses=self.poses,
             pdbstrings=self.pdbstrings,
             window_size=self.window_size,
-            modules=self.modules,
+            modules=self.modules.copy(),
             delay=self.delay,
             continuous_update=self.continuous_update,
             backend=self.backend,

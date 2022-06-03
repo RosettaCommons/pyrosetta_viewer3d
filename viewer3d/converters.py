@@ -47,7 +47,9 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
             with open(obj, "r") as f:
                 return f.read()
 
-    if isinstance(packed_and_poses_and_pdbs, collections.abc.Iterable):
+    if isinstance(
+        packed_and_poses_and_pdbs, collections.abc.Iterable
+    ) and not isinstance(packed_and_poses_and_pdbs, (Pose, PackedPose)):
         poses, pdbstrings = map(
             list,
             zip(*[(to_pose(p), to_pdbstring(p)) for p in packed_and_poses_and_pdbs]),
