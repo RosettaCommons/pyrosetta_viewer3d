@@ -80,7 +80,7 @@ class setDisulfides(ModuleBase):
     @pyrosetta.distributed.requires_init
     def apply(self, viewer, pose, pdbstring):
 
-        if not pose:
+        if pose is not None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         cys_res = []
@@ -158,7 +158,7 @@ class setHydrogenBonds(ModuleBase):
     @pyrosetta.distributed.requires_init
     def apply(self, viewer, pose, pdbstring):
 
-        if not pose:
+        if pose is not None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         hbond_set = pose.get_hbonds()
@@ -266,7 +266,7 @@ class setHydrogens(ModuleBase):
             )
             return _viewer
 
-        if not pose:
+        if pose is not None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         if pose.is_fullatom():
@@ -444,7 +444,7 @@ class setStyle(ModuleBase):
                 )
         else:
             if self.residue_selector:
-                if not pose:
+                if pose is not None:
                     pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
                 resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
@@ -600,7 +600,7 @@ class setSurface(ModuleBase):
     @pyrosetta.distributed.requires_init
     def apply(self, viewer, pose, pdbstring):
 
-        if not pose:
+        if pose is not None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
@@ -688,7 +688,7 @@ class setZoomTo(ModuleBase):
     @pyrosetta.distributed.requires_init
     def apply(self, viewer, pose, pdbstring):
 
-        if not pose:
+        if pose is not None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
