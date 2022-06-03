@@ -65,16 +65,7 @@ class Viewer:
 
         self.modules += [other]
 
-        return Viewer(
-            poses=self.poses,
-            pdbstrings=self.pdbstrings,
-            window_size=self.window_size,
-            modules=self.modules,
-            delay=self.delay,
-            continuous_update=self.continuous_update,
-            *args,
-            **kwargs
-        )
+        return self
 
     def __radd__(self, other):
 
