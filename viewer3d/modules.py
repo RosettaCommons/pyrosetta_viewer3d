@@ -39,7 +39,6 @@ class setBackgroundColor(ModuleBase):
     """
 
     def __init__(self, color=0xFFFFFFFF):
-
         self.color = color
 
     def apply(self, viewer, pose, pdbstring, backend):
@@ -677,7 +676,6 @@ class setZoom(ModuleBase):
     """
 
     def __init__(self, factor=2):
-
         self.factor = factor
 
     def apply(self, viewer, pose, pdbstring, backend):

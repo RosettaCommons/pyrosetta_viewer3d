@@ -20,24 +20,20 @@ class ViewerBase:
         self._toggle_scrolling()
 
     def __add__(self, other):
-
         self.modules += [other]
 
         return self
 
     def __radd__(self, other):
-
         if other == 0:
             return self
         else:
             return self.__add__(other)
 
     def __call__(self):
-
         return self.show()
 
     def _clear_output(self):
-
         try:
             _logger.debug("IPython.display clearing Jupyter notebook cell output.")
             clear_output(wait=True)
@@ -45,7 +41,6 @@ class ViewerBase:
             _logger.debug(e)
 
     def _toggle_scrolling(self):
-
         try:
             _logger.debug(
                 "IPython.core.display toggling scrolling in Jupyter notebook cell."
@@ -59,7 +54,6 @@ class ViewerBase:
             _logger.debug(e)
 
     def _toggle_window(self, _window_size):
-
         try:
             _logger.debug(
                 "IPython.core.display toggling cell window area in Jupyter notebook."

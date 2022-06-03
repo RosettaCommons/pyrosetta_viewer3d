@@ -165,7 +165,7 @@ class SetupViewer:
     poses = attr.ib(type=Iterable[Pose], init=False)
     pdbstrings = attr.ib(type=Iterable[str], init=False)
     window_size = attr.ib(
-        type=Tuple[int, int],
+        type=Tuple[Union[int, float], Union[int, float]],
         default=None,
         validator=[
             attr.validators.deep_iterable(
@@ -205,7 +205,7 @@ class SetupViewer:
         type=str,
         default=None,
         validator=[attr.validators.instance_of(str), attr.validators.in_(BACKENDS)],
-        converter=attr.converters.default_if_none(default="py3Dmol"),
+        converter=attr.converters.default_if_none(default=BACKENDS[0]),
     )
 
     def __attrs_post_init__(self):
