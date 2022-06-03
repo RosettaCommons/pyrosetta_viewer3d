@@ -8,7 +8,7 @@ from pyrosetta.rosetta.core.select.residue_selector import (
     ResidueSelector,
     TrueResidueSelector,
 )
-
+from viewer3d.config import BACKENDS
 from viewer3d.converters import _pdbstring_to_pose, _pose_to_residue_chain_tuples
 from viewer3d.exceptions import ModuleInputError
 
@@ -41,11 +41,15 @@ class setBackgroundColor(ModuleBase):
 
         self.color = color
 
-    def apply(self, viewer, pose, pdbstring):
+    def apply(self, viewer, pose, pdbstring, backend):
+        if backend == BACKENDS[0]:
+            viewer.setBackgroundColor(self.color)
+            return viewer
 
-        viewer.setBackgroundColor(self.color)
-
-        return viewer
+        elif backend == BACKENDS[1]:
+            raise NotImplementedError(backend)
+        elif backend == BACKENDS[2]:
+            raise NotImplementedError(backend)
 
 
 class setDisulfides(ModuleBase):
@@ -73,47 +77,51 @@ class setDisulfides(ModuleBase):
     """
 
     def __init__(self, color="gold", radius=0.5):
-
         self.color = color
         self.radius = radius
 
     @pyrosetta.distributed.requires_init
-    def apply(self, viewer, pose, pdbstring):
+    def apply(self, viewer, pose, pdbstring, backend):
+        if backend == BACKENDS[0]:
+            if pose is not None:
+                pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        if pose is not None:
-            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
-
-        cys_res = []
-        for i, aa in enumerate(pose.sequence(), start=1):
-            if aa == "C":
-                cys_res.append(i)
-        for i in cys_res:
-            for j in cys_res:
-                if pyrosetta.rosetta.core.conformation.is_disulfide_bond(
-                    pose.conformation(), i, j
-                ):
-                    i_xyz = pose.xyz(
-                        pyrosetta.rosetta.core.id.AtomID(
-                            pose.residue(i).atom_index("SG"), i
+            cys_res = []
+            for i, aa in enumerate(pose.sequence(), start=1):
+                if aa == "C":
+                    cys_res.append(i)
+            for i in cys_res:
+                for j in cys_res:
+                    if pyrosetta.rosetta.core.conformation.is_disulfide_bond(
+                        pose.conformation(), i, j
+                    ):
+                        i_xyz = pose.xyz(
+                            pyrosetta.rosetta.core.id.AtomID(
+                                pose.residue(i).atom_index("SG"), i
+                            )
                         )
-                    )
-                    j_xyz = pose.xyz(
-                        pyrosetta.rosetta.core.id.AtomID(
-                            pose.residue(j).atom_index("SG"), j
+                        j_xyz = pose.xyz(
+                            pyrosetta.rosetta.core.id.AtomID(
+                                pose.residue(j).atom_index("SG"), j
+                            )
                         )
-                    )
-                    viewer.addCylinder(
-                        {
-                            "radius": self.radius,
-                            "color": self.color,
-                            "fromCap": True,
-                            "toCap": True,
-                            "start": {"x": i_xyz[0], "y": i_xyz[1], "z": i_xyz[2]},
-                            "end": {"x": j_xyz[0], "y": j_xyz[1], "z": j_xyz[2]},
-                        }
-                    )
+                        viewer.addCylinder(
+                            {
+                                "radius": self.radius,
+                                "color": self.color,
+                                "fromCap": True,
+                                "toCap": True,
+                                "start": {"x": i_xyz[0], "y": i_xyz[1], "z": i_xyz[2]},
+                                "end": {"x": j_xyz[0], "y": j_xyz[1], "z": j_xyz[2]},
+                            }
+                        )
 
-        return viewer
+            return viewer
+
+        elif backend == BACKENDS[1]:
+            raise NotImplementedError(backend)
+        elif backend == BACKENDS[2]:
+            raise NotImplementedError(backend)
 
 
 class setHydrogenBonds(ModuleBase):
@@ -150,70 +158,74 @@ class setHydrogenBonds(ModuleBase):
     """
 
     def __init__(self, color="black", dashed=True, radius=None):
-
         self.color = color
         self.dashed = dashed
         self.radius = radius
 
     @pyrosetta.distributed.requires_init
-    def apply(self, viewer, pose, pdbstring):
+    def apply(self, viewer, pose, pdbstring, backend):
+        if backend == BACKENDS[0]:
+            if pose is not None:
+                pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        if pose is not None:
-            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
-
-        hbond_set = pose.get_hbonds()
-        for i in range(1, pose.total_residue() + 1):
-            res_hbonds = hbond_set.residue_hbonds(i, False)
-            if res_hbonds:
-                for j in range(1, len(res_hbonds) + 1):
-                    r = res_hbonds[j]
-                    don_xyz = pose.residue(r.don_res()).xyz(r.don_hatm())
-                    acc_xyz = pose.residue(r.acc_res()).xyz(r.acc_atm())
-                    if self.radius:
-                        if self.dashed:
-                            _logger.warning(
-                                " ".join(
-                                    "setHydrogenBonds argument 'radius' cannot be set with argument 'dashed' set to True. \
-                                Setting argument 'dashed' to False.".split()
+            hbond_set = pose.get_hbonds()
+            for i in range(1, pose.total_residue() + 1):
+                res_hbonds = hbond_set.residue_hbonds(i, False)
+                if res_hbonds:
+                    for j in range(1, len(res_hbonds) + 1):
+                        r = res_hbonds[j]
+                        don_xyz = pose.residue(r.don_res()).xyz(r.don_hatm())
+                        acc_xyz = pose.residue(r.acc_res()).xyz(r.acc_atm())
+                        if self.radius:
+                            if self.dashed:
+                                _logger.warning(
+                                    " ".join(
+                                        "setHydrogenBonds argument 'radius' cannot be set with argument 'dashed' set to True. \
+                                    Setting argument 'dashed' to False.".split()
+                                    )
                                 )
+                            viewer.addCylinder(
+                                {
+                                    "radius": self.radius,
+                                    "color": self.color,
+                                    "fromCap": True,
+                                    "toCap": True,
+                                    "start": {
+                                        "x": don_xyz[0],
+                                        "y": don_xyz[1],
+                                        "z": don_xyz[2],
+                                    },
+                                    "end": {
+                                        "x": acc_xyz[0],
+                                        "y": acc_xyz[1],
+                                        "z": acc_xyz[2],
+                                    },
+                                }
                             )
-                        viewer.addCylinder(
-                            {
-                                "radius": self.radius,
-                                "color": self.color,
-                                "fromCap": True,
-                                "toCap": True,
-                                "start": {
-                                    "x": don_xyz[0],
-                                    "y": don_xyz[1],
-                                    "z": don_xyz[2],
-                                },
-                                "end": {
-                                    "x": acc_xyz[0],
-                                    "y": acc_xyz[1],
-                                    "z": acc_xyz[2],
-                                },
-                            }
-                        )
-                    else:
-                        viewer.addLine(
-                            {
-                                "dashed": self.dashed,
-                                "color": self.color,
-                                "start": {
-                                    "x": don_xyz[0],
-                                    "y": don_xyz[1],
-                                    "z": don_xyz[2],
-                                },
-                                "end": {
-                                    "x": acc_xyz[0],
-                                    "y": acc_xyz[1],
-                                    "z": acc_xyz[2],
-                                },
-                            }
-                        )
+                        else:
+                            viewer.addLine(
+                                {
+                                    "dashed": self.dashed,
+                                    "color": self.color,
+                                    "start": {
+                                        "x": don_xyz[0],
+                                        "y": don_xyz[1],
+                                        "z": don_xyz[2],
+                                    },
+                                    "end": {
+                                        "x": acc_xyz[0],
+                                        "y": acc_xyz[1],
+                                        "z": acc_xyz[2],
+                                    },
+                                }
+                            )
 
-        return viewer
+            return viewer
+
+        elif backend == BACKENDS[1]:
+            raise NotImplementedError(backend)
+        elif backend == BACKENDS[2]:
+            raise NotImplementedError(backend)
 
 
 class setHydrogens(ModuleBase):
@@ -246,49 +258,54 @@ class setHydrogens(ModuleBase):
     """
 
     def __init__(self, color="white", radius=0.05, polar_only=False):
-
         self.color = color
         self.radius = radius
         self.polar_only = polar_only
 
+    def _addCylinder(self, _viewer, i_xyz, j_xyz):
+        _viewer.addCylinder(
+            {
+                "radius": self.radius,
+                "color": self.color,
+                "fromCap": True,
+                "toCap": True,
+                "start": {"x": i_xyz[0], "y": i_xyz[1], "z": i_xyz[2]},
+                "end": {"x": j_xyz[0], "y": j_xyz[1], "z": j_xyz[2]},
+            }
+        )
+        return _viewer
+
     @pyrosetta.distributed.requires_init
-    def apply(self, viewer, pose, pdbstring):
-        def _addCylinder(_viewer, i_xyz, j_xyz):
-            _viewer.addCylinder(
-                {
-                    "radius": self.radius,
-                    "color": self.color,
-                    "fromCap": True,
-                    "toCap": True,
-                    "start": {"x": i_xyz[0], "y": i_xyz[1], "z": i_xyz[2]},
-                    "end": {"x": j_xyz[0], "y": j_xyz[1], "z": j_xyz[2]},
-                }
-            )
-            return _viewer
+    def apply(self, viewer, pose, pdbstring, backend):
+        if backend == BACKENDS[0]:
+            if pose is not None:
+                pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        if pose is not None:
-            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
-
-        if pose.is_fullatom():
-            for i in range(1, pose.total_residue() + 1):
-                r = pose.residue(i)
-                h_begin = r.attached_H_begin()
-                h_end = r.attached_H_end()
-                for h in range(1, len(h_begin) + 1):
-                    i_index = h_begin[h]
-                    j_index = h_end[h]
-                    if all(q != 0 for q in [i_index, j_index]):
-                        i_xyz = r.atom(h).xyz()
-                        for j in range(i_index, j_index + 1):
-                            if self.polar_only:
-                                if r.atom_is_polar_hydrogen(j):
+            if pose.is_fullatom():
+                for i in range(1, pose.total_residue() + 1):
+                    r = pose.residue(i)
+                    h_begin = r.attached_H_begin()
+                    h_end = r.attached_H_end()
+                    for h in range(1, len(h_begin) + 1):
+                        i_index = h_begin[h]
+                        j_index = h_end[h]
+                        if all(q != 0 for q in [i_index, j_index]):
+                            i_xyz = r.atom(h).xyz()
+                            for j in range(i_index, j_index + 1):
+                                if self.polar_only:
+                                    if r.atom_is_polar_hydrogen(j):
+                                        j_xyz = r.atom(j).xyz()
+                                        viewer = self._addCylinder(viewer, i_xyz, j_xyz)
+                                else:
                                     j_xyz = r.atom(j).xyz()
-                                    viewer = _addCylinder(viewer, i_xyz, j_xyz)
-                            else:
-                                j_xyz = r.atom(j).xyz()
-                                viewer = _addCylinder(viewer, i_xyz, j_xyz)
+                                    viewer = self._addCylinder(viewer, i_xyz, j_xyz)
 
-        return viewer
+            return viewer
+
+        elif backend == BACKENDS[1]:
+            raise NotImplementedError(backend)
+        elif backend == BACKENDS[2]:
+            raise NotImplementedError(backend)
 
 
 class setStyle(ModuleBase):
@@ -405,7 +422,6 @@ class setStyle(ModuleBase):
         label_fontcolor="black",
         command=None,
     ):
-
         _valid_styles = ["line", "cross", "stick", "sphere"]
         if not any(style == s for s in _valid_styles):
             raise "setStyle argument 'style' must be either: {0}".format(
@@ -431,79 +447,86 @@ class setStyle(ModuleBase):
         self.command = command
 
     @pyrosetta.distributed.requires_init
-    def apply(self, viewer, pose, pdbstring):
-
-        if self.command:
-            if isinstance(self.command, tuple):
-                viewer.setStyle(*self.command)
-            elif isinstance(self.command, dict):
-                viewer.setStyle(self.command)
+    def apply(self, viewer, pose, pdbstring, backend):
+        if backend == BACKENDS[0]:
+            if self.command:
+                if isinstance(self.command, tuple):
+                    viewer.setStyle(*self.command)
+                elif isinstance(self.command, dict):
+                    viewer.setStyle(self.command)
+                else:
+                    raise ValueError(
+                        "setStyle argument 'command' should be an instance of tuple or dict."
+                    )
             else:
-                raise ValueError(
-                    "setStyle argument 'command' should be an instance of tuple or dict."
-                )
-        else:
-            if self.residue_selector:
-                if pose is not None:
-                    pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+                if self.residue_selector:
+                    if pose is not None:
+                        pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-                resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
+                    resi, chain = _pose_to_residue_chain_tuples(
+                        pose, self.residue_selector
+                    )
 
-                if (not resi) and (not chain):
-                    pass
+                    if (not resi) and (not chain):
+                        pass
+                    else:
+                        if self.cartoon:
+                            viewer.setStyle(
+                                {"resi": resi, "chain": chain},
+                                {
+                                    "cartoon": {"color": self.cartoon_color},
+                                    self.style: {
+                                        "colorscheme": self.colorscheme,
+                                        "radius": self.radius,
+                                    },
+                                },
+                            )
+                        else:
+                            viewer.setStyle(
+                                {"resi": resi, "chain": chain},
+                                {
+                                    self.style: {
+                                        "colorscheme": self.colorscheme,
+                                        "radius": self.radius,
+                                    }
+                                },
+                            )
+                        if self.label:
+                            viewer.addResLabels(
+                                {"resi": resi, "chain": chain},
+                                {
+                                    "fontSize": self.label_fontsize,
+                                    "showBackground": self.label_background,
+                                    "fontColor": self.label_fontcolor,
+                                },
+                            )
                 else:
                     if self.cartoon:
                         viewer.setStyle(
-                            {"resi": resi, "chain": chain},
                             {
                                 "cartoon": {"color": self.cartoon_color},
                                 self.style: {
                                     "colorscheme": self.colorscheme,
                                     "radius": self.radius,
                                 },
-                            },
+                            }
                         )
                     else:
                         viewer.setStyle(
-                            {"resi": resi, "chain": chain},
                             {
                                 self.style: {
                                     "colorscheme": self.colorscheme,
                                     "radius": self.radius,
                                 }
-                            },
-                        )
-                    if self.label:
-                        viewer.addResLabels(
-                            {"resi": resi, "chain": chain},
-                            {
-                                "fontSize": self.label_fontsize,
-                                "showBackground": self.label_background,
-                                "fontColor": self.label_fontcolor,
-                            },
-                        )
-            else:
-                if self.cartoon:
-                    viewer.setStyle(
-                        {
-                            "cartoon": {"color": self.cartoon_color},
-                            self.style: {
-                                "colorscheme": self.colorscheme,
-                                "radius": self.radius,
-                            },
-                        }
-                    )
-                else:
-                    viewer.setStyle(
-                        {
-                            self.style: {
-                                "colorscheme": self.colorscheme,
-                                "radius": self.radius,
                             }
-                        }
-                    )
+                        )
 
-        return viewer
+            return viewer
+
+        elif backend == BACKENDS[1]:
+            raise NotImplementedError(backend)
+        elif backend == BACKENDS[2]:
+            raise NotImplementedError(backend)
 
 
 class setSurface(ModuleBase):
@@ -574,7 +597,6 @@ class setSurface(ModuleBase):
         color=None,
         colorscheme=None,
     ):
-
         if not residue_selector:
             residue_selector = TrueResidueSelector()
         elif not isinstance(residue_selector, ResidueSelector):
@@ -583,14 +605,12 @@ class setSurface(ModuleBase):
             raise ValueError(
                 "Input surface_type argument must be one of the strings: 'VDW', 'MS', 'SES', 'SAS'"
             )
-
         _surface_types_dict = {
             "VDW": py3Dmol.VDW,
             "MS": py3Dmol.MS,
             "SES": py3Dmol.SES,
             "SAS": py3Dmol.SAS,
         }
-
         self.residue_selector = residue_selector
         self.surface_type = _surface_types_dict[surface_type]
         self.opacity = opacity
@@ -598,36 +618,41 @@ class setSurface(ModuleBase):
         self.colorscheme = colorscheme
 
     @pyrosetta.distributed.requires_init
-    def apply(self, viewer, pose, pdbstring):
+    def apply(self, viewer, pose, pdbstring, backend):
+        if backend == BACKENDS[0]:
+            if pose is not None:
+                pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        if pose is not None:
-            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+            resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
 
-        resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
-
-        if (not resi) and (not chain):
-            pass
-        else:
-            if self.colorscheme:
-                viewer.addSurface(
-                    self.surface_type,
-                    {"opacity": self.opacity, "colorscheme": self.colorscheme},
-                    {"resi": resi, "chain": chain},
-                )
-            elif self.color:
-                viewer.addSurface(
-                    self.surface_type,
-                    {"opacity": self.opacity, "color": self.color},
-                    {"resi": resi, "chain": chain},
-                )
+            if (not resi) and (not chain):
+                pass
             else:
-                viewer.addSurface(
-                    self.surface_type,
-                    {"opacity": self.opacity},
-                    {"resi": resi, "chain": chain},
-                )
+                if self.colorscheme:
+                    viewer.addSurface(
+                        self.surface_type,
+                        {"opacity": self.opacity, "colorscheme": self.colorscheme},
+                        {"resi": resi, "chain": chain},
+                    )
+                elif self.color:
+                    viewer.addSurface(
+                        self.surface_type,
+                        {"opacity": self.opacity, "color": self.color},
+                        {"resi": resi, "chain": chain},
+                    )
+                else:
+                    viewer.addSurface(
+                        self.surface_type,
+                        {"opacity": self.opacity},
+                        {"resi": resi, "chain": chain},
+                    )
 
-        return viewer
+            return viewer
+
+        elif backend == BACKENDS[1]:
+            raise NotImplementedError(backend)
+        elif backend == BACKENDS[2]:
+            raise NotImplementedError(backend)
 
 
 class setZoom(ModuleBase):
@@ -652,11 +677,15 @@ class setZoom(ModuleBase):
 
         self.factor = factor
 
-    def apply(self, viewer, pose, pdbstring):
+    def apply(self, viewer, pose, pdbstring, backend):
+        if backend == BACKENDS[0]:
+            viewer.zoom(self.factor)
+            return viewer
 
-        viewer.zoom(self.factor)
-
-        return viewer
+        elif backend == BACKENDS[1]:
+            raise NotImplementedError(backend)
+        elif backend == BACKENDS[2]:
+            raise NotImplementedError(backend)
 
 
 class setZoomTo(ModuleBase):
@@ -677,7 +706,6 @@ class setZoomTo(ModuleBase):
     """
 
     def __init__(self, residue_selector=None):
-
         if not residue_selector:
             residue_selector = TrueResidueSelector()
         elif not isinstance(residue_selector, ResidueSelector):
@@ -686,16 +714,21 @@ class setZoomTo(ModuleBase):
         self.residue_selector = residue_selector
 
     @pyrosetta.distributed.requires_init
-    def apply(self, viewer, pose, pdbstring):
+    def apply(self, viewer, pose, pdbstring, backend):
+        if backend == BACKENDS[0]:
+            if pose is not None:
+                pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        if pose is not None:
-            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+            resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
 
-        resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
+            if (not resi) and (not chain):
+                pass
+            else:
+                viewer.zoomTo({"resi": resi, "chain": chain})
 
-        if (not resi) and (not chain):
-            pass
-        else:
-            viewer.zoomTo({"resi": resi, "chain": chain})
+            return viewer
 
-        return viewer
+        elif backend == BACKENDS[1]:
+            raise NotImplementedError(backend)
+        elif backend == BACKENDS[2]:
+            raise NotImplementedError(backend)

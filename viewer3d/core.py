@@ -79,7 +79,12 @@ class Py3DmolViewer(ViewerBase):
             _viewer.zoomTo()
 
             for module in self.modules:
-                _viewer = module.apply(viewer=_viewer, pose=_pose, pdbstring=_pdbstring)
+                _viewer = module.apply(
+                    viewer=_viewer,
+                    pose=_pose,
+                    pdbstring=_pdbstring,
+                    backend=self.backend,
+                )
 
             self._clear_output()
 
