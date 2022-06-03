@@ -8,22 +8,22 @@ except ImportError:
     _logger.error("IPython.core.display or IPython.display module cannot be imported.")
 from typing import Generic, Tuple, TypeVar
 
+from viewer3d.config import BACKENDS
 
 _logger = logging.getLogger("viewer3d.base")
-
-BACKENDS: Tuple[str, str, str] = ("py3Dmol", "nglview", "pymol")
 
 
 @attr.s(kw_only=False, slots=False, frozen=False)
 class ViewerBase:
     def __attrs_pre_init__(self):
+        # self.reinit()
         self._toggle_scrolling()
 
-    def __add__(self, other, *args, **kwargs):
-
-        self.modules += [other]
-
-        return self
+    # def __add__(self, other):
+    #
+    #     self.modules += [other]
+    #
+    #     return self
 
     def __radd__(self, other):
 

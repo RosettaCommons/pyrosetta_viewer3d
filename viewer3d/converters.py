@@ -1,6 +1,7 @@
 import logging
 import pyrosetta
 import pyrosetta.distributed.io as io
+import os
 
 from functools import singledispatch
 from pyrosetta import Pose

@@ -8,16 +8,15 @@ import time
 
 from pyrosetta.rosetta.core.pose import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
-from typing import Iterable, Tuple, TypeVar, Union
+from typing import Iterable, Tuple, Union
 
+from viewer3d.config import BACKENDS
 from viewer3d.converters import _to_float, _to_poses_pdbstrings
 from viewer3d.validators import _validate_int_float, _validate_window_size
-from viewer3d.base import BACKENDS
 from viewer3d.modules import ModuleBase
 
 
 _logger = logging.getLogger("viewer3d.core")
-ModuleType = TypeVar("M", bound=ModuleBase)
 import py3Dmol
 
 try:
@@ -60,6 +59,21 @@ class Py3DmolViewer(ViewerBase):
                     + "https://pypi.org/project/py3Dmol/\n"
                 )
                 raise
+
+    def __add__(self, other):
+
+        self.modules += [other]
+
+        #        return self
+        return Py3DmolViewer(
+            poses=self.poses,
+            pdbstrings=self.pdbstrings,
+            window_size=self.window_size,
+            modules=self.modules,
+            delay=self.delay,
+            continuous_update=self.continuous_update,
+            backend=self.backend,
+        )
 
     def show(self):
         """Display Viewer in Jupyter notebook."""
@@ -186,7 +200,7 @@ class SetupViewer:
         type=list,
         default=None,
         validator=attr.validators.deep_iterable(
-            member_validator=attr.validators.instance_of(ModuleType),
+            member_validator=attr.validators.instance_of(ModuleBase),
             iterable_validator=attr.validators.instance_of(collections.abc.Iterable),
         ),
         converter=attr.converters.default_if_none(default=[]),
@@ -216,23 +230,18 @@ class SetupViewer:
         self.poses, self.pdbstrings = _to_poses_pdbstrings(
             self.packed_and_poses_and_pdbs
         )
+        self.viewer_kwargs = attr.asdict(self)
+        self.viewer_kwargs.pop("packed_and_poses_and_pdbs", None)
+        self.viewer_kwargs["poses"] = self.poses
+        self.viewer_kwargs["pdbstrings"] = self.pdbstrings
 
     def initialize_viewer(self):
-        viewer_kwargs = dict(
-            poses=self.poses,
-            pdbstrings=self.pdbstrings,
-            window_size=self.window_size,
-            modules=self.modules,
-            delay=self.delay,
-            continuous_update=self.continuous_update,
-            backend=self.backend,
-        )
         if self.backend == BACKENDS[0]:
-            return Py3DmolViewer(**viewer_kwargs)
+            return Py3DmolViewer(**self.viewer_kwargs)
         elif self.backend == BACKENDS[1]:
-            return NGLviewViewer(**viewer_kwargs)
+            return NGLviewViewer(**self.viewer_kwargs)
         elif self.backend == BACKENDS[2]:
-            return PyMOLViewer(**viewer_kwargs)
+            return PyMOLViewer(**self.viewer_kwargs)
 
 
 def init(
