@@ -124,6 +124,7 @@ class NGLviewViewer(ViewerBase):
                 raise ViewerImportError(
                     self.backend, "https://pypi.org/project/nglview/"
                 )
+        self.nglview = sys.modules[self.backend]
 
         raise NotImplementedError(
             f"{self.__class__.__name__} is not currently supported."
@@ -148,6 +149,7 @@ class PyMOLViewer(ViewerBase):
                 raise ViewerImportError(
                     self.backend, "https://anaconda.org/schrodinger/pymol"
                 )
+        self.pymol = sys.modules[self.backend]
 
         raise NotImplementedError(
             f"{self.__class__.__name__} is not currently supported."
