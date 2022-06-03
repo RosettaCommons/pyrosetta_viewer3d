@@ -121,7 +121,6 @@ class NGLviewViewer(ViewerBase):
     backend = attr.ib(type=str)
 
     def __attrs_post_init__(self):
-        # super().__init__()
         if self.backend not in sys.modules:
             try:
                 import nglview

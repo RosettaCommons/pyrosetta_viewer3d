@@ -15,6 +15,7 @@ from pyrosetta.rosetta.core.select import get_residues_from_subset
 
 from viewer3d.exceptions import ViewerInputError
 
+
 _logger = logging.getLogger("viewer3d.converters")
 
 

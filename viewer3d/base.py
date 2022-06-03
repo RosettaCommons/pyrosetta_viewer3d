@@ -10,6 +10,7 @@ from typing import Generic, Tuple, TypeVar
 
 from viewer3d.config import BACKENDS
 
+
 _logger = logging.getLogger("viewer3d.base")
 
 

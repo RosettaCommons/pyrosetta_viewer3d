@@ -1,4 +1,5 @@
 import glob
+import logging
 import os
 import pyrosetta
 import pyrosetta.distributed.io as io
@@ -12,6 +13,9 @@ from pyrosetta.rosetta.core.select.residue_selector import (
     ResiduePropertySelector,
     SecondaryStructureSelector,
 )
+
+
+_logger = logging.getLogger("viewer3d.tests.test_viewer")
 
 
 class TestViewer(unittest.TestCase):

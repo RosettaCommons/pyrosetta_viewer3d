@@ -2,7 +2,6 @@ class ViewerInputError(Exception):
     """Exception raised for errors with the input argument `packed_and_poses_and_pdbs`."""
 
     def __init__(self, obj):
-
         super().__init__(
             " ".join(
                 "Input argument 'packed_and_poses_and_pdbs' should be an instance of \
@@ -19,7 +18,6 @@ class ModuleInputError(Exception):
     """Exception raised for errors with the input argument `residue_selector`."""
 
     def __init__(self, obj):
-
         super().__init__(
             " ".join(
                 "Input 'residue_selector' argument should be an instance of \

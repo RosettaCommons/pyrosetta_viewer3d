@@ -8,6 +8,7 @@ from pyrosetta.rosetta.core.select.residue_selector import (
     ResidueSelector,
     TrueResidueSelector,
 )
+
 from viewer3d.config import BACKENDS
 from viewer3d.converters import _pdbstring_to_pose, _pose_to_residue_chain_tuples
 from viewer3d.exceptions import ModuleInputError
