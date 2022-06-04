@@ -614,7 +614,8 @@ class setSurface(ModuleBase):
     @pyrosetta.distributed.requires_init
     def apply(self, viewer, pose, pdbstring, backend):
         if backend == BACKENDS[0]:
-            self.py3Dmol = sys.modules[backend]
+            if not hasattr(self, backend):
+                self.py3Dmol = sys.modules[backend]
             _surface_types_dict = {
                 "VDW": self.py3Dmol.VDW,
                 "MS": self.py3Dmol.MS,
