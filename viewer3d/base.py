@@ -1,4 +1,5 @@
 import attr
+import math
 import logging
 
 try:
@@ -70,7 +71,7 @@ class ViewerBase:
                     }
                     </style>
             """
-                % numpy.ceil(_window_size[1])
+                % math.ceil(_window_size[1])
             )
         except NameError as e:
             _logger.debug(e)

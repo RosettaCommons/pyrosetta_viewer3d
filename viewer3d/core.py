@@ -16,20 +16,7 @@ def _import_backend(backend, BACKENDS):
         import pymol
 
 
-try:
-    import numpy
-    from ipywidgets import interact, IntSlider
-except ImportError:
-    print(
-        "Importing 'viewer3d' requires the third-party packages "
-        + "'numpy', and 'ipywidgets' as dependencies!\n"
-        + "Please install these packages into your python environment. "
-        + "For installation instructions, visit:\n"
-        + "https://pypi.org/project/numpy/\n"
-        + "https://ipywidgets.readthedocs.io/en/latest/user_install.html"
-    )
-    raise
-
+from ipywidgets import interact, IntSlider
 from pyrosetta.rosetta.core.pose import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
 from typing import Iterable, Tuple, Union
