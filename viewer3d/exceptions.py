@@ -1,5 +1,7 @@
 import os
 
+from viewer3d.config import BACKENDS
+
 
 class ModuleInputError(Exception):
     """Exception raised for errors with the input argument `residue_selector`."""
@@ -26,12 +28,17 @@ class ModuleNotImplementedError(NotImplementedError):
 class ViewerImportError(ImportError):
     """Exception raised upon importing backends."""
 
-    def __init__(self, backend, url):
+    def __init__(self, backend):
+        _backend_urls = {
+            BACKENDS[0]: "https://pypi.org/project/py3Dmol/",
+            BACKENDS[1]: "https://pypi.org/project/nglview/",
+            BACKENDS[2]: "https://anaconda.org/schrodinger/pymol/",
+        }
         super().__init__(
             f"Using the '{backend}' backend requires the third-party package `{backend}`.{os.linesep}"
             + "Please install the package into your python environment. "
             + f"For installation instructions, visit:{os.linesep}"
-            + f"{url}{os.linesep}"
+            + f"{_backend_urls[backend]}{os.linesep}"
         )
 
 

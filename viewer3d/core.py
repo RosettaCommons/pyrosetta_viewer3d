@@ -3,17 +3,7 @@ import collections
 import logging
 import os
 import pyrosetta.distributed.io as io
-import sys
 import time
-
-
-def _import_backend(backend, BACKENDS):
-    if backend == BACKENDS[0]:
-        import py3Dmol
-    elif backend == BACKENDS[1]:
-        import nglview
-    elif backend == BACKENDS[2]:
-        import pymol
 
 
 from ipywidgets import interact, IntSlider
@@ -24,7 +14,6 @@ from typing import Iterable, Tuple, Union
 from viewer3d.base import ViewerBase
 from viewer3d.config import BACKENDS
 from viewer3d.converters import _to_float, _to_poses_pdbstrings
-from viewer3d.exceptions import ViewerImportError
 from viewer3d.modules import ModuleBase
 from viewer3d.validators import _validate_int_float, _validate_window_size
 
@@ -44,14 +33,7 @@ class Py3DmolViewer(ViewerBase):
 
     def __attrs_post_init__(self):
         self._toggle_window(self.window_size)
-        if self.backend not in sys.modules:
-            try:
-                _import_backend(self.backend, BACKENDS)
-            except ImportError:
-                raise ViewerImportError(
-                    self.backend, "https://pypi.org/project/py3Dmol/"
-                )
-        self.py3Dmol = sys.modules[self.backend]
+        self.py3Dmol = self._maybe_import_backend()
         self.surface_types_dict = {
             "VDW": self.py3Dmol.VDW,
             "MS": self.py3Dmol.MS,
@@ -120,14 +102,7 @@ class NGLviewViewer(ViewerBase):
 
     def __attrs_post_init__(self):
         self._toggle_window(self.window_size)
-        if self.backend not in sys.modules:
-            try:
-                _import_backend(self.backend, BACKENDS)
-            except ImportError:
-                raise ViewerImportError(
-                    self.backend, "https://pypi.org/project/nglview/"
-                )
-        self.nglview = sys.modules[self.backend]
+        self.nglview = self._maybe_import_backend()
 
         raise NotImplementedError(
             f"{self.__class__.__name__} is not currently supported."
@@ -180,14 +155,7 @@ class PyMOLViewer(ViewerBase):
     backend = attr.ib(type=str)
 
     def __attrs_post_init__(self):
-        if self.backend not in sys.modules:
-            try:
-                _import_backend(self.backend, BACKENDS)
-            except ImportError:
-                raise ViewerImportError(
-                    self.backend, "https://anaconda.org/schrodinger/pymol"
-                )
-        self.pymol = sys.modules[self.backend]
+        self.pymol = self._maybe_import_backend()
 
         raise NotImplementedError(
             f"{self.__class__.__name__} is not currently supported."

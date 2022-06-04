@@ -1,6 +1,7 @@
 import attr
 import math
 import logging
+import sys
 
 try:
     from IPython.core.display import display, HTML
@@ -9,7 +10,8 @@ except ImportError:
     _logger.error("IPython.core.display or IPython.display module cannot be imported.")
 from typing import Generic, Tuple, TypeVar
 
-from viewer3d.config import BACKENDS
+from viewer3d.config import _import_backend
+from viewer3d.exceptions import ViewerImportError
 
 
 _logger = logging.getLogger("viewer3d.base")
@@ -19,6 +21,15 @@ _logger = logging.getLogger("viewer3d.base")
 class ViewerBase:
     def __attrs_pre_init__(self):
         self._toggle_scrolling()
+
+    def _maybe_import_backend(self):
+        if self.backend not in sys.modules:
+            try:
+                _import_backend(self.backend)
+            except ImportError:
+                raise ViewerImportError(self.backend)
+
+        return sys.modules[self.backend]
 
     def __add__(self, other):
         self.modules += [other]
