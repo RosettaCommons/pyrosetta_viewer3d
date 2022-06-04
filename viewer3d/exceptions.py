@@ -1,6 +1,6 @@
 import os
 
-from viewer3d.config import BACKENDS
+from viewer3d.config import BACKENDS, URLS
 
 
 class ModuleInputError(Exception):
@@ -29,11 +29,7 @@ class ViewerImportError(ImportError):
     """Exception raised upon importing backends."""
 
     def __init__(self, backend):
-        _backend_urls = {
-            BACKENDS[0]: "https://pypi.org/project/py3Dmol/",
-            BACKENDS[1]: "https://pypi.org/project/nglview/",
-            BACKENDS[2]: "https://anaconda.org/schrodinger/pymol/",
-        }
+        _backend_urls = dict(zip(BACKENDS, URLS))
         super().__init__(
             f"Using the '{backend}' backend requires the third-party package `{backend}`.{os.linesep}"
             + "Please install the package into your python environment. "
