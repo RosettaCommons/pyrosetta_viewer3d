@@ -9,6 +9,7 @@ from pyrosetta.rosetta.core.select.residue_selector import (
     TrueResidueSelector,
 )
 
+from viewer3d.config import BACKENDS
 from viewer3d.converters import _pdbstring_to_pose, _pose_to_residue_chain_tuples
 from viewer3d.exceptions import ModuleInputError, ModuleNotImplementedError
 
@@ -45,10 +46,10 @@ class setBackgroundColor(ModuleBase):
         return viewer
 
     def apply_nglview(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
 class setDisulfides(ModuleBase):
@@ -117,10 +118,10 @@ class setDisulfides(ModuleBase):
         return viewer
 
     def apply_nglview(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
 class setHydrogenBonds(ModuleBase):
@@ -221,10 +222,10 @@ class setHydrogenBonds(ModuleBase):
         return viewer
 
     def apply_nglview(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
 class setHydrogens(ModuleBase):
@@ -301,10 +302,10 @@ class setHydrogens(ModuleBase):
         return viewer
 
     def apply_nglview(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
 class setStyle(ModuleBase):
@@ -520,10 +521,10 @@ class setStyle(ModuleBase):
         return viewer
 
     def apply_nglview(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
 class setSurface(ModuleBase):
@@ -640,10 +641,10 @@ class setSurface(ModuleBase):
         return viewer
 
     def apply_nglview(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
 class setZoom(ModuleBase):
@@ -672,10 +673,10 @@ class setZoom(ModuleBase):
         return viewer
 
     def apply_nglview(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
 class setZoomTo(ModuleBase):
@@ -718,7 +719,7 @@ class setZoomTo(ModuleBase):
         return viewer
 
     def apply_nglview(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
