@@ -24,12 +24,12 @@ from typing import Dict, Optional, Tuple, Union
 _logger = logging.getLogger("viewer3d.modules")
 
 
-@attr.s(kw_only=True, slots=True, frozen=False)
+@attr.s(kw_only=False, slots=True)
 class ModuleBase:
     pass
 
 
-@attr.s(kw_only=False, slots=False, frozen=False)
+@attr.s(kw_only=False, slots=True)
 class setBackgroundColor(ModuleBase):
     """
     Set Viewer background color with either Hexcode or standard colors.
@@ -65,7 +65,7 @@ class setBackgroundColor(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
-@attr.s(kw_only=False, slots=False, frozen=False)
+@attr.s(kw_only=False, slots=True)
 class setDisulfides(ModuleBase):
     """
     Display disulfide bonds according to `pyrosetta.rosetta.core.conformation.is_disulfide_bond()`
@@ -147,7 +147,7 @@ class setDisulfides(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
-@attr.s(kw_only=False, slots=False, frozen=False)
+@attr.s(kw_only=False, slots=True)
 class setHydrogenBonds(ModuleBase):
     """
     Display hydrogen bonds according to `pyrosetta.rosetta.core.pose.Pose.get_hbonds()`
@@ -266,7 +266,7 @@ class setHydrogenBonds(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
-@attr.s(kw_only=False, slots=False, frozen=False)
+@attr.s(kw_only=False, slots=True)
 class setHydrogens(ModuleBase):
     """
     Show all or only polar hydrogen atoms in each initialized `.pdb` file, `Pose` or `PackedPose` object.
@@ -361,7 +361,7 @@ class setHydrogens(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
-@attr.s(kw_only=True, slots=False, frozen=False)
+@attr.s(kw_only=True, slots=True)
 class setStyle(ModuleBase):
     """
     Show and color cartoon, and/or show heavy atoms with provided style, color and radius for each initialized
@@ -606,7 +606,7 @@ class setStyle(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
-@attr.s(kw_only=False, slots=False, frozen=False)
+@attr.s(kw_only=False, slots=True)
 class setSurface(ModuleBase):
     """
     Show the specified surface for each initialized `.pdb` file, `Pose` or `PackedPose` object.
@@ -736,7 +736,7 @@ class setSurface(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
-@attr.s(kw_only=False, slots=False, frozen=False)
+@attr.s(kw_only=False, slots=True)
 class setZoom(ModuleBase):
     """
     Set the zoom magnification factor of each initialized `.pdb` file, `Pose` or `PackedPose` object.
@@ -772,7 +772,7 @@ class setZoom(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
-@attr.s(kw_only=False, slots=False, frozen=False)
+@attr.s(kw_only=False, slots=True)
 class setZoomTo(ModuleBase):
     """
     Zoom to a `ResidueSelector` in each initialized `.pdb` file, `Pose` or `PackedPose` object.
