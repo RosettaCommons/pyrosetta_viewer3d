@@ -6,6 +6,16 @@ import pyrosetta.distributed.io as io
 import sys
 import time
 
+
+def _import_backend(backend, BACKENDS):
+    if backend == BACKENDS[0]:
+        import py3Dmol
+    elif backend == BACKENDS[1]:
+        import nglview
+    elif backend == BACKENDS[2]:
+        import pymol
+
+
 try:
     import numpy
     from ipywidgets import interact, IntSlider
@@ -49,18 +59,23 @@ class Py3DmolViewer(ViewerBase):
         self._toggle_window(self.window_size)
         if self.backend not in sys.modules:
             try:
-                import py3Dmol
+                _import_backend(self.backend, BACKENDS)
             except ImportError:
                 raise ViewerImportError(
                     self.backend, "https://pypi.org/project/py3Dmol/"
                 )
         self.py3Dmol = sys.modules[self.backend]
+        self.surface_types_dict = {
+            "VDW": self.py3Dmol.VDW,
+            "MS": self.py3Dmol.MS,
+            "SES": self.py3Dmol.SES,
+            "SAS": self.py3Dmol.SAS,
+        }
 
     def show(self):
-        """Display Viewer in Jupyter notebook."""
+        """Display Py3DmolViewer in Jupyter notebook."""
 
         def view(i=0):
-
             _viewer = self.py3Dmol.view(
                 width=self.window_size[0],
                 height=self.window_size[1],
@@ -75,11 +90,11 @@ class Py3DmolViewer(ViewerBase):
             _viewer.zoomTo()
 
             for module in self.modules:
-                _viewer = module.apply(
-                    viewer=_viewer,
-                    pose=_pose,
-                    pdbstring=_pdbstring,
-                    backend=self.backend,
+                _viewer = module.apply_py3Dmol(
+                    _viewer,
+                    _pose,
+                    _pdbstring,
+                    surface_types_dict=self.surface_types_dict,
                 )
 
             self._clear_output()
@@ -117,9 +132,10 @@ class NGLviewViewer(ViewerBase):
     backend = attr.ib(type=str)
 
     def __attrs_post_init__(self):
+        self._toggle_window(self.window_size)
         if self.backend not in sys.modules:
             try:
-                import nglview
+                _import_backend(self.backend, BACKENDS)
             except ImportError:
                 raise ViewerImportError(
                     self.backend, "https://pypi.org/project/nglview/"
@@ -129,6 +145,42 @@ class NGLviewViewer(ViewerBase):
         raise NotImplementedError(
             f"{self.__class__.__name__} is not currently supported."
         )
+
+    def show(self):
+        """Display NGLviewViewer in Jupyter notebook."""
+
+        def view(i=0):
+            _viewer = None  # TODO
+            for module in self.modules:
+                _viewer = module.apply_nglview(
+                    _viewer,
+                    _pose,
+                    _pdbstring,
+                    surface_types_dict=self.surface_types_dict,
+                )
+
+            self._clear_output()
+
+            if _pose is not None and _pose.pdb_info() and _pose.pdb_info().name():
+                _logger.debug("Decoy {0}: {1}".format(i, _pose.pdb_info().name()))
+
+            return _viewer.show()
+
+        time.sleep(self.delay)
+
+        num_decoys = len(self.pdbstrings)
+        if num_decoys > 1:
+            s_widget = IntSlider(
+                min=0,
+                max=num_decoys - 1,
+                description="Decoys",
+                continuous_update=self.continuous_update,
+            )
+            widget = interact(view, i=s_widget)
+        else:
+            widget = view()
+
+        return widget
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
@@ -144,7 +196,7 @@ class PyMOLViewer(ViewerBase):
     def __attrs_post_init__(self):
         if self.backend not in sys.modules:
             try:
-                import pymol
+                _import_backend(self.backend, BACKENDS)
             except ImportError:
                 raise ViewerImportError(
                     self.backend, "https://anaconda.org/schrodinger/pymol"
@@ -154,6 +206,15 @@ class PyMOLViewer(ViewerBase):
         raise NotImplementedError(
             f"{self.__class__.__name__} is not currently supported."
         )
+
+    def show(self):
+        _viewer = None  # TODO
+        for module in self.modules:
+            _viewer = module.apply_pymol(
+                _viewer,
+                _pose,
+                _pdbstring,
+            )
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
