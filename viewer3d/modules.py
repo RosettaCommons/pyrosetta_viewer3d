@@ -49,7 +49,7 @@ class setBackgroundColor(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
 
 
 class setDisulfides(ModuleBase):
@@ -121,7 +121,7 @@ class setDisulfides(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
 
 
 class setHydrogenBonds(ModuleBase):
@@ -225,7 +225,7 @@ class setHydrogenBonds(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
 
 
 class setHydrogens(ModuleBase):
@@ -305,7 +305,7 @@ class setHydrogens(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
 
 
 class setStyle(ModuleBase):
@@ -524,7 +524,7 @@ class setStyle(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
 
 
 class setSurface(ModuleBase):
@@ -644,7 +644,7 @@ class setSurface(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
 
 
 class setZoom(ModuleBase):
@@ -676,7 +676,7 @@ class setZoom(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])
 
 
 class setZoomTo(ModuleBase):
@@ -722,4 +722,4 @@ class setZoomTo(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
 
     def apply_pymol(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[1])
+        raise ModuleNotImplementedError(self.__class__.name__, BACKEND[2])

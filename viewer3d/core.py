@@ -207,6 +207,7 @@ class PyMOLViewer(ViewerBase):
         )
 
     def show(self):
+        """Display PyMOLViewer."""
         _viewer = None  # TODO
         for module in self.modules:
             _viewer = module.apply_pymol(
