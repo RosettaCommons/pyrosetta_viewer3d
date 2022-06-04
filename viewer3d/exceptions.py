@@ -3,21 +3,6 @@ import os
 from viewer3d.config import BACKENDS, URLS
 
 
-class ModuleInputError(Exception):
-    """Exception raised for errors with the input argument `residue_selector`."""
-
-    def __init__(self, obj):
-        super().__init__(
-            " ".join(
-                "Input 'residue_selector' argument should be an instance of \
-                pyrosetta.rosetta.core.select.residue_selector.ResidueSelector. \
-                Input argument 'residue_selector' was invoked with: {0}".format(
-                    obj
-                ).split()
-            )
-        )
-
-
 class ModuleNotImplementedError(NotImplementedError):
     """Exception raised upon implementing backends."""
 

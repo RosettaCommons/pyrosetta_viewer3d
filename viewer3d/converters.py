@@ -76,6 +76,14 @@ _to_float.register(int, lambda obj: float(obj))
 _to_float.register(float, lambda obj: obj)
 
 
+def _to_0_if_le_0(obj):
+    return 1e-10 if isinstance(obj, (float, int)) and obj <= 0 else obj
+
+
+def _to_1_if_gt_1(obj):
+    return 1 if isinstance(obj, (float, int)) and obj > 1 else obj
+
+
 def _pose_to_residue_chain_tuples(pose, residue_selector, logger=_logger):
     """
     Given a `Pose` object and `ResidueSelector` object, return a `tuple` of `list`s containing

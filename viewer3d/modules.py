@@ -1,3 +1,4 @@
+import attr
 import logging
 import pyrosetta
 import pyrosetta.distributed
@@ -10,17 +11,25 @@ from pyrosetta.rosetta.core.select.residue_selector import (
 )
 
 from viewer3d.config import BACKENDS
-from viewer3d.converters import _pdbstring_to_pose, _pose_to_residue_chain_tuples
-from viewer3d.exceptions import ModuleInputError, ModuleNotImplementedError
+from viewer3d.converters import (
+    _pdbstring_to_pose,
+    _pose_to_residue_chain_tuples,
+    _to_0_if_le_0,
+    _to_1_if_gt_1,
+)
+from viewer3d.exceptions import ModuleNotImplementedError
 
+from typing import Dict, Optional, Tuple, Union
 
 _logger = logging.getLogger("viewer3d.modules")
 
 
+@attr.s(kw_only=True, slots=True, frozen=False)
 class ModuleBase:
     pass
 
 
+@attr.s(kw_only=False, slots=False, frozen=False)
 class setBackgroundColor(ModuleBase):
     """
     Set Viewer background color with either Hexcode or standard colors.
@@ -38,8 +47,12 @@ class setBackgroundColor(ModuleBase):
     A Viewer instance.
     """
 
-    def __init__(self, color=0xFFFFFFFF):
-        self.color = color
+    color = attr.ib(
+        default=None,
+        type=Union[str, int],
+        validator=attr.validators.instance_of((str, int)),
+        converter=attr.converters.default_if_none(default=0xFFFFFFFF),
+    )
 
     def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
         viewer.setBackgroundColor(self.color)
@@ -52,6 +65,7 @@ class setBackgroundColor(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
+@attr.s(kw_only=False, slots=False, frozen=False)
 class setDisulfides(ModuleBase):
     """
     Display disulfide bonds according to `pyrosetta.rosetta.core.conformation.is_disulfide_bond()`
@@ -76,9 +90,18 @@ class setDisulfides(ModuleBase):
     A Viewer instance.
     """
 
-    def __init__(self, color="gold", radius=0.5):
-        self.color = color
-        self.radius = radius
+    color = attr.ib(
+        default=None,
+        type=Union[str, int],
+        validator=attr.validators.instance_of((str, int)),
+        converter=attr.converters.default_if_none(default="gold"),
+    )
+    radius = attr.ib(
+        default=None,
+        type=Union[float, int],
+        validator=attr.validators.instance_of((float, int)),
+        converter=attr.converters.default_if_none(default=0.5),
+    )
 
     @pyrosetta.distributed.requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
@@ -124,6 +147,7 @@ class setDisulfides(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
+@attr.s(kw_only=False, slots=False, frozen=False)
 class setHydrogenBonds(ModuleBase):
     """
     Display hydrogen bonds according to `pyrosetta.rosetta.core.pose.Pose.get_hbonds()`
@@ -157,10 +181,24 @@ class setHydrogenBonds(ModuleBase):
     A Viewer instance.
     """
 
-    def __init__(self, color="black", dashed=True, radius=None):
-        self.color = color
-        self.dashed = dashed
-        self.radius = radius
+    color = attr.ib(
+        default=None,
+        type=Union[str, int],
+        validator=attr.validators.instance_of((str, int)),
+        converter=attr.converters.default_if_none(default="black"),
+    )
+    dashed = attr.ib(
+        default=True,
+        type=bool,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
+    radius = attr.ib(
+        default=None,
+        type=Optional[Union[float, int]],
+        validator=attr.validators.instance_of((float, int, type(None))),
+        converter=_to_0_if_le_0,
+    )
 
     @pyrosetta.distributed.requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
@@ -228,6 +266,7 @@ class setHydrogenBonds(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
+@attr.s(kw_only=False, slots=False, frozen=False)
 class setHydrogens(ModuleBase):
     """
     Show all or only polar hydrogen atoms in each initialized `.pdb` file, `Pose` or `PackedPose` object.
@@ -257,10 +296,24 @@ class setHydrogens(ModuleBase):
     A Viewer instance.
     """
 
-    def __init__(self, color="white", radius=0.05, polar_only=False):
-        self.color = color
-        self.radius = radius
-        self.polar_only = polar_only
+    color = attr.ib(
+        default=None,
+        type=Union[str, int],
+        validator=attr.validators.instance_of((str, int)),
+        converter=attr.converters.default_if_none(default="white"),
+    )
+    radius = attr.ib(
+        default=0.05,
+        type=Union[float, int],
+        validator=attr.validators.instance_of((float, int)),
+        converter=_to_0_if_le_0,
+    )
+    polar_only = attr.ib(
+        default=None,
+        type=bool,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
 
     def _addCylinder(self, _viewer, i_xyz, j_xyz):
         _viewer.addCylinder(
@@ -308,6 +361,7 @@ class setHydrogens(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
+@attr.s(kw_only=True, slots=False, frozen=False)
 class setStyle(ModuleBase):
     """
     Show and color cartoon, and/or show heavy atoms with provided style, color and radius for each initialized
@@ -408,43 +462,72 @@ class setStyle(ModuleBase):
     A Viewer instance.
     """
 
-    def __init__(
-        self,
-        residue_selector=None,
-        cartoon=True,
-        cartoon_color="spectrum",
-        style="stick",
-        colorscheme="blackCarbon",
-        radius="0.1",
-        label=True,
-        label_fontsize=12,
-        label_background=False,
-        label_fontcolor="black",
-        command=None,
-    ):
-        _valid_styles = ["line", "cross", "stick", "sphere"]
-        if not any(style == s for s in _valid_styles):
-            raise "setStyle argument 'style' must be either: {0}".format(
-                ", ".join(_valid_styles)
-            )
-
-        if residue_selector:
-            if not isinstance(residue_selector, ResidueSelector):
-                raise ModuleInputError(residue_selector)
-
-        self.residue_selector = residue_selector
-        self.cartoon = cartoon
-        self.cartoon_color = cartoon_color
-        self.style = style
-        self.colorscheme = colorscheme
-        if float(radius) == 0.0:
-            radius = 1e-10
-        self.radius = radius
-        self.label = label
-        self.label_fontsize = label_fontsize
-        self.label_background = label_background
-        self.label_fontcolor = label_fontcolor
-        self.command = command
+    residue_selector = attr.ib(
+        default=None,
+        type=Optional[ResidueSelector],
+        validator=attr.validators.instance_of((ResidueSelector, type(None))),
+    )
+    cartoon = attr.ib(
+        default=True,
+        type=bool,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
+    cartoon_color = attr.ib(
+        default=None,
+        type=Union[str, int],
+        validator=attr.validators.instance_of((str, int)),
+        converter=attr.converters.default_if_none(default="spectrum"),
+    )
+    style = attr.ib(
+        default="stick",
+        type=str,
+        validator=[
+            attr.validators.instance_of(str),
+            attr.validators.in_(("line", "cross", "stick", "sphere")),
+        ],
+    )
+    colorscheme = attr.ib(
+        default=None,
+        type=str,
+        validator=attr.validators.instance_of(str),
+        converter=attr.converters.default_if_none(default="blackCarbon"),
+    )
+    radius = attr.ib(
+        default=0.1,
+        type=Union[float, int],
+        validator=attr.validators.instance_of((float, int)),
+        converter=_to_0_if_le_0,
+    )
+    label = attr.ib(
+        default=True,
+        type=bool,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
+    label_fontsize = attr.ib(
+        default=12,
+        type=Union[float, int],
+        validator=attr.validators.instance_of((float, int)),
+        converter=_to_0_if_le_0,
+    )
+    label_background = attr.ib(
+        default=None,
+        type=bool,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
+    label_fontcolor = attr.ib(
+        default=None,
+        type=Union[str, int],
+        validator=attr.validators.instance_of((str, int)),
+        converter=attr.converters.default_if_none(default="black"),
+    )
+    command = attr.ib(
+        default=None,
+        type=Optional[Union[Tuple[Dict], Dict]],
+        validator=attr.validators.instance_of((tuple, dict, type(None))),
+    )
 
     @pyrosetta.distributed.requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
@@ -453,10 +536,6 @@ class setStyle(ModuleBase):
                 viewer.setStyle(*self.command)
             elif isinstance(self.command, dict):
                 viewer.setStyle(self.command)
-            else:
-                raise ValueError(
-                    "setStyle argument 'command' should be an instance of tuple or dict."
-                )
         else:
             if self.residue_selector:
                 if pose is not None:
@@ -527,6 +606,7 @@ class setStyle(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
+@attr.s(kw_only=False, slots=False, frozen=False)
 class setSurface(ModuleBase):
     """
     Show the specified surface for each initialized `.pdb` file, `Pose` or `PackedPose` object.
@@ -587,27 +667,36 @@ class setSurface(ModuleBase):
     A Viewer instance.
     """
 
-    def __init__(
-        self,
-        residue_selector=None,
-        surface_type="VDW",
-        opacity=0.5,
-        color=None,
-        colorscheme=None,
-    ):
-        if not residue_selector:
-            residue_selector = TrueResidueSelector()
-        elif not isinstance(residue_selector, ResidueSelector):
-            raise ModuleInputError(residue_selector)
-        if not any(surface_type == s for s in ["VDW", "MS", "SES", "SAS"]):
-            raise ValueError(
-                "Input surface_type argument must be one of the strings: 'VDW', 'MS', 'SES', 'SAS'"
-            )
-        self.residue_selector = residue_selector
-        self.surface_type = surface_type
-        self.opacity = opacity
-        self.color = color
-        self.colorscheme = colorscheme
+    residue_selector = attr.ib(
+        default=None,
+        type=ResidueSelector,
+        validator=attr.validators.instance_of(ResidueSelector),
+        converter=attr.converters.default_if_none(default=TrueResidueSelector()),
+    )
+    surface_type = attr.ib(
+        default="VDW",
+        type=str,
+        validator=[
+            attr.validators.instance_of(str),
+            attr.validators.in_(("VDW", "MS", "SES", "SAS")),
+        ],
+    )
+    opacity = attr.ib(
+        default=0.5,
+        type=Union[float, int],
+        validator=attr.validators.instance_of((float, int)),
+        converter=[_to_0_if_le_0, _to_1_if_gt_1],
+    )
+    color = attr.ib(
+        default=None,
+        type=Optional[Union[str, int]],
+        validator=attr.validators.instance_of((str, int, type(None))),
+    )
+    colorscheme = attr.ib(
+        default=None,
+        type=Optional[str],
+        validator=attr.validators.instance_of((str, type(None))),
+    )
 
     @pyrosetta.distributed.requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, surface_types_dict=None, **kwargs):
@@ -647,6 +736,7 @@ class setSurface(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
+@attr.s(kw_only=False, slots=False, frozen=False)
 class setZoom(ModuleBase):
     """
     Set the zoom magnification factor of each initialized `.pdb` file, `Pose` or `PackedPose` object.
@@ -665,8 +755,11 @@ class setZoom(ModuleBase):
     A Viewer instance.
     """
 
-    def __init__(self, factor=2):
-        self.factor = factor
+    factor = attr.ib(
+        default=2,
+        type=Union[float, int],
+        validator=attr.validators.instance_of((float, int)),
+    )
 
     def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
         viewer.zoom(self.factor)
@@ -679,6 +772,7 @@ class setZoom(ModuleBase):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
+@attr.s(kw_only=False, slots=False, frozen=False)
 class setZoomTo(ModuleBase):
     """
     Zoom to a `ResidueSelector` in each initialized `.pdb` file, `Pose` or `PackedPose` object.
@@ -696,13 +790,12 @@ class setZoomTo(ModuleBase):
     A Viewer instance.
     """
 
-    def __init__(self, residue_selector=None):
-        if not residue_selector:
-            residue_selector = TrueResidueSelector()
-        elif not isinstance(residue_selector, ResidueSelector):
-            raise ModuleInputError(residue_selector)
-
-        self.residue_selector = residue_selector
+    residue_selector = attr.ib(
+        default=None,
+        type=ResidueSelector,
+        validator=attr.validators.instance_of(ResidueSelector),
+        converter=attr.converters.default_if_none(default=TrueResidueSelector()),
+    )
 
     @pyrosetta.distributed.requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
