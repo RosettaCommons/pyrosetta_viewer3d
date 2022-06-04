@@ -156,7 +156,6 @@ class NGLviewViewer(ViewerBase):
                     _viewer,
                     _pose,
                     _pdbstring,
-                    surface_types_dict=self.surface_types_dict,
                 )
 
             self._clear_output()
