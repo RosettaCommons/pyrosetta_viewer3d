@@ -34,6 +34,10 @@ class Py3DmolViewer(ViewerBase):
     def __attrs_post_init__(self):
         self._toggle_window(self.window_size)
         self.py3Dmol = self._maybe_import_backend()
+        self.viewer = self.py3Dmol.view(
+            width=self.window_size[0],
+            height=self.window_size[1],
+        )
         self.surface_types_dict = {
             "VDW": self.py3Dmol.VDW,
             "MS": self.py3Dmol.MS,
@@ -44,36 +48,32 @@ class Py3DmolViewer(ViewerBase):
     def show(self):
         """Display Py3DmolViewer in Jupyter notebook."""
 
-        def view(i=0):
-            _viewer = self.py3Dmol.view(
-                width=self.window_size[0],
-                height=self.window_size[1],
-            )
-            _pose = self.poses[i]
-            _pdbstring = self.pdbstrings[i]
+        def update_viewer(_pose, _pdbstring):
+            time.sleep(self.delay)
+            self.viewer.removeAllLabels()
+            self.viewer.removeAllModels()
+            self.viewer.removeAllShapes()
+            self.viewer.removeAllSurfaces()
 
             if _pose is not None:
-                _viewer.addModels(io.to_pdbstring(_pose), "pdb")
+                self.viewer.addModels(io.to_pdbstring(_pose), "pdb")
             else:
-                _viewer.addModels(_pdbstring, "pdb")
-            _viewer.zoomTo()
+                self.viewer.addModels(_pdbstring, "pdb")
 
             for module in self.modules:
-                _viewer = module.apply_py3Dmol(
-                    _viewer,
+                self.viewer = module.apply_py3Dmol(
+                    self.viewer,
                     _pose,
                     _pdbstring,
                     surface_types_dict=self.surface_types_dict,
                 )
 
-            self._clear_output()
+            return self.viewer.update()
 
-            if _pose is not None and _pose.pdb_info() and _pose.pdb_info().name():
-                _logger.debug("Decoy {0}: {1}".format(i, _pose.pdb_info().name()))
-
-            return _viewer.show()
-
-        time.sleep(self.delay)
+        def view(i=0):
+            _pose = self.poses[i]
+            _pdbstring = self.pdbstrings[i]
+            return update_viewer(_pose, _pdbstring)
 
         num_decoys = len(self.pdbstrings)
         if num_decoys > 1:
@@ -86,6 +86,8 @@ class Py3DmolViewer(ViewerBase):
             widget = interact(view, i=s_widget)
         else:
             widget = view()
+
+        self.viewer.show()
 
         return widget
 
