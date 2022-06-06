@@ -1,0 +1,14 @@
+name: viewer3d
+channels:
+  - defaults
+dependencies:
+  - attrs=21.4.0
+  - ipywidgets=7.6.0
+  - jupyter=1.0.0
+  - conda-forge::pymol-open-source=2.5.0
+  - pip=21.2.4
+  - pyrosetta=2022.20+release.1eb2c329089
+  - python=3.8.13
+  - pip:
+    - py3Dmol==1.8.0
+    - nglview==3.0.3
