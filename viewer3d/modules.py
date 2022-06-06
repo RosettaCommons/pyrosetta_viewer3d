@@ -56,12 +56,13 @@ class setBackgroundColor(ModuleBase):
 
     def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
         viewer.setBackgroundColor(self.color)
+
         return viewer
 
     def apply_nglview(self, viewer, pose, pdbstring, **kwargs):
         viewer.background = self.color
+
         return viewer
-        # raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
