@@ -6,7 +6,6 @@ import pyrosetta.distributed.io as io
 import time
 
 
-from ipywidgets import interact, IntSlider
 from pyrosetta.rosetta.core.pose import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
 from typing import Iterable, Tuple, Union
@@ -25,6 +24,7 @@ _logger = logging.getLogger("viewer3d.core")
 class Py3DmolViewer(ViewerBase):
     poses = attr.ib(type=Pose)
     pdbstrings = attr.ib(type=PackedPose)
+    n_decoys = attr.ib(type=int)
     window_size = attr.ib(type=Tuple[Union[int, float]])
     modules = attr.ib(type=list)
     delay = attr.ib(type=float)
@@ -34,10 +34,6 @@ class Py3DmolViewer(ViewerBase):
     def __attrs_post_init__(self):
         self._toggle_window(self.window_size)
         self.py3Dmol = self._maybe_import_backend()
-        self.viewer = self.py3Dmol.view(
-            width=self.window_size[0],
-            height=self.window_size[1],
-        )
         self.surface_types_dict = {
             "VDW": self.py3Dmol.VDW,
             "MS": self.py3Dmol.MS,
@@ -45,48 +41,35 @@ class Py3DmolViewer(ViewerBase):
             "SAS": self.py3Dmol.SAS,
         }
 
+    def update_viewer(self, _pose, _pdbstring):
+        time.sleep(self.delay)
+        self.viewer.removeAllLabels()
+        self.viewer.removeAllModels()
+        self.viewer.removeAllShapes()
+        self.viewer.removeAllSurfaces()
+
+        if _pose is not None:
+            self.viewer.addModels(io.to_pdbstring(_pose), "pdb")
+        else:
+            self.viewer.addModels(_pdbstring, "pdb")
+
+        for module in self.modules:
+            self.viewer = module.apply_py3Dmol(
+                self.viewer,
+                _pose,
+                _pdbstring,
+                surface_types_dict=self.surface_types_dict,
+            )
+
+        return self.viewer.update()
+
     def show(self):
         """Display Py3DmolViewer in Jupyter notebook."""
-
-        def update_viewer(_pose, _pdbstring):
-            time.sleep(self.delay)
-            self.viewer.removeAllLabels()
-            self.viewer.removeAllModels()
-            self.viewer.removeAllShapes()
-            self.viewer.removeAllSurfaces()
-
-            if _pose is not None:
-                self.viewer.addModels(io.to_pdbstring(_pose), "pdb")
-            else:
-                self.viewer.addModels(_pdbstring, "pdb")
-
-            for module in self.modules:
-                self.viewer = module.apply_py3Dmol(
-                    self.viewer,
-                    _pose,
-                    _pdbstring,
-                    surface_types_dict=self.surface_types_dict,
-                )
-
-            return self.viewer.update()
-
-        def view(i=0):
-            _pose = self.poses[i]
-            _pdbstring = self.pdbstrings[i]
-            return update_viewer(_pose, _pdbstring)
-
-        num_decoys = len(self.pdbstrings)
-        if num_decoys > 1:
-            s_widget = IntSlider(
-                min=0,
-                max=num_decoys - 1,
-                description="Decoys",
-                continuous_update=self.continuous_update,
-            )
-            widget = interact(view, i=s_widget)
-        else:
-            widget = view()
-
+        self.viewer = self.py3Dmol.view(
+            width=self.window_size[0],
+            height=self.window_size[1],
+        )
+        widget = self.get_decoy_widget()
         self.viewer.show()
 
         return widget
@@ -96,6 +79,7 @@ class Py3DmolViewer(ViewerBase):
 class NGLviewViewer(ViewerBase):
     poses = attr.ib(type=Pose)
     pdbstrings = attr.ib(type=PackedPose)
+    n_decoys = attr.ib(type=int)
     window_size = attr.ib(type=Tuple[Union[int, float]])
     modules = attr.ib(type=list)
     delay = attr.ib(type=float)
@@ -103,45 +87,35 @@ class NGLviewViewer(ViewerBase):
     backend = attr.ib(type=str)
 
     def __attrs_post_init__(self):
-        # self._toggle_window(self.window_size)
         self.nglview = self._maybe_import_backend()
+        self.viewer = self.nglview.widget.NGLWidget()
+
+    def update_viewer(self, _pose, _pdbstring):
+        time.sleep(self.delay)
+
+        for component_id in self.viewer._ngl_component_ids:
+            self.viewer.remove_component(component_id)
+
+        if _pose is not None:
+            self.structure = self.nglview.adaptor.RosettaStructure(_pose)
+            self.viewer.add_structure(self.structure)
+        else:
+            raise NotImplementedError(
+                f"PDB strings are currently not supported using the `{backend}` backend."
+            )
+
+        for module in self.modules:
+            self.viewer = module.apply_nglview(
+                self.viewer,
+                _pose,
+                _pdbstring,
+            )
 
     def show(self):
         """Display NGLviewViewer in Jupyter notebook."""
-
-        def view(i=0):
-            _pose = self.poses[i]
-            _pdbstring = self.pdbstrings[i]
-
-            if _pose is not None:
-                _viewer = self.nglview.show_rosetta(_pose)
-            else:
-                raise NotImplementedError(
-                    f"PDB strings are currently not supported using the `{backend}` backend."
-                )
-
-            for module in self.modules:
-                _viewer = module.apply_nglview(
-                    _viewer,
-                    _pose,
-                    _pdbstring,
-                )
-
-            return _viewer.display(gui=True)
-
-        time.sleep(self.delay)
-
-        num_decoys = len(self.pdbstrings)
-        if num_decoys > 1:
-            s_widget = IntSlider(
-                min=0,
-                max=num_decoys - 1,
-                description="Decoys",
-                continuous_update=self.continuous_update,
-            )
-            widget = interact(view, i=s_widget)
-        else:
-            widget = view()
+        widget = self.get_decoy_widget()
+        self.viewer.display(gui=True, style="ngl")
+        self.viewer._ipython_display_()
 
         return widget
 
@@ -150,6 +124,7 @@ class NGLviewViewer(ViewerBase):
 class PyMOLViewer(ViewerBase):
     poses = attr.ib(type=Pose)
     pdbstrings = attr.ib(type=PackedPose)
+    n_decoys = attr.ib(type=int)
     window_size = attr.ib(type=Tuple[Union[int, float]])
     modules = attr.ib(type=list)
     delay = attr.ib(type=float)
@@ -162,6 +137,9 @@ class PyMOLViewer(ViewerBase):
         raise NotImplementedError(
             f"{self.__class__.__name__} is not currently supported."
         )
+
+    def update_viewer(self, _pose, _pdbstring):
+        pass
 
     def show(self):
         """Display PyMOLViewer."""
@@ -230,6 +208,7 @@ class SetupViewer:
         self.poses, self.pdbstrings = _to_poses_pdbstrings(
             self.packed_and_poses_and_pdbs
         )
+        self.n_decoys = len(self.pdbstrings)
         self.viewer_kwargs = dict(
             poses=self.poses,
             pdbstrings=self.pdbstrings,
@@ -238,6 +217,7 @@ class SetupViewer:
             delay=self.delay,
             continuous_update=self.continuous_update,
             backend=self.backend,
+            n_decoys=self.n_decoys,
         )
 
     def initialize_viewer(self):

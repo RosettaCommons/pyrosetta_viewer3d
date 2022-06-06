@@ -3,6 +3,8 @@ import math
 import logging
 import sys
 
+from ipywidgets import interact, IntSlider
+
 try:
     from IPython.core.display import display, HTML
     from IPython.display import clear_output
@@ -30,6 +32,26 @@ class ViewerBase:
                 raise ViewerImportError(self.backend)
 
         return sys.modules[self.backend]
+
+    def view(self, i=0):
+        _pose = self.poses[i]
+        _pdbstring = self.pdbstrings[i]
+
+        return self.update_viewer(_pose, _pdbstring)
+
+    def get_decoy_widget(self):
+        if self.n_decoys > 1:
+            s_widget = IntSlider(
+                min=0,
+                max=self.n_decoys - 1,
+                description="Decoys",
+                continuous_update=self.continuous_update,
+            )
+            widget = interact(self.view, i=s_widget)
+        else:
+            widget = self.view()
+
+        return widget
 
     def __add__(self, other):
         self.modules += [other]
