@@ -101,18 +101,23 @@ class NGLviewViewer(ViewerBase):
     backend = attr.ib(type=str)
 
     def __attrs_post_init__(self):
-        self._toggle_window(self.window_size)
+        # self._toggle_window(self.window_size)
         self.nglview = self._maybe_import_backend()
-
-        raise NotImplementedError(
-            f"{self.__class__.__name__} is not currently supported."
-        )
 
     def show(self):
         """Display NGLviewViewer in Jupyter notebook."""
 
         def view(i=0):
-            _viewer = None  # TODO
+            _pose = self.poses[i]
+            _pdbstring = self.pdbstrings[i]
+
+            if _pose is not None:
+                _viewer = self.nglview.show_rosetta(_pose)
+            else:
+                raise NotImplementedError(
+                    f"PDB strings are currently not supported using the `{backend}` backend."
+                )
+
             for module in self.modules:
                 _viewer = module.apply_nglview(
                     _viewer,
@@ -120,12 +125,7 @@ class NGLviewViewer(ViewerBase):
                     _pdbstring,
                 )
 
-            self._clear_output()
-
-            if _pose is not None and _pose.pdb_info() and _pose.pdb_info().name():
-                _logger.debug("Decoy {0}: {1}".format(i, _pose.pdb_info().name()))
-
-            return _viewer.show()
+            return _viewer.display(gui=True)
 
         time.sleep(self.delay)
 
