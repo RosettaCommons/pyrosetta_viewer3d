@@ -97,12 +97,10 @@ class NGLviewViewer(ViewerBase):
             self.viewer.remove_component(component_id)
 
         if _pose is not None:
-            self.structure = self.nglview.adaptor.RosettaStructure(_pose)
-            self.viewer.add_structure(self.structure)
+            structure = self.nglview.adaptor.RosettaStructure(_pose)
         else:
-            raise NotImplementedError(
-                f"PDB strings are currently not supported using the `{backend}` backend."
-            )
+            structure = self.nglview.adaptor.TextStructure(_pdbstring, ext="pdb")
+        self.viewer.add_structure(structure)
 
         for module in self.modules:
             self.viewer = module.apply_nglview(
