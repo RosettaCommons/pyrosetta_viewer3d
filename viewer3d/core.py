@@ -42,6 +42,7 @@ class Py3DmolViewer(ViewerBase):
         }
 
     def update_viewer(self, _pose, _pdbstring):
+        """Update Py3DmolViewer in Jupyter notebook."""
         time.sleep(self.delay)
         self.viewer.removeAllLabels()
         self.viewer.removeAllModels()
@@ -91,6 +92,7 @@ class NGLviewViewer(ViewerBase):
         self.viewer = self.nglview.widget.NGLWidget()
 
     def update_viewer(self, _pose, _pdbstring):
+        """Update NGLviewViewer in Jupyter notebook."""
         time.sleep(self.delay)
 
         for component_id in self.viewer._ngl_component_ids:
@@ -137,6 +139,7 @@ class PyMOLViewer(ViewerBase):
         )
 
     def update_viewer(self, _pose, _pdbstring):
+        """Update PyMOLViewer."""
         pass
 
     def show(self):
