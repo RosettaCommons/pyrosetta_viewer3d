@@ -108,7 +108,7 @@ class setDisulfides(ModuleBase):
 
     @pyrosetta.distributed.requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
-        if pose is not None:
+        if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         cys_res = []
@@ -205,7 +205,7 @@ class setHydrogenBonds(ModuleBase):
 
     @pyrosetta.distributed.requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
-        if pose is not None:
+        if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         hbond_set = pose.get_hbonds()
@@ -333,7 +333,7 @@ class setHydrogens(ModuleBase):
 
     @pyrosetta.distributed.requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
-        if pose is not None:
+        if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         if pose.is_fullatom():
@@ -541,7 +541,7 @@ class setStyle(ModuleBase):
                 viewer.setStyle(self.command)
         else:
             if self.residue_selector:
-                if pose is not None:
+                if pose is None:
                     pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
                 resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
@@ -703,7 +703,7 @@ class setSurface(ModuleBase):
 
     @pyrosetta.distributed.requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, surface_types_dict=None, **kwargs):
-        if pose is not None:
+        if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
@@ -802,7 +802,7 @@ class setZoomTo(ModuleBase):
 
     @pyrosetta.distributed.requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
-        if pose is not None:
+        if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)

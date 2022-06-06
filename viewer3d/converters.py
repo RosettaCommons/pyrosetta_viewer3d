@@ -33,12 +33,10 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
     def to_pdbstring(obj):
         raise ViewerInputError(obj)
 
-    @to_pdbstring.register(type(None))
+    @to_pdbstring.register(PackedPose)
+    @to_pdbstring.register(Pose)
     def _(obj):
-        raise ViewerInputError(obj)
-
-    to_pdbstring.register(PackedPose, lambda obj: io.to_pdbstring(obj))
-    to_pdbstring.register(Pose, lambda obj: io.to_pdbstring(obj))
+        return io.to_pdbstring(obj)
 
     @to_pdbstring.register(str)
     def _(obj):
