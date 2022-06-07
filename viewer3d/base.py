@@ -24,11 +24,11 @@ _logger = logging.getLogger("viewer3d.base")
 
 @attr.s(kw_only=False, slots=False, frozen=False)
 class ViewerBase:
-    # widgets = attr.ib(
-    #     type=Optional[Widget],
-    #     default=None,
-    #     validator=attr.validators.instance_of((type(None), Widget)),
-    # )
+    widget = attr.ib(
+        type=Optional[Widget],
+        default=None,
+        validator=attr.validators.instance_of((type(None), Widget)),
+    )
 
     def __attrs_pre_init__(self):
         self._toggle_scrolling()
@@ -47,8 +47,8 @@ class ViewerBase:
         self.update_viewer(self.poses[i], self.pdbstrings[i])
 
     def setup_widgets(self):
-        if self.widgets is not None:
-            display(self.widgets)
+        if self.widget is not None:
+            display(self.widget)
         else:
             if self.n_decoys > 1:
                 s_widget = IntSlider(

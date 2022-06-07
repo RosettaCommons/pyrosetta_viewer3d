@@ -125,18 +125,12 @@ def templatePreset(packed_and_poses_and_pdbs=None, *args, **kwargs):
 
 
 @requires_init
-def makeBundle(backend="py3Dmol", continuous_update=True):
+def makeBundle(aa="VAL", num_helices=4, backend="py3Dmol", continuous_update=True):
     """
     Add a description of the preset Viewer here
     """
     import pyrosetta
 
-    from pyrosetta.rosetta.protocols.helical_bundle import (
-        BPC_delta_omega0,
-        BPC_r0,
-        BPC_invert_helix,
-        MakeBundle,
-    )
     from ipywidgets.widgets import (
         IntSlider,
         FloatSlider,
@@ -150,8 +144,18 @@ def makeBundle(backend="py3Dmol", continuous_update=True):
     from IPython.display import display
     from pyrosetta.rosetta.core.select.residue_selector import (
         LayerSelector,
-        ChainSelector,
     )
+    from pyrosetta.rosetta.protocols.helical_bundle import (
+        BPC_delta_omega0,
+        BPC_r0,
+        BPC_invert_helix,
+        MakeBundle,
+    )
+    from pyrosetta.rosetta.protocols.simple_moves import AddPDBInfoMover
+    from pyrosetta.rosetta.protocols.toolbox.pose_manipulation import (
+        construct_poly_XXX_pose,
+    )
+    from pyrosetta.rosetta.utility import vector1_unsigned_long
 
     core_selector = LayerSelector()
     core_selector.set_layers(True, False, False)
@@ -159,65 +163,65 @@ def makeBundle(backend="py3Dmol", continuous_update=True):
     boundary_selector.set_layers(False, True, False)
     surface_selector = LayerSelector()
     surface_selector.set_layers(False, False, True)
-    chA, chB, chC, chD = (
-        ChainSelector("A"),
-        ChainSelector("B"),
-        ChainSelector("C"),
-        ChainSelector("D"),
-    )
     modules = [
         viewer3d.setStyle(
             residue_selector=core_selector,
-            # residue_selector=chA,
             cartoon=True,
-            style="stick",
+            cartoon_color="black",
             colorscheme="blackCarbon",
+            style="stick",
             radius=0.25,
             label=False,
         ),
         viewer3d.setStyle(
             residue_selector=boundary_selector,
-            # residue_selector=chB,
             cartoon=True,
-            style="stick",
+            cartoon_color="grey",
             colorscheme="greyCarbon",
+            style="stick",
             radius=0.25,
             label=False,
         ),
         viewer3d.setStyle(
             residue_selector=surface_selector,
-            # residue_selector=chC,
             cartoon=True,
-            style="stick",
+            cartoon_color="white",
             colorscheme="whiteCarbon",
+            style="stick",
             radius=0.25,
             label=False,
         ),
     ]
 
     pose = pyrosetta.Pose()
-    # add_pdb_info_mover = pyrosetta.rosetta.protocols.simple_moves.AddPDBInfoMover()
-    # add_pdb_info_mover.apply(pose)
-
-    view = sum(
-        [
-            viewer3d.init(
-                packed_and_poses_and_pdbs=pose,
-                backend=backend,
-            )
-        ]
-        + modules
+    view = viewer3d.init(
+        packed_and_poses_and_pdbs=pose,
+        modules=modules,
+        backend=backend,
     )
 
     mb = MakeBundle()
     mb.set_reset_pose(True)
     mb.set_use_degrees(True)
-    add_pdb_info_mover = pyrosetta.rosetta.protocols.simple_moves.AddPDBInfoMover()
-    num_helices = 4
+    add_pdb_info_mover = AddPDBInfoMover()
+
+    def make_poly_X(pose):
+        positions = vector1_unsigned_long()
+        for i in range(1, pose.size() + 1):
+            positions.append(i)
+        construct_poly_XXX_pose(
+            aa=aa,
+            pose=pose,
+            positions=positions,
+            keep_pro=False,
+            keep_gly=False,
+            keep_disulfide_cys=True,
+        )
 
     def update_bundle():
         mb.apply(pose)
         add_pdb_info_mover.apply(pose)
+        make_poly_X(pose)
         view.update_viewer(pose)
 
     def initialize_bundle():
@@ -259,7 +263,8 @@ def makeBundle(backend="py3Dmol", continuous_update=True):
         update_bundle()
 
     chosen_helix = ToggleButtons(
-        options=["all", 1, 2, 3, 4], description="chosen_helix"
+        options=["all"] + [i + 1 for i in range(num_helices)],
+        description="chosen_helix",
     )
     r0 = FloatSlider(
         min=1,
@@ -308,31 +313,20 @@ def makeBundle(backend="py3Dmol", continuous_update=True):
     save_button.on_click(save_pdb)
     save_box = HBox([save_button, save_edit])
 
-    # view.widgets = VBox(
-    #     [
-    #         chosen_helix,
-    #         length,
-    #         r0,
-    #         omega0,
-    #         delta_omega1,
-    #         invert,
-    #         save_box,
-    #     ]
-    # )
-    # view.show()
-    # view.setup_widgets()
-    display(
-        chosen_helix,
-        length,
-        r0,
-        omega0,
-        delta_omega1,
-        invert,
-        save_box,
+    view.widget = VBox(
+        [
+            chosen_helix,
+            length,
+            r0,
+            omega0,
+            delta_omega1,
+            invert,
+            save_box,
+        ]
     )
-    view.show_viewer()
+    view.show()
+
     initialize_bundle()
-    # view.update_viewer(pose)
     update_bundle()
 
     return view
