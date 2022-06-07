@@ -125,7 +125,7 @@ def templatePreset(packed_and_poses_and_pdbs=None, *args, **kwargs):
 
 
 @requires_init
-def makeBundle():
+def makeBundle(backend="py3Dmol", continuous_update=True):
     """
     Add a description of the preset Viewer here
     """
@@ -148,21 +148,76 @@ def makeBundle():
         Text,
     )
     from IPython.display import display
+    from pyrosetta.rosetta.core.select.residue_selector import (
+        LayerSelector,
+        ChainSelector,
+    )
+
+    core_selector = LayerSelector()
+    core_selector.set_layers(True, False, False)
+    boundary_selector = LayerSelector()
+    boundary_selector.set_layers(False, True, False)
+    surface_selector = LayerSelector()
+    surface_selector.set_layers(False, False, True)
+    chA, chB, chC, chD = (
+        ChainSelector("A"),
+        ChainSelector("B"),
+        ChainSelector("C"),
+        ChainSelector("D"),
+    )
+    modules = [
+        viewer3d.setStyle(
+            residue_selector=core_selector,
+            # residue_selector=chA,
+            cartoon=True,
+            style="stick",
+            colorscheme="blackCarbon",
+            radius=0.25,
+            label=False,
+        ),
+        viewer3d.setStyle(
+            residue_selector=boundary_selector,
+            # residue_selector=chB,
+            cartoon=True,
+            style="stick",
+            colorscheme="greyCarbon",
+            radius=0.25,
+            label=False,
+        ),
+        viewer3d.setStyle(
+            residue_selector=surface_selector,
+            # residue_selector=chC,
+            cartoon=True,
+            style="stick",
+            colorscheme="whiteCarbon",
+            radius=0.25,
+            label=False,
+        ),
+    ]
 
     pose = pyrosetta.Pose()
-    view = (
-        viewer3d.init(packed_and_poses_and_pdbs=pose, backend="nglview")
-        # + viewer3d.setStyle(style="stick", colorscheme="lightgreyCarbon", radius=0.15)
-        + viewer3d.setBackgroundColor(color="black")
+    # add_pdb_info_mover = pyrosetta.rosetta.protocols.simple_moves.AddPDBInfoMover()
+    # add_pdb_info_mover.apply(pose)
+
+    view = sum(
+        [
+            viewer3d.init(
+                packed_and_poses_and_pdbs=pose,
+                backend=backend,
+            )
+        ]
+        + modules
     )
 
     mb = MakeBundle()
     mb.set_reset_pose(True)
     mb.set_use_degrees(True)
+    add_pdb_info_mover = pyrosetta.rosetta.protocols.simple_moves.AddPDBInfoMover()
     num_helices = 4
 
     def update_bundle():
         mb.apply(pose)
+        add_pdb_info_mover.apply(pose)
         view.update_viewer(pose)
 
     def initialize_bundle():
@@ -206,7 +261,6 @@ def makeBundle():
     chosen_helix = ToggleButtons(
         options=["all", 1, 2, 3, 4], description="chosen_helix"
     )
-    continuous_update = False
     r0 = FloatSlider(
         min=1,
         max=10,
@@ -254,6 +308,19 @@ def makeBundle():
     save_button.on_click(save_pdb)
     save_box = HBox([save_button, save_edit])
 
+    # view.widgets = VBox(
+    #     [
+    #         chosen_helix,
+    #         length,
+    #         r0,
+    #         omega0,
+    #         delta_omega1,
+    #         invert,
+    #         save_box,
+    #     ]
+    # )
+    # view.show()
+    # view.setup_widgets()
     display(
         chosen_helix,
         length,
@@ -265,6 +332,7 @@ def makeBundle():
     )
     view.show_viewer()
     initialize_bundle()
+    # view.update_viewer(pose)
     update_bundle()
 
     return view

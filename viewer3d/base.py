@@ -5,13 +5,15 @@ import sys
 import time
 
 from ipywidgets import interact, IntSlider
+from ipywidgets.widgets import Widget
 
 try:
-    from IPython.core.display import display, HTML
+    from IPython.display import display
+    from IPython.core.display import display as core_display, HTML
     from IPython.display import clear_output
 except ImportError:
     _logger.error("IPython.core.display or IPython.display module cannot be imported.")
-from typing import Generic, Tuple, TypeVar
+from typing import Generic, Optional, Tuple, TypeVar
 
 from viewer3d.config import _import_backend
 from viewer3d.exceptions import ViewerImportError
@@ -22,6 +24,12 @@ _logger = logging.getLogger("viewer3d.base")
 
 @attr.s(kw_only=False, slots=False, frozen=False)
 class ViewerBase:
+    # widgets = attr.ib(
+    #     type=Optional[Widget],
+    #     default=None,
+    #     validator=attr.validators.instance_of((type(None), Widget)),
+    # )
+
     def __attrs_pre_init__(self):
         self._toggle_scrolling()
 
@@ -39,16 +47,19 @@ class ViewerBase:
         self.update_viewer(self.poses[i], self.pdbstrings[i])
 
     def setup_widgets(self):
-        if self.n_decoys > 1:
-            s_widget = IntSlider(
-                min=0,
-                max=self.n_decoys - 1,
-                description="Decoys",
-                continuous_update=self.continuous_update,
-            )
-            interact(self._update_decoy, i=s_widget)
+        if self.widgets is not None:
+            display(self.widgets)
         else:
-            self._update_decoy()
+            if self.n_decoys > 1:
+                s_widget = IntSlider(
+                    min=0,
+                    max=self.n_decoys - 1,
+                    description="Decoys",
+                    continuous_update=self.continuous_update,
+                )
+                interact(self._update_decoy, i=s_widget)
+            else:
+                self._update_decoy()
 
     def show(self):
         """Display Viewer in Jupyter notebook."""
@@ -81,7 +92,7 @@ class ViewerBase:
             _logger.debug(
                 "IPython.core.display toggling scrolling in Jupyter notebook cell."
             )
-            display(
+            core_display(
                 HTML(
                     "<script>$('.output_scroll').removeClass('output_scroll')</script>"
                 )
@@ -133,6 +144,6 @@ def expand_notebook():
     """Expand Jupyter notebook cell to maximum width."""
     try:
         _logger.debug("IPython.core.display expanding Jupyter notebook cell width.")
-        display(HTML("<style>.container { width:100% !important; }</style>"))
+        core_display(HTML("<style>.container { width:100% !important; }</style>"))
     except NameError:
         _logger.exception("IPython.core.display module not imported.")

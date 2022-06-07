@@ -5,11 +5,10 @@ import os
 import pyrosetta.distributed.io as io
 
 from ipywidgets import interact, IntSlider
-from ipywidgets.widgets import Widget
 from IPython.display import display
 from pyrosetta.rosetta.core.pose import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
-from typing import Iterable, Optional, Tuple, Union
+from typing import Iterable, Tuple, Union
 
 from viewer3d.base import ViewerBase
 from viewer3d.config import BACKENDS
@@ -31,11 +30,6 @@ class Py3DmolViewer(ViewerBase):
     delay = attr.ib(type=float)
     continuous_update = attr.ib(type=bool)
     backend = attr.ib(type=str)
-    # widget = attr.ib(
-    #     type=Optional[Widget],
-    #     default=None,
-    #     validator=attr.validators.instance_of((type(None), Widget)),
-    # )
     _was_show_called = attr.ib(type=bool, default=False, init=False)
 
     def __attrs_post_init__(self):
@@ -52,6 +46,15 @@ class Py3DmolViewer(ViewerBase):
             "SAS": self.py3Dmol.SAS,
         }
 
+    def apply_modules(self, _pose=None, _pdbstring=None):
+        for _module in self.modules:
+            self.viewer = _module.apply_py3Dmol(
+                self.viewer,
+                _pose,
+                _pdbstring,
+                surface_types_dict=self.surface_types_dict,
+            )
+
     def update_viewer(self, _pose=None, _pdbstring=None):
         """Update Py3DmolViewer in Jupyter notebook."""
         self.viewer.removeAllLabels()
@@ -63,14 +66,14 @@ class Py3DmolViewer(ViewerBase):
             self.viewer.addModels(io.to_pdbstring(_pose), "pdb")
         else:
             self.viewer.addModels(_pdbstring, "pdb")
-
-        for module in self.modules:
-            self.viewer = module.apply_py3Dmol(
-                self.viewer,
-                _pose,
-                _pdbstring,
-                surface_types_dict=self.surface_types_dict,
-            )
+        # for module in self.modules:
+        #     self.viewer = module.apply_py3Dmol(
+        #         self.viewer,
+        #         _pose,
+        #         _pdbstring,
+        #         surface_types_dict=self.surface_types_dict,
+        #     )
+        self.apply_modules(_pose=_pose, _pdbstring=_pdbstring)
 
         if self._was_show_called:
             self.viewer.update()
