@@ -3,7 +3,6 @@ import collections
 import logging
 import os
 import pyrosetta.distributed.io as io
-import time
 
 from pyrosetta.rosetta.core.pose import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
@@ -45,9 +44,8 @@ class Py3DmolViewer(ViewerBase):
             "SAS": self.py3Dmol.SAS,
         }
 
-    def update(self, _pose, _pdbstring):
+    def update_viewer(self, _pose, _pdbstring):
         """Update Py3DmolViewer in Jupyter notebook."""
-        time.sleep(self.delay)
         self.viewer.removeAllLabels()
         self.viewer.removeAllModels()
         self.viewer.removeAllShapes()
@@ -91,10 +89,8 @@ class NGLviewViewer(ViewerBase):
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
 
-    def update(self, _pose, _pdbstring):
+    def update_viewer(self, _pose, _pdbstring):
         """Update NGLviewViewer in Jupyter notebook."""
-        time.sleep(self.delay)
-
         for component_id in self.viewer._ngl_component_ids:
             self.viewer.remove_component(component_id)
 
@@ -136,7 +132,7 @@ class PyMOLViewer(ViewerBase):
             f"{self.__class__.__name__} is not currently supported."
         )
 
-    def update(self, _pose, _pdbstring):
+    def update_viewer(self, _pose, _pdbstring):
         """Update PyMOLViewer."""
         pass
 

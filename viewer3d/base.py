@@ -2,6 +2,7 @@ import attr
 import math
 import logging
 import sys
+import time
 
 from ipywidgets import interact, IntSlider
 
@@ -33,8 +34,9 @@ class ViewerBase:
 
         return sys.modules[self.backend]
 
-    def view(self, i=0):
-        self.update(self.poses[i], self.pdbstrings[i])
+    def update_decoy(self, i=0):
+        time.sleep(self.delay)
+        self.update_viewer(self.poses[i], self.pdbstrings[i])
 
     def setup(self):
         if self.n_decoys > 1:
@@ -44,9 +46,9 @@ class ViewerBase:
                 description="Decoys",
                 continuous_update=self.continuous_update,
             )
-            interact(self.view, i=s_widget)
+            interact(self.update_decoy, i=s_widget)
         else:
-            self.view()
+            self.update_decoy()
 
     def __add__(self, other):
         self.modules += [other]
