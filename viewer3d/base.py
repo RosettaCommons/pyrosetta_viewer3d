@@ -34,12 +34,9 @@ class ViewerBase:
         return sys.modules[self.backend]
 
     def view(self, i=0):
-        _pose = self.poses[i]
-        _pdbstring = self.pdbstrings[i]
+        self.update(self.poses[i], self.pdbstrings[i])
 
-        return self.update_viewer(_pose, _pdbstring)
-
-    def get_decoy_widget(self):
+    def setup(self):
         if self.n_decoys > 1:
             s_widget = IntSlider(
                 min=0,
@@ -47,11 +44,9 @@ class ViewerBase:
                 description="Decoys",
                 continuous_update=self.continuous_update,
             )
-            widget = interact(self.view, i=s_widget)
+            interact(self.view, i=s_widget)
         else:
-            widget = self.view()
-
-        return widget
+            self.view()
 
     def __add__(self, other):
         self.modules += [other]

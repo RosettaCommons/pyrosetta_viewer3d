@@ -5,7 +5,6 @@ import os
 import pyrosetta.distributed.io as io
 import time
 
-
 from pyrosetta.rosetta.core.pose import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
 from typing import Iterable, Tuple, Union
@@ -30,10 +29,15 @@ class Py3DmolViewer(ViewerBase):
     delay = attr.ib(type=float)
     continuous_update = attr.ib(type=bool)
     backend = attr.ib(type=str)
+    _viewer_is_init = attr.ib(type=bool, default=False, init=False)
 
     def __attrs_post_init__(self):
         self._toggle_window(self.window_size)
         self.py3Dmol = self._maybe_import_backend()
+        self.viewer = self.py3Dmol.view(
+            width=self.window_size[0],
+            height=self.window_size[1],
+        )
         self.surface_types_dict = {
             "VDW": self.py3Dmol.VDW,
             "MS": self.py3Dmol.MS,
@@ -41,7 +45,7 @@ class Py3DmolViewer(ViewerBase):
             "SAS": self.py3Dmol.SAS,
         }
 
-    def update_viewer(self, _pose, _pdbstring):
+    def update(self, _pose, _pdbstring):
         """Update Py3DmolViewer in Jupyter notebook."""
         time.sleep(self.delay)
         self.viewer.removeAllLabels()
@@ -62,18 +66,15 @@ class Py3DmolViewer(ViewerBase):
                 surface_types_dict=self.surface_types_dict,
             )
 
-        return self.viewer.update()
+        if self._viewer_is_init:
+            self.viewer.update()
+        else:
+            self._viewer_is_init = True
 
     def show(self):
         """Display Py3DmolViewer in Jupyter notebook."""
-        self.viewer = self.py3Dmol.view(
-            width=self.window_size[0],
-            height=self.window_size[1],
-        )
-        widget = self.get_decoy_widget()
+        self.setup()
         self.viewer.show()
-
-        return widget
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
@@ -91,7 +92,7 @@ class NGLviewViewer(ViewerBase):
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
 
-    def update_viewer(self, _pose, _pdbstring):
+    def update(self, _pose, _pdbstring):
         """Update NGLviewViewer in Jupyter notebook."""
         time.sleep(self.delay)
 
@@ -113,11 +114,9 @@ class NGLviewViewer(ViewerBase):
 
     def show(self):
         """Display NGLviewViewer in Jupyter notebook."""
-        widget = self.get_decoy_widget()
+        self.setup()
         self.viewer.display(gui=True, style="ngl")
         self.viewer._ipython_display_()
-
-        return widget
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
@@ -138,7 +137,7 @@ class PyMOLViewer(ViewerBase):
             f"{self.__class__.__name__} is not currently supported."
         )
 
-    def update_viewer(self, _pose, _pdbstring):
+    def update(self, _pose, _pdbstring):
         """Update PyMOLViewer."""
         pass
 
