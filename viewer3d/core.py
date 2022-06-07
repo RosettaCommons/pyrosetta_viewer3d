@@ -4,9 +4,11 @@ import logging
 import os
 import pyrosetta.distributed.io as io
 
+from ipywidgets.widgets import Widget
+from IPython.display import display
 from pyrosetta.rosetta.core.pose import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
-from typing import Iterable, Tuple, Union
+from typing import Iterable, Optional, Tuple, Union
 
 from viewer3d.base import ViewerBase
 from viewer3d.config import BACKENDS
@@ -28,6 +30,11 @@ class Py3DmolViewer(ViewerBase):
     delay = attr.ib(type=float)
     continuous_update = attr.ib(type=bool)
     backend = attr.ib(type=str)
+    widget = attr.ib(
+        type=Optional[Widget],
+        default=None,
+        validator=attr.validators.instance_of((type(None), Widget)),
+    )
     _was_show_called = attr.ib(type=bool, default=False, init=False)
 
     def __attrs_post_init__(self):
@@ -44,7 +51,7 @@ class Py3DmolViewer(ViewerBase):
             "SAS": self.py3Dmol.SAS,
         }
 
-    def update_viewer(self, _pose, _pdbstring):
+    def update_viewer(self, _pose=None, _pdbstring=None):
         """Update Py3DmolViewer in Jupyter notebook."""
         self.viewer.removeAllLabels()
         self.viewer.removeAllModels()
@@ -67,8 +74,17 @@ class Py3DmolViewer(ViewerBase):
         if self._was_show_called:
             self.viewer.update()
 
+    # def setup_widgets(self):
+    #     if self.widget is not None:
+    #         display(self.widget, self.viewer)
+    #     else:
+    #         self.setup()
+    #         self.viewer.show()
+    #         self._was_show_called = True
+
     def show(self):
         """Display Py3DmolViewer in Jupyter notebook."""
+        # self.setup_widgets()
         self.setup()
         self.viewer.show()
         self._was_show_called = True
