@@ -125,7 +125,9 @@ def templatePreset(packed_and_poses_and_pdbs=None, *args, **kwargs):
 
 
 @requires_init
-def makeBundle(aa="VAL", num_helices=4, backend="py3Dmol", continuous_update=True):
+def makeBundle(
+    modules=[], aa="VAL", num_helices=4, backend="py3Dmol", continuous_update=True
+):
     """
     Add a description of the preset Viewer here
     """
@@ -157,41 +159,42 @@ def makeBundle(aa="VAL", num_helices=4, backend="py3Dmol", continuous_update=Tru
     )
     from pyrosetta.rosetta.utility import vector1_unsigned_long
 
-    core_selector = LayerSelector()
-    core_selector.set_layers(True, False, False)
-    boundary_selector = LayerSelector()
-    boundary_selector.set_layers(False, True, False)
-    surface_selector = LayerSelector()
-    surface_selector.set_layers(False, False, True)
-    modules = [
-        viewer3d.setStyle(
-            residue_selector=core_selector,
-            cartoon=True,
-            cartoon_color="black",
-            colorscheme="blackCarbon",
-            style="stick",
-            radius=0.25,
-            label=False,
-        ),
-        viewer3d.setStyle(
-            residue_selector=boundary_selector,
-            cartoon=True,
-            cartoon_color="grey",
-            colorscheme="greyCarbon",
-            style="stick",
-            radius=0.25,
-            label=False,
-        ),
-        viewer3d.setStyle(
-            residue_selector=surface_selector,
-            cartoon=True,
-            cartoon_color="white",
-            colorscheme="whiteCarbon",
-            style="stick",
-            radius=0.25,
-            label=False,
-        ),
-    ]
+    if not modules:
+        core_selector = LayerSelector()
+        core_selector.set_layers(True, False, False)
+        boundary_selector = LayerSelector()
+        boundary_selector.set_layers(False, True, False)
+        surface_selector = LayerSelector()
+        surface_selector.set_layers(False, False, True)
+        modules = [
+            viewer3d.setStyle(
+                residue_selector=core_selector,
+                cartoon=True,
+                cartoon_color="black",
+                colorscheme="blackCarbon",
+                style="stick",
+                radius=0.25,
+                label=False,
+            ),
+            viewer3d.setStyle(
+                residue_selector=boundary_selector,
+                cartoon=True,
+                cartoon_color="grey",
+                colorscheme="greyCarbon",
+                style="stick",
+                radius=0.25,
+                label=False,
+            ),
+            viewer3d.setStyle(
+                residue_selector=surface_selector,
+                cartoon=True,
+                cartoon_color="white",
+                colorscheme="whiteCarbon",
+                style="stick",
+                radius=0.25,
+                label=False,
+            ),
+        ]
 
     pose = pyrosetta.Pose()
     view = viewer3d.init(
