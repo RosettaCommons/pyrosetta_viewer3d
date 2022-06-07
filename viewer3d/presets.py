@@ -150,9 +150,11 @@ def makeBundle():
     from IPython.display import display
 
     pose = pyrosetta.Pose()
-    view = viewer3d.init(
-        packed_and_poses_and_pdbs=pose, backend="py3Dmol"
-    ) + viewer3d.setStyle(style="stick", colorscheme="lightgreyCarbon", radius=0.15)
+    view = (
+        viewer3d.init(packed_and_poses_and_pdbs=pose, backend="nglview")
+        # + viewer3d.setStyle(style="stick", colorscheme="lightgreyCarbon", radius=0.15)
+        + viewer3d.setBackgroundColor(color="black")
+    )
 
     mb = MakeBundle()
     mb.set_reset_pose(True)
@@ -204,14 +206,36 @@ def makeBundle():
     chosen_helix = ToggleButtons(
         options=["all", 1, 2, 3, 4], description="chosen_helix"
     )
-    r0 = FloatSlider(min=1, max=10, step=0.1, value=5, description="r0")
-    length = IntSlider(min=14, max=50, value=28, description="length")
-    omega0 = FloatSlider(min=-5, max=5, step=0.1, value=0, description="omega0")
+    continuous_update = False
+    r0 = FloatSlider(
+        min=1,
+        max=10,
+        step=0.1,
+        value=5,
+        description="r0",
+        continuous_update=continuous_update,
+    )
+    length = IntSlider(
+        min=14,
+        max=50,
+        value=28,
+        description="length",
+        continuous_update=continuous_update,
+    )
+    omega0 = FloatSlider(
+        min=-5,
+        max=5,
+        step=0.1,
+        value=0,
+        description="omega0",
+        continuous_update=continuous_update,
+    )
     delta_omega1 = FloatSlider(
         min=0,
         max=360,
         description="delta_omega1",
         style={"description_width": "initial"},
+        continuous_update=continuous_update,
     )
     invert = Checkbox(value=False, description="invert")
 
@@ -239,7 +263,8 @@ def makeBundle():
         invert,
         save_box,
     )
-    view.viewer.show()
-    view._was_show_called = True
+    view.show_viewer()
     initialize_bundle()
     update_bundle()
+
+    return view

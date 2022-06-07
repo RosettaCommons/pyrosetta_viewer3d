@@ -4,6 +4,7 @@ import logging
 import os
 import pyrosetta.distributed.io as io
 
+from ipywidgets import interact, IntSlider
 from ipywidgets.widgets import Widget
 from IPython.display import display
 from pyrosetta.rosetta.core.pose import Pose
@@ -30,11 +31,11 @@ class Py3DmolViewer(ViewerBase):
     delay = attr.ib(type=float)
     continuous_update = attr.ib(type=bool)
     backend = attr.ib(type=str)
-    widget = attr.ib(
-        type=Optional[Widget],
-        default=None,
-        validator=attr.validators.instance_of((type(None), Widget)),
-    )
+    # widget = attr.ib(
+    #     type=Optional[Widget],
+    #     default=None,
+    #     validator=attr.validators.instance_of((type(None), Widget)),
+    # )
     _was_show_called = attr.ib(type=bool, default=False, init=False)
 
     def __attrs_post_init__(self):
@@ -74,18 +75,7 @@ class Py3DmolViewer(ViewerBase):
         if self._was_show_called:
             self.viewer.update()
 
-    # def setup_widgets(self):
-    #     if self.widget is not None:
-    #         display(self.widget, self.viewer)
-    #     else:
-    #         self.setup()
-    #         self.viewer.show()
-    #         self._was_show_called = True
-
-    def show(self):
-        """Display Py3DmolViewer in Jupyter notebook."""
-        # self.setup_widgets()
-        self.setup()
+    def show_viewer(self):
         self.viewer.show()
         self._was_show_called = True
 
@@ -105,7 +95,7 @@ class NGLviewViewer(ViewerBase):
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
 
-    def update_viewer(self, _pose, _pdbstring):
+    def update_viewer(self, _pose=None, _pdbstring=None):
         """Update NGLviewViewer in Jupyter notebook."""
         for component_id in self.viewer._ngl_component_ids:
             self.viewer.remove_component(component_id)
@@ -123,9 +113,7 @@ class NGLviewViewer(ViewerBase):
                 _pdbstring,
             )
 
-    def show(self):
-        """Display NGLviewViewer in Jupyter notebook."""
-        self.setup()
+    def show_viewer(self):
         self.viewer.display(gui=True, style="ngl")
         self.viewer._ipython_display_()
 

@@ -34,11 +34,11 @@ class ViewerBase:
 
         return sys.modules[self.backend]
 
-    def update_decoy(self, i=0):
+    def _update_decoy(self, i=0):
         time.sleep(self.delay)
         self.update_viewer(self.poses[i], self.pdbstrings[i])
 
-    def setup(self):
+    def setup_widgets(self):
         if self.n_decoys > 1:
             s_widget = IntSlider(
                 min=0,
@@ -46,9 +46,14 @@ class ViewerBase:
                 description="Decoys",
                 continuous_update=self.continuous_update,
             )
-            interact(self.update_decoy, i=s_widget)
+            interact(self._update_decoy, i=s_widget)
         else:
-            self.update_decoy()
+            self._update_decoy()
+
+    def show(self):
+        """Display Viewer in Jupyter notebook."""
+        self.setup_widgets()
+        self.show_viewer()
 
     def __add__(self, other):
         self.modules += [other]
