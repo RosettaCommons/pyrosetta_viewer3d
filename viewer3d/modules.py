@@ -143,7 +143,7 @@ class setDisulfides(ModuleBase):
 
         return viewer
 
-    def apply_nglview(self):
+    def apply_nglview(self, viewer, pose, pdbstring, **kwargs):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
@@ -262,7 +262,7 @@ class setHydrogenBonds(ModuleBase):
 
         return viewer
 
-    def apply_nglview(self):
+    def apply_nglview(self, viewer, pose, pdbstring, **kwargs):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
@@ -357,7 +357,7 @@ class setHydrogens(ModuleBase):
 
         return viewer
 
-    def apply_nglview(self):
+    def apply_nglview(self, viewer, pose, pdbstring, **kwargs):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
@@ -602,7 +602,7 @@ class setStyle(ModuleBase):
 
         return viewer
 
-    def apply_nglview(self):
+    def apply_nglview(self, viewer, pose, pdbstring, **kwargs):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
@@ -732,7 +732,7 @@ class setSurface(ModuleBase):
 
         return viewer
 
-    def apply_nglview(self):
+    def apply_nglview(self, viewer, pose, pdbstring, **kwargs):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
@@ -768,7 +768,7 @@ class setZoom(ModuleBase):
         viewer.zoom(self.factor)
         return viewer
 
-    def apply_nglview(self):
+    def apply_nglview(self, viewer, pose, pdbstring, **kwargs):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
@@ -814,7 +814,7 @@ class setZoomTo(ModuleBase):
 
         return viewer
 
-    def apply_nglview(self):
+    def apply_nglview(self, viewer, pose, pdbstring, **kwargs):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
