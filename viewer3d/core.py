@@ -29,7 +29,7 @@ class Py3DmolViewer(ViewerBase):
     delay = attr.ib(type=float)
     continuous_update = attr.ib(type=bool)
     backend = attr.ib(type=str)
-    _viewer_is_init = attr.ib(type=bool, default=False, init=False)
+    _was_show_called = attr.ib(type=bool, default=False, init=False)
 
     def __attrs_post_init__(self):
         self._toggle_window(self.window_size)
@@ -66,15 +66,14 @@ class Py3DmolViewer(ViewerBase):
                 surface_types_dict=self.surface_types_dict,
             )
 
-        if self._viewer_is_init:
+        if self._was_show_called:
             self.viewer.update()
-        else:
-            self._viewer_is_init = True
 
     def show(self):
         """Display Py3DmolViewer in Jupyter notebook."""
         self.setup()
         self.viewer.show()
+        self._was_show_called = True
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
