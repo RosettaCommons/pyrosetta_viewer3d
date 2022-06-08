@@ -6,13 +6,13 @@ import pyrosetta.distributed.io as io
 
 from ipywidgets import interact, IntSlider
 from IPython.display import display
-from pyrosetta.rosetta.core.pose import Pose
+from pyrosetta import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
 from typing import Iterable, Tuple, Union
 
-from viewer3d.base import ViewerBase
+from viewer3d.base import ViewerBase, WidgetsBase
 from viewer3d.config import BACKENDS
-from viewer3d.converters import _to_float, _to_poses_pdbstrings
+from viewer3d.converters import _to_float, _to_poses_pdbstrings, _to_widgets
 from viewer3d.modules import ModuleBase
 from viewer3d.validators import _validate_int_float, _validate_window_size
 
@@ -22,14 +22,6 @@ _logger = logging.getLogger("viewer3d.core")
 
 @attr.s(kw_only=True, slots=False, frozen=False)
 class Py3DmolViewer(ViewerBase):
-    poses = attr.ib(type=Pose)
-    pdbstrings = attr.ib(type=PackedPose)
-    n_decoys = attr.ib(type=int)
-    window_size = attr.ib(type=Tuple[Union[int, float]])
-    modules = attr.ib(type=list)
-    delay = attr.ib(type=float)
-    continuous_update = attr.ib(type=bool)
-    backend = attr.ib(type=str)
     _was_show_called = attr.ib(type=bool, default=False, init=False)
 
     def __attrs_post_init__(self):
@@ -76,15 +68,6 @@ class Py3DmolViewer(ViewerBase):
 
 @attr.s(kw_only=True, slots=False, frozen=False)
 class NGLviewViewer(ViewerBase):
-    poses = attr.ib(type=Pose)
-    pdbstrings = attr.ib(type=PackedPose)
-    n_decoys = attr.ib(type=int)
-    window_size = attr.ib(type=Tuple[Union[int, float]])
-    modules = attr.ib(type=list)
-    delay = attr.ib(type=float)
-    continuous_update = attr.ib(type=bool)
-    backend = attr.ib(type=str)
-
     def __attrs_post_init__(self):
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
@@ -115,15 +98,6 @@ class NGLviewViewer(ViewerBase):
 
 @attr.s(kw_only=True, slots=False, frozen=False)
 class PyMOLViewer(ViewerBase):
-    poses = attr.ib(type=Pose)
-    pdbstrings = attr.ib(type=PackedPose)
-    n_decoys = attr.ib(type=int)
-    window_size = attr.ib(type=Tuple[Union[int, float]])
-    modules = attr.ib(type=list)
-    delay = attr.ib(type=float)
-    continuous_update = attr.ib(type=bool)
-    backend = attr.ib(type=str)
-
     def __attrs_post_init__(self):
         self.pymol = self._maybe_import_backend()
 
@@ -147,7 +121,7 @@ class PyMOLViewer(ViewerBase):
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
-class SetupViewer:
+class SetupViewer(WidgetsBase):
     packed_and_poses_and_pdbs = attr.ib(
         type=Union[PackedPose, Pose, Iterable[Union[PackedPose, Pose]], None],
         default=None,

@@ -5,6 +5,7 @@ import pyrosetta.distributed.io as io
 import os
 
 from functools import singledispatch
+from ipywidgets.widgets import Widget
 from pyrosetta import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
 from pyrosetta.rosetta.core.pose.full_model_info import (
@@ -12,6 +13,7 @@ from pyrosetta.rosetta.core.pose.full_model_info import (
     get_chains_from_pdb_info,
 )
 from pyrosetta.rosetta.core.select import get_residues_from_subset
+from typing import List
 
 from viewer3d.exceptions import ViewerInputError
 
@@ -80,6 +82,26 @@ def _to_0_if_le_0(obj):
 
 def _to_1_if_gt_1(obj):
     return 1 if isinstance(obj, (float, int)) and obj > 1 else obj
+
+
+def _to_widgets(objs) -> List[Widget]:
+    @singledispatch
+    def _to_widget(obj):
+        raise ValueError(
+            "The 'widgets' viewer attribute must be an instance of `Widget` "
+            + f"or an iterable of `Widget` objects. Received: {type(obj)}"
+        )
+
+    _to_widget.register(Widget, lambda obj: obj)
+
+    if objs is None:
+        _widgets = None
+    elif isinstance(objs, collections.abc.Iterable):
+        _widgets = list(map(_to_widget, objs))
+    else:
+        _widgets = [_to_widget(objs)]
+
+    return _widgets
 
 
 def _pose_to_residue_chain_tuples(pose, residue_selector, logger=_logger):

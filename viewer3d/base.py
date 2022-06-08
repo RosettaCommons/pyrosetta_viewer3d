@@ -13,9 +13,12 @@ try:
     from IPython.display import clear_output
 except ImportError:
     _logger.error("IPython.core.display or IPython.display module cannot be imported.")
-from typing import Generic, Optional, Tuple, TypeVar
+from pyrosetta import Pose
+from pyrosetta.distributed.packed_pose.core import PackedPose
+from typing import Generic, List, Optional, Tuple, TypeVar, Union
 
 from viewer3d.config import _import_backend
+from viewer3d.converters import _to_widgets
 from viewer3d.exceptions import ViewerImportError
 
 
@@ -23,12 +26,30 @@ _logger = logging.getLogger("viewer3d.base")
 
 
 @attr.s(kw_only=False, slots=False, frozen=False)
-class ViewerBase:
-    widget = attr.ib(
-        type=Optional[Widget],
+class WidgetsBase:
+    widgets = attr.ib(
+        type=Optional[List[Widget]],
         default=None,
-        validator=attr.validators.instance_of((type(None), Widget)),
+        validator=attr.validators.optional(
+            attr.validators.deep_iterable(
+                member_validator=attr.validators.instance_of(Widget),
+                iterable_validator=attr.validators.instance_of(list),
+            )
+        ),
+        converter=_to_widgets,
     )
+
+
+@attr.s(kw_only=False, slots=False, frozen=False)
+class ViewerBase(WidgetsBase):
+    poses = attr.ib(type=Pose, default=None)
+    pdbstrings = attr.ib(type=PackedPose, default=None)
+    n_decoys = attr.ib(type=int, default=None)
+    window_size = attr.ib(type=Tuple[Union[int, float]], default=None)
+    modules = attr.ib(type=list, default=None)
+    delay = attr.ib(type=float, default=None)
+    continuous_update = attr.ib(type=bool, default=None)
+    backend = attr.ib(type=str, default=None)
 
     def __attrs_pre_init__(self):
         self._toggle_scrolling()
@@ -42,13 +63,16 @@ class ViewerBase:
 
         return sys.modules[self.backend]
 
-    def _update_decoy(self, i=0):
+    def update_decoy(self, i=0):
         time.sleep(self.delay)
         self.update_viewer(self.poses[i], self.pdbstrings[i])
 
-    def setup_widgets(self):
-        if self.widget is not None:
-            display(self.widget)
+    def set_widgets(self, obj):
+        self.widgets = _to_widgets(obj)
+
+    def show_widgets(self):
+        if self.widgets is not None:
+            display(*self.widgets)
         else:
             if self.n_decoys > 1:
                 s_widget = IntSlider(
@@ -57,13 +81,13 @@ class ViewerBase:
                     description="Decoys",
                     continuous_update=self.continuous_update,
                 )
-                interact(self._update_decoy, i=s_widget)
+                interact(self.update_decoy, i=s_widget)
             else:
-                self._update_decoy()
+                self.update_decoy()
 
     def show(self):
         """Display Viewer in Jupyter notebook."""
-        self.setup_widgets()
+        self.show_widgets()
         self.show_viewer()
 
     def __add__(self, other):

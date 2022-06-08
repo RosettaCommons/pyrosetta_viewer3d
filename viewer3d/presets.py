@@ -316,7 +316,7 @@ def makeBundle(
     save_button.on_click(save_pdb)
     save_box = HBox([save_button, save_edit])
 
-    view.widget = VBox(
+    view.set_widgets(
         [
             chosen_helix,
             length,
