@@ -8,6 +8,7 @@ from ipywidgets import interact, IntSlider
 from IPython.display import display
 from pyrosetta import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
+from pyrosetta.rosetta.core.pose import append_pose_to_pose
 from typing import Iterable, Tuple, Union
 
 from viewer3d.base import ViewerBase, WidgetsBase
@@ -24,8 +25,7 @@ _logger = logging.getLogger("viewer3d.core")
 class Py3DmolViewer(ViewerBase):
     _was_show_called = attr.ib(type=bool, default=False, init=False)
 
-    def __attrs_post_init__(self):
-        self._toggle_window(self.window_size)
+    def setupClass(self):
         self.py3Dmol = self._maybe_import_backend()
         self.viewer = self.py3Dmol.view(
             width=self.window_size[0],
@@ -59,20 +59,27 @@ class Py3DmolViewer(ViewerBase):
         self.viewer.removeAllShapes()
         self.viewer.removeAllSurfaces()
 
+    def add_pose(self, _pose=None, new_chain=False):
+        if isinstance(_pose, Pose):
+            if view.decoy_widget.kwargs:
+                pose = self.poses[self.decoy_widget.kwargs["index"]]
+            else:
+                pose = self.poses[0]
+            append_pose_to_pose(pose, _pose, new_chain=new_chain)
+            self.update_viewer(_pose=pose, _pdbstring=None)
+        else:
+            raise ValueError(_pose)
+
     def update_viewer(self, _pose=None, _pdbstring=None):
         """Update Py3DmolViewer in Jupyter notebook."""
         self.setup_viewer(_pose=_pose, _pdbstring=_pose)
-        # if self._was_show_called:
-        self.viewer.update()
-
-    def show_viewer(self):
-        # self.viewer.show()
-        self._was_show_called = True
+        if self._was_show_called:
+            self.viewer.update()
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
 class NGLviewViewer(ViewerBase):
-    def __attrs_post_init__(self):
+    def setupClass(self):
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
 
@@ -105,7 +112,7 @@ class NGLviewViewer(ViewerBase):
 
 @attr.s(kw_only=True, slots=False, frozen=False)
 class PyMOLViewer(ViewerBase):
-    def __attrs_post_init__(self):
+    def __attrs_pre_init__(self):
         self.pymol = self._maybe_import_backend()
 
         raise NotImplementedError(

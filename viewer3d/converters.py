@@ -95,7 +95,7 @@ def _to_widgets(objs) -> List[Widget]:
     _to_widget.register(Widget, lambda obj: obj)
 
     if objs is None:
-        _widgets = None
+        _widgets = []
     elif isinstance(objs, collections.abc.Iterable):
         _widgets = list(map(_to_widget, objs))
     else:

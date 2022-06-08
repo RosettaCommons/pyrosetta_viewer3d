@@ -51,8 +51,17 @@ class ViewerBase(WidgetsBase):
     continuous_update = attr.ib(type=bool, default=None)
     backend = attr.ib(type=str, default=None)
 
-    def __attrs_pre_init__(self):
-        self._toggle_scrolling()
+    def __attrs_post_init__(self):
+        self.setupClass()
+        self.decoy_widget = interactive(
+            self.update_decoy,
+            index=IntSlider(
+                min=0,
+                max=self.n_decoys - 1,
+                description="Decoys",
+                continuous_update=self.continuous_update,
+            ),
+        )
 
     def _maybe_import_backend(self):
         if self.backend not in sys.modules:
@@ -72,34 +81,19 @@ class ViewerBase(WidgetsBase):
     def set_widgets(self, obj):
         self.widgets = _to_widgets(obj)
 
-    def update_decoy(self, i=0):
+    def update_decoy(self, index=0):
         time.sleep(self.delay)
-        self.update_viewer(self.poses[i], self.pdbstrings[i])
-
-    def show_widgets(self):
-        if self.widgets is not None:
-            display(*self.widgets)
-        else:
-            if self.n_decoys > 1:
-                s_widget = IntSlider(
-                    min=0,
-                    max=self.n_decoys - 1,
-                    description="Decoys",
-                    continuous_update=self.continuous_update,
-                )
-                # interact(self.update_decoy, i=s_widget)
-                interactive_widget = interactive(self.update_decoy, i=s_widget)
-                # s_widget.observe(self.update_decoy, names="value")
-                display(interactive_widget, self.viewer)
-                # self.viewer.show()
-                self.update_decoy()
-            else:
-                self.setup_viewer(self.poses[0], self.pdbstrings[0])
+        self.update_viewer(self.poses[index], self.pdbstrings[index])
 
     def show(self):
         """Display Viewer in Jupyter notebook."""
-        self.show_widgets()
-        self.show_viewer()
+        self._toggle_scrolling()
+        self._toggle_window(self.window_size)
+        _display = [*self.widgets, self.viewer]
+        if self.n_decoys > 1:
+            _display.insert(0, self.decoy_widget)
+        display(*_display)
+        self._was_show_called = True
 
     def __add__(self, other):
         self.modules += [other]
