@@ -62,11 +62,11 @@ class Py3DmolViewer(ViewerBase):
     def update_viewer(self, _pose=None, _pdbstring=None):
         """Update Py3DmolViewer in Jupyter notebook."""
         self.setup_viewer(_pose=_pose, _pdbstring=_pose)
-        if self._was_show_called:
-            self.viewer.update()
+        # if self._was_show_called:
+        self.viewer.update()
 
     def show_viewer(self):
-        self.viewer.show()
+        # self.viewer.show()
         self._was_show_called = True
 
 

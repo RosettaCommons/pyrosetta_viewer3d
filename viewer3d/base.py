@@ -4,7 +4,7 @@ import logging
 import sys
 import time
 
-from ipywidgets import interact, IntSlider
+from ipywidgets import interact, interactive, IntSlider
 from ipywidgets.widgets import Widget
 
 try:
@@ -87,7 +87,12 @@ class ViewerBase(WidgetsBase):
                     description="Decoys",
                     continuous_update=self.continuous_update,
                 )
-                interact(self.update_decoy, i=s_widget)
+                # interact(self.update_decoy, i=s_widget)
+                interactive_widget = interactive(self.update_decoy, i=s_widget)
+                # s_widget.observe(self.update_decoy, names="value")
+                display(interactive_widget, self.viewer)
+                # self.viewer.show()
+                self.update_decoy()
             else:
                 self.setup_viewer(self.poses[0], self.pdbstrings[0])
 
