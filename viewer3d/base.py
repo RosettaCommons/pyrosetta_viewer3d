@@ -63,12 +63,18 @@ class ViewerBase(WidgetsBase):
 
         return sys.modules[self.backend]
 
-    def update_decoy(self, i=0):
-        time.sleep(self.delay)
-        self.update_viewer(self.poses[i], self.pdbstrings[i])
+    def setup_viewer(self, _pose=None, _pdbstring=None):
+        """Setup Viewer in Jupyter notebook."""
+        self.remove_objects()
+        self.add_models(_pose=_pose, _pdbstring=_pdbstring)
+        self.apply_modules(_pose=_pose, _pdbstring=_pdbstring)
 
     def set_widgets(self, obj):
         self.widgets = _to_widgets(obj)
+
+    def update_decoy(self, i=0):
+        time.sleep(self.delay)
+        self.update_viewer(self.poses[i], self.pdbstrings[i])
 
     def show_widgets(self):
         if self.widgets is not None:
@@ -83,7 +89,7 @@ class ViewerBase(WidgetsBase):
                 )
                 interact(self.update_decoy, i=s_widget)
             else:
-                self.update_decoy()
+                self.setup_viewer(self.poses[0], self.pdbstrings[0])
 
     def show(self):
         """Display Viewer in Jupyter notebook."""

@@ -47,17 +47,21 @@ class Py3DmolViewer(ViewerBase):
                 surface_types_dict=self.surface_types_dict,
             )
 
-    def update_viewer(self, _pose=None, _pdbstring=None):
-        """Update Py3DmolViewer in Jupyter notebook."""
-        self.viewer.removeAllLabels()
-        self.viewer.removeAllModels()
-        self.viewer.removeAllShapes()
-        self.viewer.removeAllSurfaces()
+    def add_models(self, _pose=None, _pdbstring=None):
         if _pose is not None:
             self.viewer.addModels(io.to_pdbstring(_pose), "pdb")
         else:
             self.viewer.addModels(_pdbstring, "pdb")
-        self.apply_modules(_pose=_pose, _pdbstring=_pdbstring)
+
+    def remove_objects(self):
+        self.viewer.removeAllLabels()
+        self.viewer.removeAllModels()
+        self.viewer.removeAllShapes()
+        self.viewer.removeAllSurfaces()
+
+    def update_viewer(self, _pose=None, _pdbstring=None):
+        """Update Py3DmolViewer in Jupyter notebook."""
+        self.setup_viewer(_pose=_pose, _pdbstring=_pose)
         if self._was_show_called:
             self.viewer.update()
 
@@ -73,23 +77,26 @@ class NGLviewViewer(ViewerBase):
         self.viewer = self.nglview.widget.NGLWidget()
 
     def apply_modules(self, _pose=None, _pdbstring=None):
-        for module in self.modules:
-            self.viewer = module.apply_nglview(
+        for _module in self.modules:
+            self.viewer = _module.apply_nglview(
                 self.viewer,
                 _pose,
                 _pdbstring,
             )
 
-    def update_viewer(self, _pose=None, _pdbstring=None):
-        """Update NGLviewViewer in Jupyter notebook."""
-        for component_id in self.viewer._ngl_component_ids:
-            self.viewer.remove_component(component_id)
+    def add_models(self, _pose=None, _pdbstring=None):
         if _pose is not None:
             structure = self.nglview.adaptor.RosettaStructure(_pose)
         else:
             structure = self.nglview.adaptor.TextStructure(_pdbstring, ext="pdb")
         self.viewer.add_structure(structure)
-        self.apply_modules(_pose=_pose, _pdbstring=_pdbstring)
+
+    def remove_objects(self):
+        for component_id in self.viewer._ngl_component_ids:
+            self.viewer.remove_component(component_id)
+
+    def update_viewer(self, _pose=None, _pdbstring=None):
+        self.setup_viewer(_pose=_pose, _pdbstring=_pdbstring)
 
     def show_viewer(self):
         self.viewer.display(gui=True, style="ngl")

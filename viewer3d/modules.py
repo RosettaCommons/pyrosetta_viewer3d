@@ -602,8 +602,76 @@ class setStyle(ModuleBase):
 
         return viewer
 
+    @pyrosetta.distributed.requires_init
     def apply_nglview(self, viewer, pose, pdbstring, **kwargs):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+        # raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+        if self.command:
+            pass
+        else:
+            if self.residue_selector:
+                if pose is None:
+                    pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+                resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
+
+                if (not resi) and (not chain):
+                    pass
+                else:
+                    if self.cartoon:
+                        pass
+                        # viewer.setStyle(
+                        #     {"resi": resi, "chain": chain},
+                        #     {
+                        #         "cartoon": {"color": self.cartoon_color},
+                        #         self.style: {
+                        #             "colorscheme": self.colorscheme,
+                        #             "radius": self.radius,
+                        #         },
+                        #     },
+                        # )
+                    else:
+                        pass
+                        # viewer.setStyle(
+                        #     {"resi": resi, "chain": chain},
+                        #     {
+                        #         self.style: {
+                        #             "colorscheme": self.colorscheme,
+                        #             "radius": self.radius,
+                        #         }
+                        #     },
+                        # )
+                    # if self.label:
+                    #     raise NotImplementedError(self.label)
+                    #     viewer.addResLabels(
+                    #         {"resi": resi, "chain": chain},
+                    #         {
+                    #             "fontSize": self.label_fontsize,
+                    #             "showBackground": self.label_background,
+                    #             "fontColor": self.label_fontcolor,
+                    #         },
+                    #     )
+            else:
+                if self.cartoon:
+                    viewer.setStyle(
+                        {
+                            "cartoon": {"color": self.cartoon_color},
+                            self.style: {
+                                "colorscheme": self.colorscheme,
+                                "radius": self.radius,
+                            },
+                        }
+                    )
+                else:
+                    viewer.setStyle(
+                        {
+                            self.style: {
+                                "colorscheme": self.colorscheme,
+                                "radius": self.radius,
+                            }
+                        }
+                    )
+
+        return viewer
 
     def apply_pymol(self):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
