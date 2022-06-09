@@ -170,8 +170,8 @@ def makeBundle(
             viewer3d.setStyle(
                 residue_selector=core_selector,
                 cartoon=True,
-                cartoon_color="black",
-                colorscheme="blackCarbon",
+                cartoon_color="red",
+                colorscheme="redCarbon",
                 style="stick",
                 radius=0.25,
                 label=False,
@@ -179,8 +179,8 @@ def makeBundle(
             viewer3d.setStyle(
                 residue_selector=boundary_selector,
                 cartoon=True,
-                cartoon_color="grey",
-                colorscheme="greyCarbon",
+                cartoon_color="orange",
+                colorscheme="orangeCarbon",
                 style="stick",
                 radius=0.25,
                 label=False,
@@ -188,8 +188,8 @@ def makeBundle(
             viewer3d.setStyle(
                 residue_selector=surface_selector,
                 cartoon=True,
-                cartoon_color="white",
-                colorscheme="whiteCarbon",
+                cartoon_color="yellow",
+                colorscheme="yellowCarbon",
                 style="stick",
                 radius=0.25,
                 label=False,
