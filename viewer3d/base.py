@@ -149,6 +149,15 @@ class Base3D:
         except NameError as e:
             _logger.debug(e)
 
+    def _in_notebook(self):
+        try:
+            get_ipython()
+            _in_notebook = True
+        except:
+            _in_notebook = False
+        finally:
+            return _in_notebook
+
     def add(self, other):
         """Add a module to the Viewer instance."""
         return self.__add__(other)
@@ -230,10 +239,11 @@ class ViewerBase(Base3D, WidgetsBase):
 
     def show(self):
         """Display Viewer in Jupyter notebook."""
-        self._toggle_scrolling()
-        self._toggle_window(self.window_size)
-        display(*self.get_widgets())
-        self.show_viewer()
+        if self._in_notebook():
+            self._toggle_scrolling()
+            self._toggle_window(self.window_size)
+            display(*self.get_widgets())
+            self.show_viewer()
 
 
 def expand_notebook():
