@@ -5,7 +5,7 @@ import logging
 import sys
 import time
 
-from ipywidgets import interactive, IntSlider
+from ipywidgets import interactive, IntSlider, Output
 from ipywidgets.widgets import Widget
 from IPython.display import display
 from IPython.core.display import display as core_display, HTML
@@ -23,6 +23,30 @@ from viewer3d.validators import _validate_int_float, _validate_window_size
 
 
 _logger = logging.getLogger("viewer3d.base")
+out_widget = Output()
+
+
+@attr.s(kw_only=False, slots=False)
+class WidgetsBase:
+    def set_widgets(self, obj):
+        self.widgets = _to_widgets(obj)
+
+    def get_widgets(self):
+        _widgets = self.widgets.copy()
+        if self.n_decoys > 1:
+            _widgets.insert(0, self.decoy_widget)
+        return _widgets
+
+    def get_decoy_widget(self):
+        return interactive(
+            self.update_decoy,
+            index=IntSlider(
+                min=0,
+                max=self.n_decoys - 1,
+                description="Decoys",
+                continuous_update=self.continuous_update,
+            ),
+        )
 
 
 @attr.s(kw_only=False, slots=False)
@@ -177,29 +201,6 @@ class Base3D:
 
 
 @attr.s(kw_only=False, slots=False)
-class WidgetsBase:
-    def set_widgets(self, obj):
-        self.widgets = _to_widgets(obj)
-
-    def get_widgets(self):
-        _widgets = self.widgets.copy()
-        if self.n_decoys > 1:
-            _widgets.insert(0, self.decoy_widget)
-        return _widgets
-
-    def get_decoy_widget(self):
-        return interactive(
-            self.update_decoy,
-            index=IntSlider(
-                min=0,
-                max=self.n_decoys - 1,
-                description="Decoys",
-                continuous_update=self.continuous_update,
-            ),
-        )
-
-
-@attr.s(kw_only=False, slots=False)
 class ViewerBase(Base3D, WidgetsBase):
     decoy_widget = attr.ib(
         default=attr.Factory(WidgetsBase.get_decoy_widget, takes_self=True),
@@ -218,6 +219,7 @@ class ViewerBase(Base3D, WidgetsBase):
         append_pose_to_pose(self.poses[index], pose, new_chain=new_chain)
         self.update_viewer(self.poses[index])
 
+    @out_widget.capture()
     def apply_modules(self, _pose=None, _pdbstring=None):
         for _module in self.modules:
             func = getattr(_module, f"apply_{self.backend}")
