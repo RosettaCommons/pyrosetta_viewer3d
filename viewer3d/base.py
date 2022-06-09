@@ -14,7 +14,6 @@ from pyrosetta.distributed.packed_pose.core import PackedPose
 from pyrosetta.rosetta.core.pose import append_pose_to_pose
 from typing import Generic, List, Optional, Tuple, TypeVar, Union
 
-from viewer3d.config import BACKENDS
 from viewer3d.config import _import_backend
 from viewer3d.converters import _to_widgets
 from viewer3d.exceptions import ViewerImportError
