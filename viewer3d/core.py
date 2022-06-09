@@ -4,11 +4,8 @@ import logging
 import os
 import pyrosetta.distributed.io as io
 
-from ipywidgets import interact, IntSlider
-from IPython.display import display
 from pyrosetta import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
-from pyrosetta.rosetta.core.pose import append_pose_to_pose
 from typing import Iterable, Tuple, Union
 
 from viewer3d.base import ViewerBase, WidgetsBase
@@ -23,31 +20,16 @@ _logger = logging.getLogger("viewer3d.core")
 
 @attr.s(kw_only=True, slots=False, frozen=False)
 class Py3DmolViewer(ViewerBase):
-    _was_show_called = attr.ib(type=bool, default=False, init=False)
+    _displayed = attr.ib(type=bool, default=False, init=False)
 
-    def setupClass(self):
+    def setup(self):
         self.py3Dmol = self._maybe_import_backend()
         self.viewer = self.py3Dmol.view(
             width=self.window_size[0],
             height=self.window_size[1],
         )
-        self.surface_types_dict = {
-            "VDW": self.py3Dmol.VDW,
-            "MS": self.py3Dmol.MS,
-            "SES": self.py3Dmol.SES,
-            "SAS": self.py3Dmol.SAS,
-        }
 
-    def apply_modules(self, _pose=None, _pdbstring=None):
-        for _module in self.modules:
-            self.viewer = _module.apply_py3Dmol(
-                self.viewer,
-                _pose,
-                _pdbstring,
-                surface_types_dict=self.surface_types_dict,
-            )
-
-    def add_models(self, _pose=None, _pdbstring=None):
+    def add_objects(self, _pose=None, _pdbstring=None):
         if _pose is not None:
             self.viewer.addModels(io.to_pdbstring(_pose), "pdb")
         else:
@@ -59,39 +41,23 @@ class Py3DmolViewer(ViewerBase):
         self.viewer.removeAllShapes()
         self.viewer.removeAllSurfaces()
 
-    def add_pose(self, _pose=None, new_chain=False):
-        if isinstance(_pose, Pose):
-            if view.decoy_widget.kwargs:
-                pose = self.poses[self.decoy_widget.kwargs["index"]]
-            else:
-                pose = self.poses[0]
-            append_pose_to_pose(pose, _pose, new_chain=new_chain)
-            self.update_viewer(_pose=pose, _pdbstring=None)
-        else:
-            raise ValueError(_pose)
-
     def update_viewer(self, _pose=None, _pdbstring=None):
-        """Update Py3DmolViewer in Jupyter notebook."""
-        self.setup_viewer(_pose=_pose, _pdbstring=_pose)
-        if self._was_show_called:
+        self.update_objects(_pose=_pose, _pdbstring=_pose)
+        if self._displayed:
             self.viewer.update()
+
+    def show_viewer(self):
+        self.viewer.show()
+        self._displayed = True
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
 class NGLviewViewer(ViewerBase):
-    def setupClass(self):
+    def setup(self):
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
 
-    def apply_modules(self, _pose=None, _pdbstring=None):
-        for _module in self.modules:
-            self.viewer = _module.apply_nglview(
-                self.viewer,
-                _pose,
-                _pdbstring,
-            )
-
-    def add_models(self, _pose=None, _pdbstring=None):
+    def add_objects(self, _pose=None, _pdbstring=None):
         if _pose is not None:
             structure = self.nglview.adaptor.RosettaStructure(_pose)
         else:
@@ -103,7 +69,7 @@ class NGLviewViewer(ViewerBase):
             self.viewer.remove_component(component_id)
 
     def update_viewer(self, _pose=None, _pdbstring=None):
-        self.setup_viewer(_pose=_pose, _pdbstring=_pdbstring)
+        self.update_objects(_pose=_pose, _pdbstring=_pdbstring)
 
     def show_viewer(self):
         self.viewer.display(gui=True, style="ngl")

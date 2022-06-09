@@ -4,19 +4,17 @@ import logging
 import sys
 import time
 
-from ipywidgets import interact, interactive, IntSlider
+from ipywidgets import interactive, IntSlider
 from ipywidgets.widgets import Widget
-
-try:
-    from IPython.display import display
-    from IPython.core.display import display as core_display, HTML
-    from IPython.display import clear_output
-except ImportError:
-    _logger.error("IPython.core.display or IPython.display module cannot be imported.")
+from IPython.display import display
+from IPython.core.display import display as core_display, HTML
+from IPython.display import clear_output
 from pyrosetta import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
+from pyrosetta.rosetta.core.pose import append_pose_to_pose
 from typing import Generic, List, Optional, Tuple, TypeVar, Union
 
+from viewer3d.config import BACKENDS
 from viewer3d.config import _import_backend
 from viewer3d.converters import _to_widgets
 from viewer3d.exceptions import ViewerImportError
@@ -39,6 +37,15 @@ class WidgetsBase:
         converter=_to_widgets,
     )
 
+    def set_widgets(self, obj):
+        self.widgets = _to_widgets(obj)
+
+    def get_widgets(self):
+        _widgets = self.widgets.copy()
+        if self.n_decoys > 1:
+            _widgets.insert(0, self.decoy_widget)
+        return _widgets
+
 
 @attr.s(kw_only=False, slots=False, frozen=False)
 class ViewerBase(WidgetsBase):
@@ -52,7 +59,7 @@ class ViewerBase(WidgetsBase):
     backend = attr.ib(type=str, default=None)
 
     def __attrs_post_init__(self):
-        self.setupClass()
+        self.setup()
         self.decoy_widget = interactive(
             self.update_decoy,
             index=IntSlider(
@@ -72,14 +79,30 @@ class ViewerBase(WidgetsBase):
 
         return sys.modules[self.backend]
 
-    def setup_viewer(self, _pose=None, _pdbstring=None):
+    def add_pose(self, pose=None, new_chain=False):
+        assert isinstance(
+            pose, Pose
+        ), f"Object must be of type `Pose`. Received: {type(pose)}"
+        kwargs = self.decoy_widget.kwargs
+        index = kwargs["index"] if kwargs else 0
+        self.poses[index] = self.poses[index].clone()
+        append_pose_to_pose(self.poses[index], pose, new_chain=new_chain)
+        self.update_viewer(self.poses[index])
+
+    def apply_modules(self, _pose=None, _pdbstring=None):
+        for _module in self.modules:
+            func = getattr(_module, f"apply_{self.backend}")
+            self.viewer = func(
+                self.viewer,
+                _pose,
+                _pdbstring,
+            )
+
+    def update_objects(self, _pose=None, _pdbstring=None):
         """Setup Viewer in Jupyter notebook."""
         self.remove_objects()
-        self.add_models(_pose=_pose, _pdbstring=_pdbstring)
+        self.add_objects(_pose=_pose, _pdbstring=_pdbstring)
         self.apply_modules(_pose=_pose, _pdbstring=_pdbstring)
-
-    def set_widgets(self, obj):
-        self.widgets = _to_widgets(obj)
 
     def update_decoy(self, index=0):
         time.sleep(self.delay)
@@ -89,15 +112,11 @@ class ViewerBase(WidgetsBase):
         """Display Viewer in Jupyter notebook."""
         self._toggle_scrolling()
         self._toggle_window(self.window_size)
-        _display = [*self.widgets, self.viewer]
-        if self.n_decoys > 1:
-            _display.insert(0, self.decoy_widget)
-        display(*_display)
-        self._was_show_called = True
+        display(*self.get_widgets())
+        self.show_viewer()
 
     def __add__(self, other):
         self.modules += [other]
-
         return self
 
     def __radd__(self, other):
