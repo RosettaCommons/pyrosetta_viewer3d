@@ -126,7 +126,12 @@ def templatePreset(packed_and_poses_and_pdbs=None, *args, **kwargs):
 
 @requires_init
 def makeBundle(
-    modules=[], aa="VAL", num_helices=4, backend="py3Dmol", continuous_update=True
+    modules=[],
+    aa="VAL",
+    num_helices=4,
+    backend="py3Dmol",
+    window_size=None,
+    continuous_update=True,
 ):
     """
     Add a description of the preset Viewer here
@@ -199,6 +204,7 @@ def makeBundle(
     pose = pyrosetta.Pose()
     view = viewer3d.init(
         packed_and_poses_and_pdbs=pose,
+        window_size=window_size,
         modules=modules,
         backend=backend,
     )
