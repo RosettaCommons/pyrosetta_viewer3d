@@ -4,21 +4,20 @@ import logging
 import os
 import pyrosetta.distributed.io as io
 
+from ipywidgets.widgets import Widget
 from pyrosetta import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
-from typing import Iterable, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union
 
-from viewer3d.base import ViewerBase, WidgetsBase
+from viewer3d.base import ViewerBase, Base3D
 from viewer3d.config import BACKENDS
-from viewer3d.converters import _to_float, _to_poses_pdbstrings, _to_widgets
-from viewer3d.modules import ModuleBase
-from viewer3d.validators import _validate_int_float, _validate_window_size
+from viewer3d.converters import _to_poses_pdbstrings
 
 
 _logger = logging.getLogger("viewer3d.core")
 
 
-@attr.s(kw_only=True, slots=False, frozen=False)
+@attr.s(kw_only=True, slots=False)
 class Py3DmolViewer(ViewerBase):
     _displayed = attr.ib(type=bool, default=False, init=False)
 
@@ -51,7 +50,7 @@ class Py3DmolViewer(ViewerBase):
         self._displayed = True
 
 
-@attr.s(kw_only=True, slots=False, frozen=False)
+@attr.s(kw_only=True, slots=False)
 class NGLviewViewer(ViewerBase):
     def setup(self):
         self.nglview = self._maybe_import_backend()
@@ -76,7 +75,7 @@ class NGLviewViewer(ViewerBase):
         self.viewer._ipython_display_()
 
 
-@attr.s(kw_only=True, slots=False, frozen=False)
+@attr.s(kw_only=True, slots=False)
 class PyMOLViewer(ViewerBase):
     def __attrs_pre_init__(self):
         self.pymol = self._maybe_import_backend()
@@ -101,55 +100,10 @@ class PyMOLViewer(ViewerBase):
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
-class SetupViewer(WidgetsBase):
+class SetupViewer(Base3D):
     packed_and_poses_and_pdbs = attr.ib(
         type=Union[PackedPose, Pose, Iterable[Union[PackedPose, Pose]], None],
         default=None,
-    )
-    poses = attr.ib(type=Iterable[Pose], init=False)
-    pdbstrings = attr.ib(type=Iterable[str], init=False)
-    window_size = attr.ib(
-        type=Tuple[Union[int, float], Union[int, float]],
-        default=None,
-        validator=[
-            attr.validators.deep_iterable(
-                member_validator=attr.validators.instance_of((int, float)),
-                iterable_validator=attr.validators.instance_of(
-                    collections.abc.Iterable
-                ),
-            ),
-            _validate_window_size,
-        ],
-        converter=attr.converters.default_if_none(default=(1200, 800)),
-    )
-    modules = attr.ib(
-        type=list,
-        default=None,
-        validator=attr.validators.deep_iterable(
-            member_validator=attr.validators.instance_of(ModuleBase),
-            iterable_validator=attr.validators.instance_of(list),
-        ),
-        converter=attr.converters.default_if_none(default=[]),
-    )
-    delay = attr.ib(
-        type=float,
-        default=None,
-        validator=_validate_int_float,
-        converter=attr.converters.pipe(
-            attr.converters.default_if_none(0.25), _to_float
-        ),
-    )
-    continuous_update = attr.ib(
-        type=bool,
-        default=None,
-        validator=attr.validators.instance_of(bool),
-        converter=attr.converters.default_if_none(default=False),
-    )
-    backend = attr.ib(
-        type=str,
-        default=None,
-        validator=[attr.validators.instance_of(str), attr.validators.in_(BACKENDS)],
-        converter=attr.converters.default_if_none(default=BACKENDS[0]),
     )
 
     def __attrs_post_init__(self):
@@ -164,6 +118,7 @@ class SetupViewer(WidgetsBase):
             modules=self.modules.copy(),
             delay=self.delay,
             continuous_update=self.continuous_update,
+            widgets=self.widgets,
             backend=self.backend,
             n_decoys=self.n_decoys,
         )

@@ -1,4 +1,5 @@
 import attr
+import collections
 import math
 import logging
 import sys
@@ -12,18 +13,60 @@ from IPython.display import clear_output
 from pyrosetta import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
 from pyrosetta.rosetta.core.pose import append_pose_to_pose
-from typing import Generic, List, Optional, Tuple, TypeVar, Union
+from typing import Generic, Iterable, List, Optional, Tuple, TypeVar, Union
 
-from viewer3d.config import _import_backend
-from viewer3d.converters import _to_widgets
+from viewer3d.config import _import_backend, BACKENDS
+from viewer3d.converters import _to_float, _to_widgets
 from viewer3d.exceptions import ViewerImportError
+from viewer3d.modules import ModuleBase
+from viewer3d.validators import _validate_int_float, _validate_window_size
 
 
 _logger = logging.getLogger("viewer3d.base")
 
 
-@attr.s(kw_only=False, slots=False, frozen=False)
-class WidgetsBase:
+@attr.s(kw_only=False, slots=False)
+class Base3D:
+    poses = attr.ib(type=Iterable[Pose], default=None)
+    pdbstrings = attr.ib(type=Iterable[str], default=None)
+    n_decoys = attr.ib(type=int, default=None)
+    window_size = attr.ib(
+        type=Tuple[Union[int, float], Union[int, float]],
+        default=None,
+        validator=[
+            attr.validators.deep_iterable(
+                member_validator=attr.validators.instance_of((int, float)),
+                iterable_validator=attr.validators.instance_of(
+                    collections.abc.Iterable
+                ),
+            ),
+            _validate_window_size,
+        ],
+        converter=attr.converters.default_if_none(default=(1200, 800)),
+    )
+    modules = attr.ib(
+        type=list,
+        default=None,
+        validator=attr.validators.deep_iterable(
+            member_validator=attr.validators.instance_of(ModuleBase),
+            iterable_validator=attr.validators.instance_of(list),
+        ),
+        converter=attr.converters.default_if_none(default=[]),
+    )
+    delay = attr.ib(
+        type=float,
+        default=None,
+        validator=_validate_int_float,
+        converter=attr.converters.pipe(
+            attr.converters.default_if_none(0.25), _to_float
+        ),
+    )
+    continuous_update = attr.ib(
+        type=bool,
+        default=None,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
     widgets = attr.ib(
         type=Optional[List[Widget]],
         default=None,
@@ -35,39 +78,12 @@ class WidgetsBase:
         ),
         converter=_to_widgets,
     )
-
-    def set_widgets(self, obj):
-        self.widgets = _to_widgets(obj)
-
-    def get_widgets(self):
-        _widgets = self.widgets.copy()
-        if self.n_decoys > 1:
-            _widgets.insert(0, self.decoy_widget)
-        return _widgets
-
-
-@attr.s(kw_only=False, slots=False, frozen=False)
-class ViewerBase(WidgetsBase):
-    poses = attr.ib(type=Pose, default=None)
-    pdbstrings = attr.ib(type=PackedPose, default=None)
-    n_decoys = attr.ib(type=int, default=None)
-    window_size = attr.ib(type=Tuple[Union[int, float]], default=None)
-    modules = attr.ib(type=list, default=None)
-    delay = attr.ib(type=float, default=None)
-    continuous_update = attr.ib(type=bool, default=None)
-    backend = attr.ib(type=str, default=None)
-
-    def __attrs_post_init__(self):
-        self.setup()
-        self.decoy_widget = interactive(
-            self.update_decoy,
-            index=IntSlider(
-                min=0,
-                max=self.n_decoys - 1,
-                description="Decoys",
-                continuous_update=self.continuous_update,
-            ),
-        )
+    backend = attr.ib(
+        type=str,
+        default=None,
+        validator=[attr.validators.instance_of(str), attr.validators.in_(BACKENDS)],
+        converter=attr.converters.default_if_none(default=BACKENDS[0]),
+    )
 
     def _maybe_import_backend(self):
         if self.backend not in sys.modules:
@@ -77,42 +93,6 @@ class ViewerBase(WidgetsBase):
                 raise ViewerImportError(self.backend)
 
         return sys.modules[self.backend]
-
-    def add_pose(self, pose=None, new_chain=False):
-        assert isinstance(
-            pose, Pose
-        ), f"Object must be of type `Pose`. Received: {type(pose)}"
-        kwargs = self.decoy_widget.kwargs
-        index = kwargs["index"] if kwargs else 0
-        self.poses[index] = self.poses[index].clone()
-        append_pose_to_pose(self.poses[index], pose, new_chain=new_chain)
-        self.update_viewer(self.poses[index])
-
-    def apply_modules(self, _pose=None, _pdbstring=None):
-        for _module in self.modules:
-            func = getattr(_module, f"apply_{self.backend}")
-            self.viewer = func(
-                self.viewer,
-                _pose,
-                _pdbstring,
-            )
-
-    def update_objects(self, _pose=None, _pdbstring=None):
-        """Setup Viewer in Jupyter notebook."""
-        self.remove_objects()
-        self.add_objects(_pose=_pose, _pdbstring=_pdbstring)
-        self.apply_modules(_pose=_pose, _pdbstring=_pdbstring)
-
-    def update_decoy(self, index=0):
-        time.sleep(self.delay)
-        self.update_viewer(self.poses[index], self.pdbstrings[index])
-
-    def show(self):
-        """Display Viewer in Jupyter notebook."""
-        self._toggle_scrolling()
-        self._toggle_window(self.window_size)
-        display(*self.get_widgets())
-        self.show_viewer()
 
     def __add__(self, other):
         self.modules += [other]
@@ -185,6 +165,75 @@ class ViewerBase(WidgetsBase):
         self.modules = None
         self.delay = None
         self.continuous_update = None
+
+
+@attr.s(kw_only=False, slots=False)
+class WidgetsBase:
+    def set_widgets(self, obj):
+        self.widgets = _to_widgets(obj)
+
+    def get_widgets(self):
+        _widgets = self.widgets.copy()
+        if self.n_decoys > 1:
+            _widgets.insert(0, self.decoy_widget)
+        return _widgets
+
+    def get_decoy_widget(self):
+        return interactive(
+            self.update_decoy,
+            index=IntSlider(
+                min=0,
+                max=self.n_decoys - 1,
+                description="Decoys",
+                continuous_update=self.continuous_update,
+            ),
+        )
+
+
+@attr.s(kw_only=False, slots=False)
+class ViewerBase(Base3D, WidgetsBase):
+    decoy_widget = attr.ib(
+        default=attr.Factory(WidgetsBase.get_decoy_widget, takes_self=True),
+    )
+
+    def __attrs_post_init__(self):
+        self.setup()
+
+    def add_pose(self, pose=None, new_chain=False):
+        assert isinstance(
+            pose, Pose
+        ), f"Object must be of type `Pose`. Received: {type(pose)}"
+        kwargs = self.decoy_widget.kwargs
+        index = kwargs["index"] if kwargs else 0
+        self.poses[index] = self.poses[index].clone()
+        append_pose_to_pose(self.poses[index], pose, new_chain=new_chain)
+        self.update_viewer(self.poses[index])
+
+    def apply_modules(self, _pose=None, _pdbstring=None):
+        for _module in self.modules:
+            func = getattr(_module, f"apply_{self.backend}")
+            self.viewer = func(
+                self.viewer,
+                _pose,
+                _pdbstring,
+            )
+
+    def update_objects(self, _pose=None, _pdbstring=None):
+        """Setup Viewer in Jupyter notebook."""
+        self.remove_objects()
+        self.add_objects(_pose=_pose, _pdbstring=_pdbstring)
+        self.apply_modules(_pose=_pose, _pdbstring=_pdbstring)
+
+    def update_decoy(self, index=0):
+        time.sleep(self.delay)
+        self.update_viewer(self.poses[index], self.pdbstrings[index])
+
+    def show(self):
+        """Display Viewer in Jupyter notebook."""
+        self._toggle_scrolling()
+        self._toggle_window(self.window_size)
+        display(*self.get_widgets())
+        self.show_viewer()
 
 
 def expand_notebook():
