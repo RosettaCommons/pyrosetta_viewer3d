@@ -159,7 +159,7 @@ def makeBundle(
     )
     from pyrosetta.rosetta.utility import vector1_unsigned_long
 
-    if not modules:
+    if not modules and (backend == "py3Dmol"):
         core_selector = LayerSelector()
         core_selector.set_layers(True, False, False)
         boundary_selector = LayerSelector()
@@ -327,8 +327,6 @@ def makeBundle(
             save_box,
         ]
     )
-    view.show()
-
     initialize_bundle()
     update_bundle()
 
