@@ -3,163 +3,90 @@ import collections
 import logging
 import os
 import pyrosetta.distributed.io as io
-import time
 
-
-from ipywidgets import interact, IntSlider
-from pyrosetta.rosetta.core.pose import Pose
+from ipywidgets.widgets import Widget
+from pyrosetta import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
-from typing import Iterable, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union
 
-from viewer3d.base import ViewerBase
+from viewer3d.base import ViewerBase, Base3D
 from viewer3d.config import BACKENDS
-from viewer3d.converters import _to_float, _to_poses_pdbstrings
-from viewer3d.modules import ModuleBase
-from viewer3d.validators import _validate_int_float, _validate_window_size
+from viewer3d.converters import _to_poses_pdbstrings
 
 
 _logger = logging.getLogger("viewer3d.core")
 
 
-@attr.s(kw_only=True, slots=False, frozen=False)
+@attr.s(kw_only=True, slots=False)
 class Py3DmolViewer(ViewerBase):
-    poses = attr.ib(type=Pose)
-    pdbstrings = attr.ib(type=PackedPose)
-    window_size = attr.ib(type=Tuple[Union[int, float]])
-    modules = attr.ib(type=list)
-    delay = attr.ib(type=float)
-    continuous_update = attr.ib(type=bool)
-    backend = attr.ib(type=str)
+    _displayed = attr.ib(type=bool, default=False, init=False)
 
-    def __attrs_post_init__(self):
-        self._toggle_window(self.window_size)
+    def setup(self):
         self.py3Dmol = self._maybe_import_backend()
-        self.surface_types_dict = {
-            "VDW": self.py3Dmol.VDW,
-            "MS": self.py3Dmol.MS,
-            "SES": self.py3Dmol.SES,
-            "SAS": self.py3Dmol.SAS,
-        }
-
-    def show(self):
-        """Display Py3DmolViewer in Jupyter notebook."""
-
-        def view(i=0):
-            _viewer = self.py3Dmol.view(
-                width=self.window_size[0],
-                height=self.window_size[1],
-            )
-            _pose = self.poses[i]
-            _pdbstring = self.pdbstrings[i]
-
-            if _pose is not None:
-                _viewer.addModels(io.to_pdbstring(_pose), "pdb")
-            else:
-                _viewer.addModels(_pdbstring, "pdb")
-            _viewer.zoomTo()
-
-            for module in self.modules:
-                _viewer = module.apply_py3Dmol(
-                    _viewer,
-                    _pose,
-                    _pdbstring,
-                    surface_types_dict=self.surface_types_dict,
-                )
-
-            self._clear_output()
-
-            if _pose is not None and _pose.pdb_info() and _pose.pdb_info().name():
-                _logger.debug("Decoy {0}: {1}".format(i, _pose.pdb_info().name()))
-
-            return _viewer.show()
-
-        time.sleep(self.delay)
-
-        num_decoys = len(self.pdbstrings)
-        if num_decoys > 1:
-            s_widget = IntSlider(
-                min=0,
-                max=num_decoys - 1,
-                description="Decoys",
-                continuous_update=self.continuous_update,
-            )
-            widget = interact(view, i=s_widget)
-        else:
-            widget = view()
-
-        return widget
-
-
-@attr.s(kw_only=True, slots=False, frozen=False)
-class NGLviewViewer(ViewerBase):
-    poses = attr.ib(type=Pose)
-    pdbstrings = attr.ib(type=PackedPose)
-    window_size = attr.ib(type=Tuple[Union[int, float]])
-    modules = attr.ib(type=list)
-    delay = attr.ib(type=float)
-    continuous_update = attr.ib(type=bool)
-    backend = attr.ib(type=str)
-
-    def __attrs_post_init__(self):
-        self._toggle_window(self.window_size)
-        self.nglview = self._maybe_import_backend()
-
-        raise NotImplementedError(
-            f"{self.__class__.__name__} is not currently supported."
+        self.viewer = self.py3Dmol.view(
+            width=self.window_size[0],
+            height=self.window_size[1],
         )
 
-    def show(self):
-        """Display NGLviewViewer in Jupyter notebook."""
-
-        def view(i=0):
-            _viewer = None  # TODO
-            for module in self.modules:
-                _viewer = module.apply_nglview(
-                    _viewer,
-                    _pose,
-                    _pdbstring,
-                )
-
-            self._clear_output()
-
-            if _pose is not None and _pose.pdb_info() and _pose.pdb_info().name():
-                _logger.debug("Decoy {0}: {1}".format(i, _pose.pdb_info().name()))
-
-            return _viewer.show()
-
-        time.sleep(self.delay)
-
-        num_decoys = len(self.pdbstrings)
-        if num_decoys > 1:
-            s_widget = IntSlider(
-                min=0,
-                max=num_decoys - 1,
-                description="Decoys",
-                continuous_update=self.continuous_update,
-            )
-            widget = interact(view, i=s_widget)
+    def add_objects(self, _pose=None, _pdbstring=None):
+        if _pose is not None:
+            self.viewer.addModels(io.to_pdbstring(_pose), "pdb")
         else:
-            widget = view()
+            self.viewer.addModels(_pdbstring, "pdb")
 
-        return widget
+    def remove_objects(self):
+        self.viewer.removeAllLabels()
+        self.viewer.removeAllModels()
+        self.viewer.removeAllShapes()
+        self.viewer.removeAllSurfaces()
+
+    def update_viewer(self, _pose=None, _pdbstring=None):
+        self.update_objects(_pose=_pose, _pdbstring=_pose)
+        if self._displayed:
+            self.viewer.update()
+
+    def show_viewer(self):
+        self.viewer.show()
+        self._displayed = True
 
 
-@attr.s(kw_only=True, slots=False, frozen=False)
+@attr.s(kw_only=True, slots=False)
+class NGLviewViewer(ViewerBase):
+    def setup(self):
+        self.nglview = self._maybe_import_backend()
+        self.viewer = self.nglview.widget.NGLWidget()
+
+    def add_objects(self, _pose=None, _pdbstring=None):
+        if _pose is not None:
+            structure = self.nglview.adaptor.RosettaStructure(_pose)
+        else:
+            structure = self.nglview.adaptor.TextStructure(_pdbstring, ext="pdb")
+        self.viewer.add_structure(structure)
+
+    def remove_objects(self):
+        for component_id in self.viewer._ngl_component_ids:
+            self.viewer.remove_component(component_id)
+
+    def update_viewer(self, _pose=None, _pdbstring=None):
+        self.update_objects(_pose=_pose, _pdbstring=_pdbstring)
+
+    def show_viewer(self):
+        self.viewer.display(gui=True, style="ngl")
+        self.viewer._ipython_display_()
+
+
+@attr.s(kw_only=True, slots=False)
 class PyMOLViewer(ViewerBase):
-    poses = attr.ib(type=Pose)
-    pdbstrings = attr.ib(type=PackedPose)
-    window_size = attr.ib(type=Tuple[Union[int, float]])
-    modules = attr.ib(type=list)
-    delay = attr.ib(type=float)
-    continuous_update = attr.ib(type=bool)
-    backend = attr.ib(type=str)
-
-    def __attrs_post_init__(self):
+    def __attrs_pre_init__(self):
         self.pymol = self._maybe_import_backend()
 
         raise NotImplementedError(
             f"{self.__class__.__name__} is not currently supported."
         )
+
+    def update_viewer(self, _pose, _pdbstring):
+        """Update PyMOLViewer."""
+        pass
 
     def show(self):
         """Display PyMOLViewer."""
@@ -173,61 +100,17 @@ class PyMOLViewer(ViewerBase):
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
-class SetupViewer:
+class SetupViewer(Base3D):
     packed_and_poses_and_pdbs = attr.ib(
         type=Union[PackedPose, Pose, Iterable[Union[PackedPose, Pose]], None],
         default=None,
-    )
-    poses = attr.ib(type=Iterable[Pose], init=False)
-    pdbstrings = attr.ib(type=Iterable[str], init=False)
-    window_size = attr.ib(
-        type=Tuple[Union[int, float], Union[int, float]],
-        default=None,
-        validator=[
-            attr.validators.deep_iterable(
-                member_validator=attr.validators.instance_of((int, float)),
-                iterable_validator=attr.validators.instance_of(
-                    collections.abc.Iterable
-                ),
-            ),
-            _validate_window_size,
-        ],
-        converter=attr.converters.default_if_none(default=(1200, 800)),
-    )
-    modules = attr.ib(
-        type=list,
-        default=None,
-        validator=attr.validators.deep_iterable(
-            member_validator=attr.validators.instance_of(ModuleBase),
-            iterable_validator=attr.validators.instance_of(list),
-        ),
-        converter=attr.converters.default_if_none(default=[]),
-    )
-    delay = attr.ib(
-        type=float,
-        default=None,
-        validator=_validate_int_float,
-        converter=attr.converters.pipe(
-            attr.converters.default_if_none(0.25), _to_float
-        ),
-    )
-    continuous_update = attr.ib(
-        type=bool,
-        default=None,
-        validator=attr.validators.instance_of(bool),
-        converter=attr.converters.default_if_none(default=False),
-    )
-    backend = attr.ib(
-        type=str,
-        default=None,
-        validator=[attr.validators.instance_of(str), attr.validators.in_(BACKENDS)],
-        converter=attr.converters.default_if_none(default=BACKENDS[0]),
     )
 
     def __attrs_post_init__(self):
         self.poses, self.pdbstrings = _to_poses_pdbstrings(
             self.packed_and_poses_and_pdbs
         )
+        self.n_decoys = len(self.pdbstrings)
         self.viewer_kwargs = dict(
             poses=self.poses,
             pdbstrings=self.pdbstrings,
@@ -235,7 +118,9 @@ class SetupViewer:
             modules=self.modules.copy(),
             delay=self.delay,
             continuous_update=self.continuous_update,
+            widgets=self.widgets,
             backend=self.backend,
+            n_decoys=self.n_decoys,
         )
 
     def initialize_viewer(self):

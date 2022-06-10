@@ -54,12 +54,15 @@ class setBackgroundColor(ModuleBase):
         converter=attr.converters.default_if_none(default=0xFFFFFFFF),
     )
 
-    def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
+    def apply_py3Dmol(self, viewer, pose, pdbstring):
         viewer.setBackgroundColor(self.color)
+
         return viewer
 
-    def apply_nglview(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+    def apply_nglview(self, viewer, pose, pdbstring):
+        viewer.background = self.color
+
+        return viewer
 
     def apply_pymol(self):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
@@ -104,8 +107,8 @@ class setDisulfides(ModuleBase):
     )
 
     @pyrosetta.distributed.requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
-        if pose is not None:
+    def apply_py3Dmol(self, viewer, pose, pdbstring):
+        if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         cys_res = []
@@ -140,7 +143,7 @@ class setDisulfides(ModuleBase):
 
         return viewer
 
-    def apply_nglview(self):
+    def apply_nglview(self, viewer, pose, pdbstring):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
@@ -201,8 +204,8 @@ class setHydrogenBonds(ModuleBase):
     )
 
     @pyrosetta.distributed.requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
-        if pose is not None:
+    def apply_py3Dmol(self, viewer, pose, pdbstring):
+        if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         hbond_set = pose.get_hbonds()
@@ -259,7 +262,7 @@ class setHydrogenBonds(ModuleBase):
 
         return viewer
 
-    def apply_nglview(self):
+    def apply_nglview(self, viewer, pose, pdbstring):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
@@ -329,8 +332,8 @@ class setHydrogens(ModuleBase):
         return _viewer
 
     @pyrosetta.distributed.requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
-        if pose is not None:
+    def apply_py3Dmol(self, viewer, pose, pdbstring):
+        if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         if pose.is_fullatom():
@@ -354,7 +357,7 @@ class setHydrogens(ModuleBase):
 
         return viewer
 
-    def apply_nglview(self):
+    def apply_nglview(self, viewer, pose, pdbstring):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
@@ -465,7 +468,9 @@ class setStyle(ModuleBase):
     residue_selector = attr.ib(
         default=None,
         type=Optional[ResidueSelector],
-        validator=attr.validators.instance_of((ResidueSelector, type(None))),
+        validator=attr.validators.optional(
+            attr.validators.instance_of(ResidueSelector)
+        ),
     )
     cartoon = attr.ib(
         default=True,
@@ -530,7 +535,7 @@ class setStyle(ModuleBase):
     )
 
     @pyrosetta.distributed.requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
+    def apply_py3Dmol(self, viewer, pose, pdbstring):
         if self.command:
             if isinstance(self.command, tuple):
                 viewer.setStyle(*self.command)
@@ -538,7 +543,7 @@ class setStyle(ModuleBase):
                 viewer.setStyle(self.command)
         else:
             if self.residue_selector:
-                if pose is not None:
+                if pose is None:
                     pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
                 resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
@@ -599,8 +604,76 @@ class setStyle(ModuleBase):
 
         return viewer
 
-    def apply_nglview(self):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+    @pyrosetta.distributed.requires_init
+    def apply_nglview(self, viewer, pose, pdbstring):
+        # raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+        if self.command:
+            pass
+        else:
+            if self.residue_selector:
+                if pose is None:
+                    pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+                resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
+
+                if (not resi) and (not chain):
+                    pass
+                else:
+                    if self.cartoon:
+                        pass
+                        # viewer.setStyle(
+                        #     {"resi": resi, "chain": chain},
+                        #     {
+                        #         "cartoon": {"color": self.cartoon_color},
+                        #         self.style: {
+                        #             "colorscheme": self.colorscheme,
+                        #             "radius": self.radius,
+                        #         },
+                        #     },
+                        # )
+                    else:
+                        pass
+                        # viewer.setStyle(
+                        #     {"resi": resi, "chain": chain},
+                        #     {
+                        #         self.style: {
+                        #             "colorscheme": self.colorscheme,
+                        #             "radius": self.radius,
+                        #         }
+                        #     },
+                        # )
+                    # if self.label:
+                    #     raise NotImplementedError(self.label)
+                    #     viewer.addResLabels(
+                    #         {"resi": resi, "chain": chain},
+                    #         {
+                    #             "fontSize": self.label_fontsize,
+                    #             "showBackground": self.label_background,
+                    #             "fontColor": self.label_fontcolor,
+                    #         },
+                    #     )
+            else:
+                if self.cartoon:
+                    viewer.setStyle(
+                        {
+                            "cartoon": {"color": self.cartoon_color},
+                            self.style: {
+                                "colorscheme": self.colorscheme,
+                                "radius": self.radius,
+                            },
+                        }
+                    )
+                else:
+                    viewer.setStyle(
+                        {
+                            self.style: {
+                                "colorscheme": self.colorscheme,
+                                "radius": self.radius,
+                            }
+                        }
+                    )
+
+        return viewer
 
     def apply_pymol(self):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
@@ -678,7 +751,7 @@ class setSurface(ModuleBase):
         type=str,
         validator=[
             attr.validators.instance_of(str),
-            attr.validators.in_(("VDW", "MS", "SES", "SAS")),
+            attr.validators.in_(("VDW", "MS", "SAS", "SES")),
         ],
     )
     opacity = attr.ib(
@@ -699,8 +772,15 @@ class setSurface(ModuleBase):
     )
 
     @pyrosetta.distributed.requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, surface_types_dict=None, **kwargs):
-        if pose is not None:
+    def apply_py3Dmol(self, viewer, pose, pdbstring):
+        py3Dmol = sys.modules["py3Dmol"]
+        surface_types_dict: Dict[str, int] = {
+            "VDW": py3Dmol.VDW,
+            "MS": py3Dmol.MS,
+            "SAS": py3Dmol.SAS,
+            "SES": py3Dmol.SES,
+        }
+        if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
@@ -729,7 +809,7 @@ class setSurface(ModuleBase):
 
         return viewer
 
-    def apply_nglview(self):
+    def apply_nglview(self, viewer, pose, pdbstring):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
@@ -761,11 +841,11 @@ class setZoom(ModuleBase):
         validator=attr.validators.instance_of((float, int)),
     )
 
-    def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
+    def apply_py3Dmol(self, viewer, pose, pdbstring):
         viewer.zoom(self.factor)
         return viewer
 
-    def apply_nglview(self):
+    def apply_nglview(self, viewer, pose, pdbstring):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
@@ -798,8 +878,8 @@ class setZoomTo(ModuleBase):
     )
 
     @pyrosetta.distributed.requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, **kwargs):
-        if pose is not None:
+    def apply_py3Dmol(self, viewer, pose, pdbstring):
+        if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
@@ -811,7 +891,7 @@ class setZoomTo(ModuleBase):
 
         return viewer
 
-    def apply_nglview(self):
+    def apply_nglview(self, viewer, pose, pdbstring):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
 
     def apply_pymol(self):
