@@ -5,14 +5,13 @@ import logging
 import sys
 import time
 
-from ipywidgets import interactive, IntSlider, Output
+from ipywidgets import interactive, IntSlider
 from ipywidgets.widgets import Widget
 from IPython.display import display
 from IPython.core.display import display as core_display, HTML
 from IPython.display import clear_output
 from pyrosetta import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
-from pyrosetta.rosetta.core.pose import append_pose_to_pose
 from typing import Generic, Iterable, List, Optional, Tuple, TypeVar, Union
 
 from viewer3d.config import _import_backend, BACKENDS
@@ -20,11 +19,14 @@ from viewer3d.converters import _to_float, _to_widgets
 from viewer3d.exceptions import ViewerImportError
 from viewer3d.modules import ModuleBase
 from viewer3d.tracer import silence_tracer
-from viewer3d.validators import _validate_int_float, _validate_window_size
+from viewer3d.validators import (
+    _validate_add_pose,
+    _validate_int_float,
+    _validate_window_size,
+)
 
 
 _logger = logging.getLogger("viewer3d.base")
-out_widget = Output()
 
 
 @attr.s(kw_only=False, slots=False)
@@ -180,18 +182,20 @@ class Base3D:
 
 @attr.s(kw_only=False, slots=False)
 class WidgetsBase:
-    def get_decoy_widget(self):
-        return interactive(
-            self.update_decoy,
-            index=IntSlider(
-                min=0,
-                max=self.n_decoys - 1,
-                description="Decoys",
-                continuous_update=self.continuous_update,
+    decoy_widget = attr.ib(
+        default=attr.Factory(
+            lambda self: interactive(
+                self.update_decoy,
+                index=IntSlider(
+                    min=0,
+                    max=self.n_decoys - 1,
+                    description="Decoys",
+                    continuous_update=self.continuous_update,
+                ),
             ),
+            takes_self=True,
         )
-
-    decoy_widget = attr.ib(default=attr.Factory(get_decoy_widget, takes_self=True))
+    )
 
     def get_widgets(self):
         _widgets = self.widgets.copy()
@@ -208,28 +212,14 @@ class ViewerBase(Base3D, WidgetsBase):
     def __attrs_post_init__(self):
         self.setup()
 
+    @_validate_add_pose
     def add_pose(self, pose=None, index=None):
-        assert isinstance(
-            pose, Pose
-        ), f"The 'pose' argument parameter must be of type `Pose`. Received: {type(pose)}"
-        if index is not None:
-            if not isinstance(index, int):
-                raise TypeError(
-                    f"The 'index' keyword argument parameter must be of type `int`. Received: {type(index)}"
-                )
-            if index not in self.poses.keys():
-                raise IndexError(
-                    f"The 'index' keyword argument parameter `{index}` does not exist in `ViewerBase.poses` object."
-                )
-        else:
+        if index is None:
             kwargs = self.decoy_widget.kwargs
             index = kwargs["index"] if kwargs else 0
         self.poses[index].append(pose)
-        # self.poses[index] = self.poses[index].clone()
-        # append_pose_to_pose(self.poses[index], pose, new_chain=new_chain)
         self.update_viewer(self.poses[index])
 
-    # @out_widget.capture()
     @silence_tracer
     def apply_modules(self, _pose=None, _pdbstring=None):
         for _model in range(len(_pose)):

@@ -1,4 +1,17 @@
-from typing import Any, Iterable, NoReturn, Optional, Union
+from functools import wraps
+from pyrosetta import Pose
+from typing import (
+    Any,
+    Iterable,
+    Callable,
+    NoReturn,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+)
+
+A = TypeVar("A", bound=Callable[..., Any])
 
 
 def _validate_int(self, attribute: str, value: int) -> Optional[NoReturn]:
@@ -37,3 +50,26 @@ def _validate_window_size(self, attribute: str, value: Iterable) -> Optional[NoR
     ), "Input argument 'window_size' must be an iterable of length 2."
     for v in value:
         _validate_int_float(self, attribute, v)
+
+
+def _validate_add_pose(func: A) -> A:
+    _func_name = func.__name__
+
+    @wraps(func)
+    def wrapper(self, pose, index):
+        if not isinstance(pose, Pose):
+            raise TypeError(
+                f"The `{_func_name}` 'pose' keyword argument parameter must be of type `Pose`. Received: {type(pose)}"
+            )
+        if index is not None:
+            if not isinstance(index, int):
+                raise TypeError(
+                    f"The `{_func_name}` 'index' keyword argument parameter must be of type `int`. Received: {type(index)}"
+                )
+            if index not in self.poses.keys():
+                raise IndexError(
+                    f"The `{_func_name}` 'index' keyword argument parameter `{index}` does not exist in `ViewerBase.poses` object."
+                )
+        return func(self, pose=pose, index=index)
+
+    return cast(A, wrapper)
