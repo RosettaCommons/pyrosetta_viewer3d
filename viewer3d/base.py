@@ -94,6 +94,12 @@ class SetupBase:
         validator=attr.validators.instance_of(int),
         converter=attr.converters.default_if_none(default=0),
     )
+    auto_show = attr.ib(
+        type=bool,
+        default=None,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
 
 
 @attr.s(kw_only=False, slots=False)
@@ -293,6 +299,8 @@ class PoseBase:
 class ViewerBase(SetupBase, WidgetsBase, PoseBase, Base3D):
     def __attrs_post_init__(self):
         self.setup()
+        if self.auto_show:
+            self.show()
 
     @silence_tracer
     def apply_modules(self, _poses, _pdbstrings):

@@ -27,6 +27,8 @@ class Py3DmolViewer(ViewerBase):
             width=self.window_size[0],
             height=self.window_size[1],
         )
+        if self.auto_show:
+            self.show()
 
     def add_objects(self, _poses, _pdbstrings):
         for _model in range(len(_poses)):
@@ -59,23 +61,24 @@ class NGLviewViewer(ViewerBase):
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
 
-    def add_objects(self, _pose=None, _pdbstring=None):
+    def add_objects(self, _poses, _pdbstrings):
         for _model in range(len(_pose)):
-            p = _pose[_model]
-            if p is not None:
-                structure = self.nglview.adaptor.RosettaStructure(p)
+            _pose = _poses[_model]
+            if _pose is not None:
+                structure = self.nglview.adaptor.RosettaStructure(_pose)
             else:
-                s = _pdbstring[_model]
-                structure = self.nglview.adaptor.TextStructure(s, ext="pdb")
+                _pdbstring = _pdbstrings[_model]
+                structure = self.nglview.adaptor.TextStructure(_pdbstring, ext="pdb")
             self.viewer.add_structure(structure)
 
     def remove_objects(self):
         self.viewer.clear()
-        for component_id in self.viewer._ngl_component_ids:
-            self.viewer.remove_component(component_id)
+        self.viewer.clear_representations()
+        # for component_id in self.viewer._ngl_component_ids:
+        #     self.viewer.remove_component(component_id)
 
-    def update_viewer(self, _pose=None, _pdbstring=None):
-        self.update_objects(_pose=_pose, _pdbstring=_pdbstring)
+    def update_viewer(self, _poses, _pdbstrings):
+        self.update_objects(_poses, _pdbstrings)
 
     def show_viewer(self):
         self.viewer.display(gui=True, style="ngl")
