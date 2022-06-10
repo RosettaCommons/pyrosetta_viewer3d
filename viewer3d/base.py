@@ -31,42 +31,6 @@ _logger = logging.getLogger("viewer3d.base")
 
 
 @attr.s(kw_only=False, slots=False)
-class WidgetsBase:
-    decoy_widget = attr.ib(
-        default=attr.Factory(
-            lambda self: interactive(
-                self.update_decoy,
-                index=IntSlider(
-                    min=0,
-                    max=self.n_decoys - 1,
-                    description="Decoys",
-                    continuous_update=self.continuous_update,
-                ),
-            ),
-            takes_self=True,
-        )
-    )
-
-    def update_decoy(self, index=0):
-        time.sleep(self.delay)
-        self.update_viewer(self.poses[index], self.pdbstrings[index])
-
-    def get_decoy_widget_index(self):
-        kwargs = self.decoy_widget.kwargs
-        index = kwargs["index"] if kwargs else 0
-        return index
-
-    def get_widgets(self):
-        _widgets = self.widgets.copy()
-        if self.n_decoys > 1:
-            _widgets.insert(0, self.decoy_widget)
-        return _widgets
-
-    def set_widgets(self, obj):
-        self.widgets = _to_widgets(obj)
-
-
-@attr.s(kw_only=False, slots=False)
 class SetupBase:
     poses = attr.ib(type=Iterable[Pose], default=None)
     pdbstrings = attr.ib(type=Iterable[str], default=None)
@@ -130,6 +94,42 @@ class SetupBase:
         validator=attr.validators.instance_of(int),
         converter=attr.converters.default_if_none(default=0),
     )
+
+
+@attr.s(kw_only=False, slots=False)
+class WidgetsBase:
+    decoy_widget = attr.ib(
+        default=attr.Factory(
+            lambda self: interactive(
+                self.update_decoy,
+                index=IntSlider(
+                    min=0,
+                    max=self.n_decoys - 1,
+                    description="Decoys",
+                    continuous_update=self.continuous_update,
+                ),
+            ),
+            takes_self=True,
+        )
+    )
+
+    def update_decoy(self, index=0):
+        time.sleep(self.delay)
+        self.update_viewer(self.poses[index], self.pdbstrings[index])
+
+    def get_decoy_widget_index(self):
+        kwargs = self.decoy_widget.kwargs
+        index = kwargs["index"] if kwargs else 0
+        return index
+
+    def get_widgets(self):
+        _widgets = self.widgets.copy()
+        if self.n_decoys > 1:
+            _widgets.insert(0, self.decoy_widget)
+        return _widgets
+
+    def set_widgets(self, obj):
+        self.widgets = _to_widgets(obj)
 
 
 @attr.s(kw_only=False, slots=False)
@@ -290,7 +290,7 @@ class PoseBase:
 
 
 @attr.s(kw_only=False, slots=False)
-class ViewerBase(Base3D, PoseBase, SetupBase, WidgetsBase):
+class ViewerBase(SetupBase, WidgetsBase, PoseBase, Base3D):
     def __attrs_post_init__(self):
         self.setup()
 
