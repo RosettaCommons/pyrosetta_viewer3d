@@ -28,29 +28,6 @@ out_widget = Output()
 
 
 @attr.s(kw_only=False, slots=False)
-class WidgetsBase:
-    def set_widgets(self, obj):
-        self.widgets = _to_widgets(obj)
-
-    def get_widgets(self):
-        _widgets = self.widgets.copy()
-        if self.n_decoys > 1:
-            _widgets.insert(0, self.decoy_widget)
-        return _widgets
-
-    def get_decoy_widget(self):
-        return interactive(
-            self.update_decoy,
-            index=IntSlider(
-                min=0,
-                max=self.n_decoys - 1,
-                description="Decoys",
-                continuous_update=self.continuous_update,
-            ),
-        )
-
-
-@attr.s(kw_only=False, slots=False)
 class Base3D:
     poses = attr.ib(type=Iterable[Pose], default=None)
     pdbstrings = attr.ib(type=Iterable[str], default=None)
@@ -202,11 +179,31 @@ class Base3D:
 
 
 @attr.s(kw_only=False, slots=False)
-class ViewerBase(Base3D, WidgetsBase):
-    decoy_widget = attr.ib(
-        default=attr.Factory(WidgetsBase.get_decoy_widget, takes_self=True),
-    )
+class WidgetsBase:
+    @property
+    def decoy_widget(self):
+        return interactive(
+            self.update_decoy,
+            index=IntSlider(
+                min=0,
+                max=self.n_decoys - 1,
+                description="Decoys",
+                continuous_update=self.continuous_update,
+            ),
+        )
 
+    def get_widgets(self):
+        _widgets = self.widgets.copy()
+        if self.n_decoys > 1:
+            _widgets.insert(0, self.decoy_widget)
+        return _widgets
+
+    def set_widgets(self, obj):
+        self.widgets = _to_widgets(obj)
+
+
+@attr.s(kw_only=False, slots=False)
+class ViewerBase(Base3D, WidgetsBase):
     def __attrs_post_init__(self):
         self.setup()
 
