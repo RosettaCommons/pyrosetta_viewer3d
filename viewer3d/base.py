@@ -214,66 +214,73 @@ class WidgetsBase:
 
 
 @attr.s(kw_only=False, slots=False)
-class ViewerBase(Base3D, WidgetsBase):
-    def __attrs_post_init__(self):
-        self.setup()
-
+class PoseBase:
     @_validate_add_pose
-    def add_pose(self, pose=None, index=None):
+    def add_pose(self, pose=None, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
         self.poses[index].append(pose)
         self.pdbstrings[index].append(io.to_pdbstring(pose))
-        self.update_viewer(self.poses[index], self.pdbstrings[index])
+        if update_viewer:
+            self.update_decoy(index=index)
 
-    def add_pdbstring(self, pdbstring=None, index=None):
+    def add_pdbstring(self, pdbstring=None, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
-        self.poses[index].append(io.to_pose(io.pose_from_pdbstring(pdbstring)))
+        self.poses[index].append(None)
         self.pdbstrings[index].append(pdbstring)
-        self.update_viewer(self.poses[index], self.pdbstrings[index])
+        if update_viewer:
+            self.update_decoy(index=index)
 
-    def remove_pose(self, index=None, model=None):
-        self.remove_pdbstring(index=index, model=model)
+    def remove_pose(self, index=None, model=None, update_viewer=True):
+        self.remove_pdbstring(index=index, model=model, update_viewer=update_viewer)
 
-    def remove_pdbstring(self, index=None, model=None):
+    def remove_pdbstring(self, index=None, model=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
         if model is None or model not in set(range(len(self.pdbstrings[index]))):
             model = -1
         self.poses[index].pop(model)
         self.pdbstrings[index].pop(model)
-        self.update_viewer(self.poses[index], self.pdbstrings[index])
+        if update_viewer:
+            self.update_decoy(index=index)
 
-    def update_pose(self, pose=None, index=None, model=None):
+    def update_pose(self, pose=None, index=None, model=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
         if model is None or model not in set(range(len(self.poses[index]))):
             model = 0
         self.poses[index][model] = pose
-        self.update_viewer(self.poses[index], self.pdbstrings[index])
+        if update_viewer:
+            self.update_decoy(index=index)
 
-    def update_poses(self, poses=None, index=None):
+    def update_poses(self, poses=None, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
         assert isinstance(poses, list)
         for pose in poses:
             assert isinstance(pose, Pose)
         self.poses[index] = poses
-        self.pdbstrings[index] = [io.to_pdbstring(pose) for pose in poses]
-        self.update_viewer(self.poses[index], self.pdbstrings[index])
+        self.pdbstrings[index] = list(map(io.to_pdbstring, poses))
+        if update_viewer:
+            self.update_decoy(index=index)
 
-    def update_pdbstrings(self, pdbstrings=None, index=None):
+    def update_pdbstrings(self, pdbstrings=None, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
         assert isinstance(pdbstrings, list)
         for pdbstring in pdbstrings:
             assert isinstance(pdbstring, str)
-        self.poses[index] = [
-            io.to_pose(io.pose_from_pdbstring(pdbstring)) for pdbstring in pdbstrings
-        ]
+        self.poses[index] = [None] * len(pdbstrings)
         self.pdbstrings[index] = pdbstrings
-        self.update_viewer(self.poses[index], self.pdbstrings[index])
+        if update_viewer:
+            self.update_decoy(index=index)
+
+
+@attr.s(kw_only=False, slots=False)
+class ViewerBase(Base3D, PoseBase, WidgetsBase):
+    def __attrs_post_init__(self):
+        self.setup()
 
     @silence_tracer
     def apply_modules(self, _poses, _pdbstrings):
