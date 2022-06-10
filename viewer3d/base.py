@@ -19,6 +19,7 @@ from viewer3d.config import _import_backend, BACKENDS
 from viewer3d.converters import _to_float, _to_widgets
 from viewer3d.exceptions import ViewerImportError
 from viewer3d.modules import ModuleBase
+from viewer3d.tracer import silence_tracer
 from viewer3d.validators import _validate_int_float, _validate_window_size
 
 
@@ -219,7 +220,8 @@ class ViewerBase(Base3D, WidgetsBase):
         append_pose_to_pose(self.poses[index], pose, new_chain=new_chain)
         self.update_viewer(self.poses[index])
 
-    @out_widget.capture()
+    # @out_widget.capture()
+    @silence_tracer
     def apply_modules(self, _pose=None, _pdbstring=None):
         for _module in self.modules:
             func = getattr(_module, f"apply_{self.backend}")
