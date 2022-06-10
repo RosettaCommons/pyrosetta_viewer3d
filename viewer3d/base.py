@@ -31,10 +31,45 @@ _logger = logging.getLogger("viewer3d.base")
 
 
 @attr.s(kw_only=False, slots=False)
-class Base3D:
+class WidgetsBase:
+    decoy_widget = attr.ib(
+        default=attr.Factory(
+            lambda self: interactive(
+                self.update_decoy,
+                index=IntSlider(
+                    min=0,
+                    max=self.n_decoys - 1,
+                    description="Decoys",
+                    continuous_update=self.continuous_update,
+                ),
+            ),
+            takes_self=True,
+        )
+    )
+
+    def update_decoy(self, index=0):
+        time.sleep(self.delay)
+        self.update_viewer(self.poses[index], self.pdbstrings[index])
+
+    def get_decoy_widget_index(self):
+        kwargs = self.decoy_widget.kwargs
+        index = kwargs["index"] if kwargs else 0
+        return index
+
+    def get_widgets(self):
+        _widgets = self.widgets.copy()
+        if self.n_decoys > 1:
+            _widgets.insert(0, self.decoy_widget)
+        return _widgets
+
+    def set_widgets(self, obj):
+        self.widgets = _to_widgets(obj)
+
+
+@attr.s(kw_only=False, slots=False)
+class SetupBase:
     poses = attr.ib(type=Iterable[Pose], default=None)
     pdbstrings = attr.ib(type=Iterable[str], default=None)
-    n_decoys = attr.ib(type=int, default=None)
     window_size = attr.ib(
         type=Tuple[Union[int, float], Union[int, float]],
         default=None,
@@ -89,7 +124,16 @@ class Base3D:
         validator=[attr.validators.instance_of(str), attr.validators.in_(BACKENDS)],
         converter=attr.converters.default_if_none(default=BACKENDS[0]),
     )
+    n_decoys = attr.ib(
+        type=int,
+        default=None,
+        validator=attr.validators.instance_of(int),
+        converter=attr.converters.default_if_none(default=0),
+    )
 
+
+@attr.s(kw_only=False, slots=False)
+class Base3D:
     def _maybe_import_backend(self):
         if self.backend not in sys.modules:
             try:
@@ -182,38 +226,6 @@ class Base3D:
 
 
 @attr.s(kw_only=False, slots=False)
-class WidgetsBase:
-    decoy_widget = attr.ib(
-        default=attr.Factory(
-            lambda self: interactive(
-                self.update_decoy,
-                index=IntSlider(
-                    min=0,
-                    max=self.n_decoys - 1,
-                    description="Decoys",
-                    continuous_update=self.continuous_update,
-                ),
-            ),
-            takes_self=True,
-        )
-    )
-
-    def get_decoy_widget_index(self):
-        kwargs = self.decoy_widget.kwargs
-        index = kwargs["index"] if kwargs else 0
-        return index
-
-    def get_widgets(self):
-        _widgets = self.widgets.copy()
-        if self.n_decoys > 1:
-            _widgets.insert(0, self.decoy_widget)
-        return _widgets
-
-    def set_widgets(self, obj):
-        self.widgets = _to_widgets(obj)
-
-
-@attr.s(kw_only=False, slots=False)
 class PoseBase:
     @_validate_add_pose
     def add_pose(self, pose=None, index=None, update_viewer=True):
@@ -278,7 +290,7 @@ class PoseBase:
 
 
 @attr.s(kw_only=False, slots=False)
-class ViewerBase(Base3D, PoseBase, WidgetsBase):
+class ViewerBase(Base3D, PoseBase, SetupBase, WidgetsBase):
     def __attrs_post_init__(self):
         self.setup()
 
@@ -302,10 +314,6 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
         ), "Number of `Pose` objects and PDB `str` objects must be equal."
         self.add_objects(_poses, _pdbstrings)
         self.apply_modules(_poses, _pdbstrings)
-
-    def update_decoy(self, index=0):
-        time.sleep(self.delay)
-        self.update_viewer(self.poses[index], self.pdbstrings[index])
 
     def show(self):
         """Display Viewer in Jupyter notebook."""

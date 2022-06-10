@@ -9,7 +9,7 @@ from pyrosetta import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
 from typing import Iterable, List, Optional, Tuple, Union
 
-from viewer3d.base import ViewerBase, Base3D
+from viewer3d.base import ViewerBase, SetupBase
 from viewer3d.config import BACKENDS
 from viewer3d.converters import _to_poses_pdbstrings
 
@@ -107,7 +107,7 @@ class PyMOLViewer(ViewerBase):
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
-class SetupViewer(Base3D):
+class SetupViewer(SetupBase):
     packed_and_poses_and_pdbs = attr.ib(
         type=Union[PackedPose, Pose, Iterable[Union[PackedPose, Pose]], None],
         default=None,
