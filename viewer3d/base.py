@@ -180,8 +180,7 @@ class Base3D:
 
 @attr.s(kw_only=False, slots=False)
 class WidgetsBase:
-    @property
-    def decoy_widget(self):
+    def get_decoy_widget(self):
         return interactive(
             self.update_decoy,
             index=IntSlider(
@@ -191,6 +190,8 @@ class WidgetsBase:
                 continuous_update=self.continuous_update,
             ),
         )
+
+    decoy_widget = attr.ib(default=attr.Factory(get_decoy_widget, takes_self=True))
 
     def get_widgets(self):
         _widgets = self.widgets.copy()
@@ -207,26 +208,39 @@ class ViewerBase(Base3D, WidgetsBase):
     def __attrs_post_init__(self):
         self.setup()
 
-    def add_pose(self, pose=None, new_chain=False):
+    def add_pose(self, pose=None, index=None):
         assert isinstance(
             pose, Pose
-        ), f"Object must be of type `Pose`. Received: {type(pose)}"
-        kwargs = self.decoy_widget.kwargs
-        index = kwargs["index"] if kwargs else 0
-        self.poses[index] = self.poses[index].clone()
-        append_pose_to_pose(self.poses[index], pose, new_chain=new_chain)
+        ), f"The 'pose' argument parameter must be of type `Pose`. Received: {type(pose)}"
+        if index is not None:
+            if not isinstance(index, int):
+                raise TypeError(
+                    f"The 'index' keyword argument parameter must be of type `int`. Received: {type(index)}"
+                )
+            if index not in self.poses.keys():
+                raise IndexError(
+                    f"The 'index' keyword argument parameter `{index}` does not exist in `ViewerBase.poses` object."
+                )
+        else:
+            kwargs = self.decoy_widget.kwargs
+            index = kwargs["index"] if kwargs else 0
+        self.poses[index].append(pose)
+        # self.poses[index] = self.poses[index].clone()
+        # append_pose_to_pose(self.poses[index], pose, new_chain=new_chain)
         self.update_viewer(self.poses[index])
 
     # @out_widget.capture()
     @silence_tracer
     def apply_modules(self, _pose=None, _pdbstring=None):
-        for _module in self.modules:
-            func = getattr(_module, f"apply_{self.backend}")
-            self.viewer = func(
-                self.viewer,
-                _pose,
-                _pdbstring,
-            )
+        for _model in range(len(_pose)):
+            for _module in self.modules:
+                func = getattr(_module, f"apply_{self.backend}")
+                self.viewer = func(
+                    self.viewer,
+                    _pose[_model],
+                    _pdbstring[_model],
+                    _model,
+                )
 
     def update_objects(self, _pose=None, _pdbstring=None):
         """Setup Viewer in Jupyter notebook."""

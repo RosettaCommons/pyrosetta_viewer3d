@@ -29,10 +29,11 @@ class Py3DmolViewer(ViewerBase):
         )
 
     def add_objects(self, _pose=None, _pdbstring=None):
-        if _pose is not None:
-            self.viewer.addModels(io.to_pdbstring(_pose), "pdb")
-        else:
-            self.viewer.addModels(_pdbstring, "pdb")
+        for _model in range(len(_pose)):
+            if _pose[_model] is not None:
+                self.viewer.addModels(io.to_pdbstring(_pose[_model]), "pdb")
+            else:
+                self.viewer.addModels(_pdbstring[_model], "pdb")
 
     def remove_objects(self):
         self.viewer.removeAllLabels()

@@ -48,6 +48,15 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
             with open(obj, "r") as f:
                 return f.read()
 
+    def to_dict(objs):
+        d = collections.defaultdict(list)
+        for i, obj in enumerate(objs):
+            d[i].append(obj)
+        return collections.OrderedDict(d)
+
+    def map_to_list(obj):
+        return list(map(to_list, obj))
+
     if isinstance(
         packed_and_poses_and_pdbs, collections.abc.Iterable
     ) and not isinstance(packed_and_poses_and_pdbs, (Pose, PackedPose)):
@@ -58,6 +67,11 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
     else:
         poses = [to_pose(packed_and_poses_and_pdbs)]
         pdbstrings = [to_pdbstring(packed_and_poses_and_pdbs)]
+
+    # TESTING
+    poses = to_dict(poses)
+    pdbstrings = to_dict(pdbstrings)
+    # TESTING
 
     return poses, pdbstrings
 
