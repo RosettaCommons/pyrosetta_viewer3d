@@ -258,8 +258,13 @@ class PoseBase:
             index = self.get_decoy_widget_index()
         if model is None or model not in set(range(len(self.pdbstrings[index]))):
             model = -1
-        self.poses[index].pop(model)
-        self.pdbstrings[index].pop(model)
+        if len(self.pdbstrings[index]) > 0:
+            self.poses[index].pop(model)
+            self.pdbstrings[index].pop(model)
+        else:
+            raise IndexError(
+                f"The 'poses' and 'pdbstrings' attributes are empty at index `{index}`."
+            )
         if update_viewer:
             self.update_decoy(index=index)
 

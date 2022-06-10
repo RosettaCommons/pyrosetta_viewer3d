@@ -27,8 +27,6 @@ class Py3DmolViewer(ViewerBase):
             width=self.window_size[0],
             height=self.window_size[1],
         )
-        if self.auto_show:
-            self.show()
 
     def add_objects(self, _poses, _pdbstrings):
         for _model in range(len(_poses)):
@@ -62,7 +60,7 @@ class NGLviewViewer(ViewerBase):
         self.viewer = self.nglview.widget.NGLWidget()
 
     def add_objects(self, _poses, _pdbstrings):
-        for _model in range(len(_pose)):
+        for _model in range(len(_poses)):
             _pose = _poses[_model]
             if _pose is not None:
                 structure = self.nglview.adaptor.RosettaStructure(_pose)
@@ -74,8 +72,8 @@ class NGLviewViewer(ViewerBase):
     def remove_objects(self):
         self.viewer.clear()
         self.viewer.clear_representations()
-        # for component_id in self.viewer._ngl_component_ids:
-        #     self.viewer.remove_component(component_id)
+        for component_id in self.viewer._ngl_component_ids:
+            self.viewer.remove_component(component_id)
 
     def update_viewer(self, _poses, _pdbstrings):
         self.update_objects(_poses, _pdbstrings)
@@ -131,6 +129,7 @@ class SetupViewer(SetupBase):
             widgets=self.widgets,
             backend=self.backend,
             n_decoys=self.n_decoys,
+            auto_show=self.auto_show,
         )
 
     def initialize_viewer(self):
@@ -151,6 +150,7 @@ def init(
     delay=None,
     continuous_update=None,
     backend=None,
+    auto_show=None,
 ):
     """
     Initialize the Viewer object.
@@ -206,6 +206,7 @@ def init(
         delay=delay,
         continuous_update=continuous_update,
         backend=backend,
+        auto_show=auto_show,
     ).initialize_viewer()
 
     return viewer
