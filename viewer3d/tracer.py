@@ -19,11 +19,11 @@ def silence_tracer(func: T) -> T:
     """Silence PyRosetta tracer output."""
 
     @wraps(func)
-    def wrapper(self, **kwargs):
+    def wrapper(self, *args, **kwargs):
         option = "out:level"
         user_out_level = get_integer_option(option)
         set_integer_option(option, 100)
-        func(self, **kwargs)
+        func(self, *args, **kwargs)
         set_integer_option(option, user_out_level)
 
     return cast(T, wrapper)

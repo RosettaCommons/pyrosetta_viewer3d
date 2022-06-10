@@ -28,12 +28,14 @@ class Py3DmolViewer(ViewerBase):
             height=self.window_size[1],
         )
 
-    def add_objects(self, _pose=None, _pdbstring=None):
-        for _model in range(len(_pose)):
-            if _pose[_model] is not None:
-                self.viewer.addModels(io.to_pdbstring(_pose[_model]), "pdb")
+    def add_objects(self, _poses, _pdbstrings):
+        for _model in range(len(_poses)):
+            _pose = _poses[_model]
+            if _pose is not None:
+                self.viewer.addModels(io.to_pdbstring(_pose), "pdb")
             else:
-                self.viewer.addModels(_pdbstring[_model], "pdb")
+                _pdbstring = _pdbstrings[_model]
+                self.viewer.addModels(_pdbstring, "pdb")
 
     def remove_objects(self):
         self.viewer.removeAllLabels()
@@ -41,8 +43,8 @@ class Py3DmolViewer(ViewerBase):
         self.viewer.removeAllShapes()
         self.viewer.removeAllSurfaces()
 
-    def update_viewer(self, _pose=None, _pdbstring=None):
-        self.update_objects(_pose=_pose, _pdbstring=_pose)
+    def update_viewer(self, _poses, _pdbstrings):
+        self.update_objects(_poses, _pdbstrings)
         if self._displayed:
             self.viewer.update()
 
@@ -58,13 +60,17 @@ class NGLviewViewer(ViewerBase):
         self.viewer = self.nglview.widget.NGLWidget()
 
     def add_objects(self, _pose=None, _pdbstring=None):
-        if _pose is not None:
-            structure = self.nglview.adaptor.RosettaStructure(_pose)
-        else:
-            structure = self.nglview.adaptor.TextStructure(_pdbstring, ext="pdb")
-        self.viewer.add_structure(structure)
+        for _model in range(len(_pose)):
+            p = _pose[_model]
+            if p is not None:
+                structure = self.nglview.adaptor.RosettaStructure(p)
+            else:
+                s = _pdbstring[_model]
+                structure = self.nglview.adaptor.TextStructure(s, ext="pdb")
+            self.viewer.add_structure(structure)
 
     def remove_objects(self):
+        self.viewer.clear()
         for component_id in self.viewer._ngl_component_ids:
             self.viewer.remove_component(component_id)
 

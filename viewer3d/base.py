@@ -2,6 +2,7 @@ import attr
 import collections
 import math
 import logging
+import pyrosetta.distributed.io as io
 import sys
 import time
 
@@ -197,6 +198,11 @@ class WidgetsBase:
         )
     )
 
+    def get_decoy_widget_index(self):
+        kwargs = self.decoy_widget.kwargs
+        index = kwargs["index"] if kwargs else 0
+        return index
+
     def get_widgets(self):
         _widgets = self.widgets.copy()
         if self.n_decoys > 1:
@@ -215,28 +221,80 @@ class ViewerBase(Base3D, WidgetsBase):
     @_validate_add_pose
     def add_pose(self, pose=None, index=None):
         if index is None:
-            kwargs = self.decoy_widget.kwargs
-            index = kwargs["index"] if kwargs else 0
+            index = self.get_decoy_widget_index()
         self.poses[index].append(pose)
-        self.update_viewer(self.poses[index])
+        self.pdbstrings[index].append(io.to_pdbstring(pose))
+        self.update_viewer(self.poses[index], self.pdbstrings[index])
+
+    def add_pdbstring(self, pdbstring=None, index=None):
+        if index is None:
+            index = self.get_decoy_widget_index()
+        self.poses[index].append(io.to_pose(io.pose_from_pdbstring(pdbstring)))
+        self.pdbstrings[index].append(pdbstring)
+        self.update_viewer(self.poses[index], self.pdbstrings[index])
+
+    def remove_pose(self, index=None, model=None):
+        self.remove_pdbstring(index=index, model=model)
+
+    def remove_pdbstring(self, index=None, model=None):
+        if index is None:
+            index = self.get_decoy_widget_index()
+        if model is None or model not in set(range(len(self.pdbstrings[index]))):
+            model = -1
+        self.poses[index].pop(model)
+        self.pdbstrings[index].pop(model)
+        self.update_viewer(self.poses[index], self.pdbstrings[index])
+
+    def update_pose(self, pose=None, index=None, model=None):
+        if index is None:
+            index = self.get_decoy_widget_index()
+        if model is None or model not in set(range(len(self.poses[index]))):
+            model = 0
+        self.poses[index][model] = pose
+        self.update_viewer(self.poses[index], self.pdbstrings[index])
+
+    def update_poses(self, poses=None, index=None):
+        if index is None:
+            index = self.get_decoy_widget_index()
+        assert isinstance(poses, list)
+        for pose in poses:
+            assert isinstance(pose, Pose)
+        self.poses[index] = poses
+        self.pdbstrings[index] = [io.to_pdbstring(pose) for pose in poses]
+        self.update_viewer(self.poses[index], self.pdbstrings[index])
+
+    def update_pdbstrings(self, pdbstrings=None, index=None):
+        if index is None:
+            index = self.get_decoy_widget_index()
+        assert isinstance(pdbstrings, list)
+        for pdbstring in pdbstrings:
+            assert isinstance(pdbstring, str)
+        self.poses[index] = [
+            io.to_pose(io.pose_from_pdbstring(pdbstring)) for pdbstring in pdbstrings
+        ]
+        self.pdbstrings[index] = pdbstrings
+        self.update_viewer(self.poses[index], self.pdbstrings[index])
 
     @silence_tracer
-    def apply_modules(self, _pose=None, _pdbstring=None):
-        for _model in range(len(_pose)):
+    def apply_modules(self, _poses, _pdbstrings):
+        for _model in range(len(_poses)):
             for _module in self.modules:
                 func = getattr(_module, f"apply_{self.backend}")
                 self.viewer = func(
                     self.viewer,
-                    _pose[_model],
-                    _pdbstring[_model],
+                    _poses[_model],
+                    _pdbstrings[_model],
                     _model,
                 )
 
-    def update_objects(self, _pose=None, _pdbstring=None):
+    def update_objects(self, _poses, _pdbstrings):
         """Setup Viewer in Jupyter notebook."""
         self.remove_objects()
-        self.add_objects(_pose=_pose, _pdbstring=_pdbstring)
-        self.apply_modules(_pose=_pose, _pdbstring=_pdbstring)
+        assert len(_poses) == len(
+            _pdbstrings
+        ), "Number of `Pose` objects and PDB `str` objects must be equal."
+        self.add_objects(_poses, _pdbstrings)
+        self.apply_modules(_poses, _pdbstrings)
 
     def update_decoy(self, index=0):
         time.sleep(self.delay)
