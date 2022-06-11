@@ -553,7 +553,6 @@ class setStyle(ModuleBase):
                 else:
                     if self.cartoon:
                         viewer.setStyle(
-                            # {"model": model},
                             {"model": model, "resi": resi, "chain": chain},
                             {
                                 "cartoon": {"color": self.cartoon_color},
@@ -565,7 +564,6 @@ class setStyle(ModuleBase):
                         )
                     else:
                         viewer.setStyle(
-                            # {"model": model},
                             {"model": model, "resi": resi, "chain": chain},
                             {
                                 self.style: {
@@ -576,7 +574,6 @@ class setStyle(ModuleBase):
                         )
                     if self.label:
                         viewer.addResLabels(
-                            # {"model": model},
                             {"model": model, "resi": resi, "chain": chain},
                             {
                                 "fontSize": self.label_fontsize,
