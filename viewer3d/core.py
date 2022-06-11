@@ -28,11 +28,17 @@ class Py3DmolViewer(ViewerBase):
             height=self.window_size[1],
         )
 
-    def add_objects(self, _pose=None, _pdbstring=None):
-        if _pose is not None:
-            self.viewer.addModels(io.to_pdbstring(_pose), "pdb")
-        else:
-            self.viewer.addModels(_pdbstring, "pdb")
+    def add_objects(self, _poses, _pdbstrings):
+        for _model in range(len(_poses)):
+            _pose = _poses[_model]
+            if _pose is not None:
+                _pdbstring = io.to_pdbstring(_pose)
+            else:
+                _pdbstring = _pdbstrings[_model]
+            self.viewer.addModels(_pdbstring, "pdb", _model)
+            # self.viewer.update()
+            self.apply_modules(_pose, _pdbstring, _model)
+            self.viewer.update()
 
     def remove_objects(self):
         self.viewer.removeAllLabels()
@@ -40,10 +46,11 @@ class Py3DmolViewer(ViewerBase):
         self.viewer.removeAllShapes()
         self.viewer.removeAllSurfaces()
 
-    def update_viewer(self, _pose=None, _pdbstring=None):
-        self.update_objects(_pose=_pose, _pdbstring=_pose)
-        if self._displayed:
-            self.viewer.update()
+    def update_viewer(self, _poses, _pdbstrings):
+        self.update_objects(_poses, _pdbstrings)
+        # if self._displayed:
+        # print("HERE")
+        # self.viewer.update()
 
     def show_viewer(self):
         self.viewer.show()
@@ -56,7 +63,7 @@ class NGLviewViewer(ViewerBase):
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
 
-    def add_objects(self, _pose=None, _pdbstring=None):
+    def add_objects(self, _pose, _pdbstring):
         if _pose is not None:
             structure = self.nglview.adaptor.RosettaStructure(_pose)
         else:
@@ -67,7 +74,7 @@ class NGLviewViewer(ViewerBase):
         for component_id in self.viewer._ngl_component_ids:
             self.viewer.remove_component(component_id)
 
-    def update_viewer(self, _pose=None, _pdbstring=None):
+    def update_viewer(self, _pose, _pdbstring):
         self.update_objects(_pose=_pose, _pdbstring=_pdbstring)
 
     def show_viewer(self):
@@ -141,6 +148,7 @@ def init(
     delay=None,
     continuous_update=None,
     backend=None,
+    auto_show=None,
 ):
     """
     Initialize the Viewer object.
@@ -196,6 +204,7 @@ def init(
         delay=delay,
         continuous_update=continuous_update,
         backend=backend,
+        auto_show=auto_show,
     ).initialize_viewer()
 
     return viewer

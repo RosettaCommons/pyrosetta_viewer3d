@@ -231,7 +231,7 @@ def makeBundle(
         mb.apply(pose)
         add_pdb_info_mover.apply(pose)
         make_poly_X(pose)
-        view.update_viewer(pose)
+        view.update_pose(pose)
 
     def initialize_bundle():
         for i in range(1, num_helices + 1):
