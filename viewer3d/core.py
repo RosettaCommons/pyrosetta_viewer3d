@@ -14,6 +14,7 @@ from viewer3d.config import BACKENDS
 from viewer3d.converters import _to_poses_pdbstrings
 
 
+logging.captureWarnings(True)
 _logger = logging.getLogger("viewer3d.core")
 
 
@@ -32,10 +33,10 @@ class Py3DmolViewer(ViewerBase):
         for _model in range(len(_poses)):
             _pose = _poses[_model]
             if _pose is not None:
-                self.viewer.addModels(io.to_pdbstring(_pose), "pdb")
+                _pdbstring = io.to_pdbstring(_pose)
             else:
                 _pdbstring = _pdbstrings[_model]
-                self.viewer.addModels(_pdbstring, "pdb")
+            self.viewer.addModels(_pdbstring, "pdb")
 
     def remove_objects(self):
         self.viewer.removeAllLabels()
@@ -67,19 +68,22 @@ class NGLviewViewer(ViewerBase):
             else:
                 _pdbstring = _pdbstrings[_model]
                 structure = self.nglview.adaptor.TextStructure(_pdbstring, ext="pdb")
-            self.viewer.add_structure(structure)
+            self.viewer._load_data(structure)
+            self.viewer._ngl_component_ids.append(structure.id)
+            self.viewer._update_component_auto_completion()
 
     def remove_objects(self):
-        self.viewer.clear()
-        self.viewer.clear_representations()
-        for component_id in self.viewer._ngl_component_ids:
+        component_ids = self.viewer._ngl_component_ids
+        for component_id in component_ids:
+            component_index = component_ids.index(component_id)
             self.viewer.remove_component(component_id)
+            self.viewer.clear(component=component_index)
 
     def update_viewer(self, _poses, _pdbstrings):
         self.update_objects(_poses, _pdbstrings)
 
     def show_viewer(self):
-        self.viewer.display(gui=True, style="ngl")
+        self.viewer.display(gui=False, style="ngl")
         self.viewer._ipython_display_()
 
 
@@ -150,6 +154,7 @@ def init(
     delay=None,
     continuous_update=None,
     backend=None,
+    widgets=None,
     auto_show=None,
 ):
     """
@@ -207,6 +212,7 @@ def init(
         continuous_update=continuous_update,
         backend=backend,
         auto_show=auto_show,
+        widgets=widgets,
     ).initialize_viewer()
 
     return viewer

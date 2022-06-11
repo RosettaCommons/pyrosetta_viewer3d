@@ -26,7 +26,7 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
     def to_pose(obj):
         raise ViewerInputError(obj)
 
-    to_pose.register(type(None), lambda obj: None)
+    to_pose.register(type(None), lambda obj: Pose())
     to_pose.register(PackedPose, lambda obj: io.to_pose(obj))
     to_pose.register(Pose, lambda obj: obj)
     to_pose.register(str, lambda obj: None)
@@ -35,6 +35,7 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
     def to_pdbstring(obj):
         raise ViewerInputError(obj)
 
+    # @to_pdbstring.register(type(None))
     @to_pdbstring.register(PackedPose)
     @to_pdbstring.register(Pose)
     def _(obj):
@@ -43,6 +44,7 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
     @to_pdbstring.register(str)
     def _(obj):
         if not os.path.isfile(obj):
+            # return obj
             raise ViewerInputError(obj)
         else:
             with open(obj, "r") as f:
@@ -53,9 +55,6 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
         for i, obj in enumerate(objs):
             d[i].append(obj)
         return collections.OrderedDict(d)
-
-    def map_to_list(obj):
-        return list(map(to_list, obj))
 
     if isinstance(
         packed_and_poses_and_pdbs, collections.abc.Iterable
@@ -69,6 +68,7 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
         pdbstrings = [to_pdbstring(packed_and_poses_and_pdbs)]
 
     # TESTING
+    # print(poses, type(poses))
     poses = to_dict(poses)
     pdbstrings = to_dict(pdbstrings)
     # TESTING

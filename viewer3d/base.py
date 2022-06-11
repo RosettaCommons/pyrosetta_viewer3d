@@ -31,6 +31,42 @@ _logger = logging.getLogger("viewer3d.base")
 
 
 @attr.s(kw_only=False, slots=False)
+class WidgetsBase:
+    decoy_widget = attr.ib(
+        default=attr.Factory(
+            lambda self: interactive(
+                self.update_decoy,
+                index=IntSlider(
+                    min=0,
+                    max=self.n_decoys - 1,
+                    description="Decoys",
+                    continuous_update=self.continuous_update,
+                ),
+            ),
+            takes_self=True,
+        )
+    )
+
+    def update_decoy(self, index=0):
+        time.sleep(self.delay)
+        self.update_viewer(self.poses[index], self.pdbstrings[index])
+
+    def get_decoy_widget_index(self):
+        kwargs = self.decoy_widget.kwargs
+        index = kwargs["index"] if kwargs else 0
+        return index
+
+    def get_widgets(self):
+        _widgets = self.widgets  # .copy()
+        if self.n_decoys > 1:
+            _widgets.insert(0, self.decoy_widget)
+        return _widgets
+
+    def set_widgets(self, obj):
+        self.widgets = _to_widgets(obj)
+
+
+@attr.s(kw_only=False, slots=False)
 class SetupBase:
     poses = attr.ib(type=Iterable[Pose], default=None)
     pdbstrings = attr.ib(type=Iterable[str], default=None)
@@ -100,42 +136,6 @@ class SetupBase:
         validator=attr.validators.instance_of(bool),
         converter=attr.converters.default_if_none(default=False),
     )
-
-
-@attr.s(kw_only=False, slots=False)
-class WidgetsBase:
-    decoy_widget = attr.ib(
-        default=attr.Factory(
-            lambda self: interactive(
-                self.update_decoy,
-                index=IntSlider(
-                    min=0,
-                    max=self.n_decoys - 1,
-                    description="Decoys",
-                    continuous_update=self.continuous_update,
-                ),
-            ),
-            takes_self=True,
-        )
-    )
-
-    def update_decoy(self, index=0):
-        time.sleep(self.delay)
-        self.update_viewer(self.poses[index], self.pdbstrings[index])
-
-    def get_decoy_widget_index(self):
-        kwargs = self.decoy_widget.kwargs
-        index = kwargs["index"] if kwargs else 0
-        return index
-
-    def get_widgets(self):
-        _widgets = self.widgets.copy()
-        if self.n_decoys > 1:
-            _widgets.insert(0, self.decoy_widget)
-        return _widgets
-
-    def set_widgets(self, obj):
-        self.widgets = _to_widgets(obj)
 
 
 @attr.s(kw_only=False, slots=False)
@@ -233,7 +233,7 @@ class Base3D:
 
 @attr.s(kw_only=False, slots=False)
 class PoseBase:
-    @_validate_add_pose
+    # @_validate_add_pose
     def add_pose(self, pose=None, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
@@ -274,6 +274,7 @@ class PoseBase:
         if model is None or model not in set(range(len(self.poses[index]))):
             model = 0
         self.poses[index][model] = pose
+        self.pdbstrings[index][model] = io.to_pdbstring(pose)
         if update_viewer:
             self.update_decoy(index=index)
 
@@ -301,7 +302,10 @@ class PoseBase:
 
 
 @attr.s(kw_only=False, slots=False)
-class ViewerBase(SetupBase, WidgetsBase, PoseBase, Base3D):
+class ViewerBase(SetupBase, PoseBase, Base3D, WidgetsBase):
+    # def attrs_pre_init(self):
+    #     super().__init__()
+
     def __attrs_post_init__(self):
         self.setup()
         if self.auto_show:
@@ -328,13 +332,17 @@ class ViewerBase(SetupBase, WidgetsBase, PoseBase, Base3D):
         self.add_objects(_poses, _pdbstrings)
         self.apply_modules(_poses, _pdbstrings)
 
+    def display_widgets(self):
+        display(*self.get_widgets())
+
     def show(self):
         """Display Viewer in Jupyter notebook."""
         if self._in_notebook():
             self._toggle_scrolling()
             self._toggle_window(self.window_size)
-            display(*self.get_widgets())
+            self.display_widgets()
             self.show_viewer()
+            # self.update_decoy(index=self.get_decoy_widget_index())
 
 
 def expand_notebook():

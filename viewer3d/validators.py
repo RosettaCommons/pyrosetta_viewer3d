@@ -56,7 +56,7 @@ def _validate_add_pose(func: A) -> A:
     _func_name = func.__name__
 
     @wraps(func)
-    def wrapper(self, pose, index):
+    def wrapper(self, pose=None, index=None, update_viewer=None):
         if not isinstance(pose, Pose):
             raise TypeError(
                 f"The `{_func_name}` 'pose' keyword argument parameter must be of type `Pose`. Received: {type(pose)}"
