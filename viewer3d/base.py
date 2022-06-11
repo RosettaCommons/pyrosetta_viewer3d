@@ -186,7 +186,7 @@ class Base3D:
 
 @attr.s(kw_only=False, slots=False)
 class PoseBase:
-    def add_pose(self, pose=None, index=None, update_viewer=True):
+    def add_pose(self, pose, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
         self.poses[index].append(pose)
@@ -194,7 +194,7 @@ class PoseBase:
         if update_viewer:
             self.update_decoy(index=index)
 
-    def add_pdbstring(self, pdbstring=None, index=None, update_viewer=True):
+    def add_pdbstring(self, pdbstring, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
         self.poses[index].append(None)
@@ -220,7 +220,7 @@ class PoseBase:
         if update_viewer:
             self.update_decoy(index=index)
 
-    def update_pose(self, pose=None, index=None, model=None, update_viewer=True):
+    def update_pose(self, pose, index=None, model=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
         if model is None or model not in set(range(len(self.poses[index]))):
@@ -230,7 +230,7 @@ class PoseBase:
         if update_viewer:
             self.update_decoy(index=index)
 
-    def update_poses(self, poses=None, index=None, update_viewer=True):
+    def update_poses(self, poses, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
         assert isinstance(poses, list)
@@ -241,7 +241,7 @@ class PoseBase:
         if update_viewer:
             self.update_decoy(index=index)
 
-    def update_pdbstrings(self, pdbstrings=None, index=None, update_viewer=True):
+    def update_pdbstrings(self, pdbstrings, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
         assert isinstance(pdbstrings, list)
@@ -255,34 +255,6 @@ class PoseBase:
 
 @attr.s(kw_only=False, slots=False)
 class WidgetsBase:
-    pass
-    # decoy_widget = attr.ib(
-    #     default=attr.Factory(
-    #         lambda self: interactive(
-    #             self.update_decoy,
-    #             index=IntSlider(
-    #                 min=0,
-    #                 max=self.n_decoys - 1,
-    #                 description="Decoys",
-    #                 continuous_update=self.continuous_update,
-    #             ),
-    #         ),
-    #         takes_self=True,
-    #     )
-    # )
-
-    # def set_widgets(self, obj):
-    #     self.widgets = _to_widgets(obj)
-    #
-    # def get_widgets(self):
-    #     _widgets = self.widgets.copy()
-    #     if self.n_decoys > 1:
-    #         _widgets.insert(0, self.decoy_widget)
-    #     return _widgets
-
-
-@attr.s(kw_only=False, slots=False)
-class ViewerBase(Base3D, PoseBase, WidgetsBase):
     decoy_widget = attr.ib(
         default=attr.Factory(
             lambda self: interactive(
@@ -298,6 +270,10 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
         ),
     )
 
+    def update_decoy(self, index=0):
+        time.sleep(self.delay)
+        self.update_viewer(self.poses[index], self.pdbstrings[index])
+
     def set_widgets(self, obj):
         self.widgets = _to_widgets(obj)
 
@@ -307,10 +283,9 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
             _widgets.insert(0, self.decoy_widget)
         return _widgets
 
-    def update_decoy(self, index=0):
-        time.sleep(self.delay)
-        self.update_viewer(self.poses[index], self.pdbstrings[index])
 
+@attr.s(kw_only=False, slots=False)
+class ViewerBase(Base3D, PoseBase, WidgetsBase):
     def get_decoy_widget_index(self):
         kwargs = self.decoy_widget.kwargs
         index = kwargs["index"] if kwargs else 0
@@ -323,7 +298,6 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
 
     @silence_tracer
     def apply_modules(self, _pose, _pdbstring, _model):
-        # for _model in range(len(_poses)):
         for _module in self.modules:
             func = getattr(_module, f"apply_{self.backend}")
             self.viewer = func(
@@ -340,7 +314,6 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
             _pdbstrings
         ), "Number of `Pose` objects and PDB `str` objects must be equal."
         self.add_objects(_poses, _pdbstrings)
-        # self.apply_modules(_poses, _pdbstrings)
 
     def display_widgets(self):
         display(*self.get_widgets())
@@ -352,7 +325,6 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
             self._toggle_window(self.window_size)
             self.display_widgets()
             self.show_viewer()
-            # self.update_decoy(index=self.get_decoy_widget_index())
 
 
 def expand_notebook():

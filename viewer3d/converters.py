@@ -26,7 +26,7 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
     def to_pose(obj):
         raise ViewerInputError(obj)
 
-    to_pose.register(type(None), lambda obj: None)
+    to_pose.register(type(None), lambda obj: Pose())
     to_pose.register(PackedPose, lambda obj: io.to_pose(obj))
     to_pose.register(Pose, lambda obj: obj)
     to_pose.register(str, lambda obj: None)
@@ -38,7 +38,7 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
     @to_pdbstring.register(PackedPose)
     @to_pdbstring.register(Pose)
     def _(obj):
-        return io.to_pdbstring(obj)
+        return None
 
     @to_pdbstring.register(str)
     def _(obj):
@@ -47,6 +47,8 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
         else:
             with open(obj, "r") as f:
                 return f.read()
+
+    to_pdbstring.register(type(None), lambda obj: None)
 
     def to_dict(objs):
         d = collections.defaultdict(list)
@@ -58,15 +60,20 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
         packed_and_poses_and_pdbs, collections.abc.Iterable
     ) and not isinstance(packed_and_poses_and_pdbs, (Pose, PackedPose)):
         poses, pdbstrings = map(
-            list,
-            zip(*[(to_pose(p), to_pdbstring(p)) for p in packed_and_poses_and_pdbs]),
+            to_dict,
+            map(
+                list,
+                zip(
+                    *map(
+                        lambda p: (to_pose(p), to_pdbstring(p)),
+                        packed_and_poses_and_pdbs,
+                    )
+                ),
+            ),
         )
     else:
-        poses = [to_pose(packed_and_poses_and_pdbs)]
-        pdbstrings = [to_pdbstring(packed_and_poses_and_pdbs)]
-
-    poses = to_dict(poses)
-    pdbstrings = to_dict(pdbstrings)
+        poses = to_dict([to_pose(packed_and_poses_and_pdbs)])
+        pdbstrings = to_dict([to_pdbstring(packed_and_poses_and_pdbs)])
 
     return poses, pdbstrings
 

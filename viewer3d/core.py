@@ -36,9 +36,7 @@ class Py3DmolViewer(ViewerBase):
             else:
                 _pdbstring = _pdbstrings[_model]
             self.viewer.addModels(_pdbstring, "pdb", _model)
-            # self.viewer.update()
             self.apply_modules(_pose, _pdbstring, _model)
-            self.viewer.update()
 
     def remove_objects(self):
         self.viewer.removeAllLabels()
@@ -48,9 +46,8 @@ class Py3DmolViewer(ViewerBase):
 
     def update_viewer(self, _poses, _pdbstrings):
         self.update_objects(_poses, _pdbstrings)
-        # if self._displayed:
-        # print("HERE")
-        # self.viewer.update()
+        if self._displayed:
+            self.viewer.update()
 
     def show_viewer(self):
         self.viewer.show()
@@ -63,19 +60,28 @@ class NGLviewViewer(ViewerBase):
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
 
-    def add_objects(self, _pose, _pdbstring):
-        if _pose is not None:
-            structure = self.nglview.adaptor.RosettaStructure(_pose)
-        else:
-            structure = self.nglview.adaptor.TextStructure(_pdbstring, ext="pdb")
-        self.viewer.add_structure(structure)
+    def add_objects(self, _poses, _pdbstrings):
+        for _model in range(len(_poses)):
+            _pose = _poses[_model]
+            _pdbstring = _pdbstrings[_model]
+            if _pose is not None:
+                structure = self.nglview.adaptor.RosettaStructure(_pose)
+            else:
+                structure = self.nglview.adaptor.TextStructure(_pdbstring, ext="pdb")
+            self.viewer._load_data(structure)
+            self.viewer._ngl_component_ids.append(structure.id)
+            self.viewer._update_component_auto_completion()
+            self.apply_modules(_pose, _pdbstring, _model)
 
     def remove_objects(self):
-        for component_id in self.viewer._ngl_component_ids:
+        component_ids = self.viewer._ngl_component_ids
+        for component_id in component_ids:
+            component_index = component_ids.index(component_id)
             self.viewer.remove_component(component_id)
+            self.viewer.clear(component=component_index)
 
-    def update_viewer(self, _pose, _pdbstring):
-        self.update_objects(_pose=_pose, _pdbstring=_pdbstring)
+    def update_viewer(self, _poses, _pdbstrings):
+        self.update_objects(_poses, _pdbstrings)
 
     def show_viewer(self):
         self.viewer.display(gui=True, style="ngl")
