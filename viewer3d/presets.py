@@ -201,6 +201,7 @@ def makeBundle(
                 radius=0,
                 label=False,
             ),
+            viewer3d.setHydrogens(),
         ]
 
     pose = pyrosetta.Pose()

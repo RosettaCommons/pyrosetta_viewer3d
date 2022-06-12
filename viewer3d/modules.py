@@ -318,6 +318,14 @@ class setHydrogens(ModuleBase):
         validator=attr.validators.instance_of(bool),
         converter=attr.converters.default_if_none(default=False),
     )
+    residue_selector = attr.ib(
+        default=None,
+        type=Optional[ResidueSelector],
+        validator=attr.validators.optional(
+            attr.validators.instance_of(ResidueSelector)
+        ),
+        converter=attr.converters.default_if_none(default=TrueResidueSelector()),
+    )
 
     def _addCylinder(self, _viewer, i_xyz, j_xyz):
         _viewer.addCylinder(
@@ -337,29 +345,74 @@ class setHydrogens(ModuleBase):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
+        resi, chain = _pose_to_residue_chain_tuples(
+            pose, self.residue_selector, logger=_logger
+        )
+        residue_chain_tuples = list(zip(map(str, resi), chain))
         if pose.is_fullatom():
             for i in range(1, pose.total_residue() + 1):
-                r = pose.residue(i)
-                h_begin = r.attached_H_begin()
-                h_end = r.attached_H_end()
-                for h in range(1, len(h_begin) + 1):
-                    i_index = h_begin[h]
-                    j_index = h_end[h]
-                    if all(q != 0 for q in [i_index, j_index]):
-                        i_xyz = r.atom(h).xyz()
-                        for j in range(i_index, j_index + 1):
-                            if self.polar_only:
-                                if r.atom_is_polar_hydrogen(j):
+                residue_chain_tuple = tuple(pose.pdb_info().pose2pdb(i).split())
+                if residue_chain_tuple in residue_chain_tuples:
+                    r = pose.residue(i)
+                    h_begin = r.attached_H_begin()
+                    h_end = r.attached_H_end()
+                    for h in range(1, len(h_begin) + 1):
+                        i_index = h_begin[h]
+                        j_index = h_end[h]
+                        if all(q != 0 for q in [i_index, j_index]):
+                            i_xyz = r.atom(h).xyz()
+                            for j in range(i_index, j_index + 1):
+                                if self.polar_only:
+                                    if r.atom_is_polar_hydrogen(j):
+                                        j_xyz = r.atom(j).xyz()
+                                        viewer = self._addCylinder(viewer, i_xyz, j_xyz)
+                                else:
                                     j_xyz = r.atom(j).xyz()
                                     viewer = self._addCylinder(viewer, i_xyz, j_xyz)
-                            else:
-                                j_xyz = r.atom(j).xyz()
-                                viewer = self._addCylinder(viewer, i_xyz, j_xyz)
 
         return viewer
 
     def apply_nglview(self, viewer, pose, pdbstring, model):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        resi, chain = _pose_to_residue_chain_tuples(
+            pose, self.residue_selector, logger=_logger
+        )
+        residue_chain_tuples = list(zip(map(str, resi), chain))
+        if pose.is_fullatom():
+            selection_hydrogens = []
+            for i in range(1, pose.total_residue() + 1):
+                residue_chain_tuple = tuple(pose.pdb_info().pose2pdb(i).split())
+                resi = f"{residue_chain_tuple[0]}:{residue_chain_tuple[1]}"
+                if residue_chain_tuple in residue_chain_tuples:
+                    r = pose.residue(i)
+                    h_begin = r.attached_H_begin()
+                    h_end = r.attached_H_end()
+                    for h in range(1, len(h_begin) + 1):
+                        i_index = h_begin[h]
+                        j_index = h_end[h]
+                        if all(q != 0 for q in [i_index, j_index]):
+                            i_name = r.atom_name(h)
+                            for j in range(i_index, j_index + 1):
+                                if self.polar_only and r.atom_is_polar_hydrogen(j):
+                                    j_name = r.atom_name(j)
+                                else:
+                                    j_name = r.atom_name(j)
+                                sele = f"((({resi}.{i_name} or {resi}.{j_name}) and not ({resi}.N or {resi}.C)) or ({resi}.H or {resi}.N))"
+                                selection_hydrogens.append(sele)
+
+            # TODO: fix how amide bond gets removed
+            selection = " or ".join(selection_hydrogens)
+            viewer.add_representation(
+                repr_type="licorice",
+                selection=selection,
+                color=self.color,
+                radius=self.radius,
+                component=model,
+            )
+
+        return viewer
 
     def apply_pymol(self):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
@@ -489,6 +542,12 @@ class setStyle(ModuleBase):
         type=Optional[Union[float, int]],
         validator=attr.validators.optional(attr.validators.instance_of((float, int))),
         converter=attr.converters.default_if_none(default=0.1),
+    )
+    cartoon_opacity = attr.ib(
+        default=1,
+        type=Union[float, int],
+        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
+        converter=[_to_0_if_le_0, _to_1_if_gt_1],
     )
     style = attr.ib(
         default="stick",
@@ -623,7 +682,7 @@ class setStyle(ModuleBase):
         if self.style == "stick":
             self.style = "licorice"
         elif self.style == "sphere":
-            self.style = "ball+stick"
+            self.style = "spacefill"  # "ball+stick"
         elif self.style == "cross":
             self.style = "point"
         elif self.style == "line":
@@ -654,10 +713,11 @@ class setStyle(ModuleBase):
                     if self.cartoon:
                         viewer.remove_cartoon(component=model)
                         viewer.add_representation(
-                            repr_type="backbone",
+                            repr_type="cartoon",
                             selection=selection,
                             color=self.cartoon_color,
                             radius=self.cartoon_radius,
+                            opacity=self.cartoon_opacity,
                             component=model,
                         )
                     if self.label:
@@ -685,6 +745,7 @@ class setStyle(ModuleBase):
                         selection="*",
                         color=self.cartoon_color,
                         radius=self.cartoon_radius,
+                        opacity=self.cartoon_opacity,
                         component=model,
                     )
 
@@ -908,6 +969,15 @@ class setZoomTo(ModuleBase):
 
     def apply_nglview(self, viewer, pose, pdbstring, model):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        selection = _get_nglview_selection(pose, self.residue_selector)
+        print(selection)
+        if not selection:
+            pass
+        else:
+            viewer.center(selection=selection, component=model)
 
     def apply_pymol(self):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
