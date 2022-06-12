@@ -264,7 +264,56 @@ class setHydrogenBonds(ModuleBase):
         return viewer
 
     def apply_nglview(self, viewer, pose, pdbstring, model):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+        # raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        hbond_set = pose.get_hbonds()
+        selection_hbonds = []
+        for i in range(1, pose.total_residue() + 1):
+            res_hbonds = hbond_set.residue_hbonds(i, False)
+            if res_hbonds:
+                for j in range(1, len(res_hbonds) + 1):
+                    r = res_hbonds[j]
+                    don_res = r.don_res()
+                    don_residue_chain_tuple = tuple(
+                        pose.pdb_info().pose2pdb(don_res).split()
+                    )
+                    don_hatm_name = pose.residue(don_res).atom_name(r.don_hatm())
+                    don_sele = f"{don_residue_chain_tuple[0]}:{don_residue_chain_tuple[1]}.{don_hatm_name}"
+                    acc_res = r.acc_res()
+                    acc_residue_chain_tuple = tuple(
+                        pose.pdb_info().pose2pdb(acc_res).split()
+                    )
+                    acc_atm_name = pose.residue(acc_res).atom_name(r.acc_atm())
+                    acc_sele = f"{acc_residue_chain_tuple[0]}:{acc_residue_chain_tuple[1]}.{acc_atm_name}"
+                    sele = f"({don_sele} or {acc_sele})"
+                    selection_hbonds.append(sele)
+        selection = " or ".join(selection_hbonds)
+        if self.dashed:
+            _logger.warning(
+                " ".join(
+                    "setHydrogenBonds argument 'dashed' is not currently supported with `nglview` backend. \
+                Setting argument 'dashed' to False.".split()
+                )
+            )
+        if self.radius:
+            viewer.add_representation(
+                repr_type="licorice",
+                selection=selection,
+                color=self.color,
+                radius=self.radius,
+                component=model,
+            )
+        else:
+            viewer.add_representation(
+                repr_type="line",
+                selection=selection,
+                color=self.color,
+                component=model,
+            )
+
+        return viewer
 
     def apply_pymol(self):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
