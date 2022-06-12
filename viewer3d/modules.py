@@ -12,6 +12,7 @@ from pyrosetta.rosetta.core.select.residue_selector import (
 
 from viewer3d.config import BACKENDS
 from viewer3d.converters import (
+    _get_nglview_selection,
     _pdbstring_to_pose,
     _pose_to_residue_chain_tuples,
     _to_0_if_le_0,
@@ -480,9 +481,14 @@ class setStyle(ModuleBase):
     )
     cartoon_color = attr.ib(
         default=None,
-        type=Union[str, int],
-        validator=attr.validators.instance_of((str, int)),
-        converter=attr.converters.default_if_none(default="spectrum"),
+        type=Optional[Union[str, int]],
+        validator=attr.validators.optional(attr.validators.instance_of((str, int))),
+    )
+    cartoon_radius = attr.ib(
+        default=None,
+        type=Optional[Union[float, int]],
+        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
+        converter=attr.converters.default_if_none(default=0.1),
     )
     style = attr.ib(
         default="stick",
@@ -536,6 +542,9 @@ class setStyle(ModuleBase):
 
     @pyrosetta.distributed.requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+        if self.cartoon_color is None:
+            self.cartoon_color = "spectrum"  # Set default
+
         if self.command:
             if isinstance(self.command, tuple):
                 viewer.setStyle(*self.command)
@@ -608,71 +617,75 @@ class setStyle(ModuleBase):
 
     @pyrosetta.distributed.requires_init
     def apply_nglview(self, viewer, pose, pdbstring, model):
-        # raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+        # Set defaults
+        if self.cartoon_color is None:
+            self.cartoon_color = "atomindex"
+        if self.style == "stick":
+            self.style = "licorice"
+        elif self.style == "sphere":
+            self.style = "ball+stick"
+        elif self.style == "cross":
+            self.style = "point"
+        elif self.style == "line":
+            self.style = "line"
+
         if self.command:
             pass
         else:
-            if self.residue_selector:
+            if self.residue_selector is not None:
                 if pose is None:
                     pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-                resi, chain = _pose_to_residue_chain_tuples(pose, self.residue_selector)
+                selection = _get_nglview_selection(pose, self.residue_selector)
+                selection_not_hydrogens = (
+                    f"({selection}) and not hydrogen"  # Remove hydrogen atoms
+                )
 
-                if (not resi) and (not chain):
+                if not selection:
                     pass
                 else:
-                    if self.cartoon:
-                        pass
-                        # viewer.setStyle(
-                        #     {"resi": resi, "chain": chain},
-                        #     {
-                        #         "cartoon": {"color": self.cartoon_color},
-                        #         self.style: {
-                        #             "colorscheme": self.colorscheme,
-                        #             "radius": self.radius,
-                        #         },
-                        #     },
-                        # )
-                    else:
-                        pass
-                        # viewer.setStyle(
-                        #     {"resi": resi, "chain": chain},
-                        #     {
-                        #         self.style: {
-                        #             "colorscheme": self.colorscheme,
-                        #             "radius": self.radius,
-                        #         }
-                        #     },
-                        # )
-                    # if self.label:
-                    #     raise NotImplementedError(self.label)
-                    #     viewer.addResLabels(
-                    #         {"resi": resi, "chain": chain},
-                    #         {
-                    #             "fontSize": self.label_fontsize,
-                    #             "showBackground": self.label_background,
-                    #             "fontColor": self.label_fontcolor,
-                    #         },
-                    #     )
-            else:
-                if self.cartoon:
-                    viewer.setStyle(
-                        {
-                            "cartoon": {"color": self.cartoon_color},
-                            self.style: {
-                                "colorscheme": self.colorscheme,
-                                "radius": self.radius,
-                            },
-                        }
+                    viewer.add_representation(
+                        repr_type=self.style,
+                        selection=selection_not_hydrogens,
+                        color=self.colorscheme,
+                        radius=self.radius,
+                        component=model,
                     )
-                else:
-                    viewer.setStyle(
-                        {
-                            self.style: {
-                                "colorscheme": self.colorscheme,
-                                "radius": self.radius,
-                            }
-                        }
+                    if self.cartoon:
+                        viewer.remove_cartoon(component=model)
+                        viewer.add_representation(
+                            repr_type="backbone",
+                            selection=selection,
+                            color=self.cartoon_color,
+                            radius=self.cartoon_radius,
+                            component=model,
+                        )
+                    if self.label:
+                        viewer.add_representation(
+                            repr_type="label",
+                            labelType="res",
+                            selection=selection,
+                            showBorder=self.label_background,
+                            borderColor="gray",
+                            showBackground=self.label_background,
+                            backgroundColor=self.colorscheme,
+                            component=model,
+                        )
+            else:
+                viewer.add_representation(
+                    repr_type=self.style,
+                    selection="*",
+                    color=self.colorscheme,
+                    radius=self.radius,
+                    component=model,
+                )
+                if self.cartoon:
+                    viewer.add_representation(
+                        repr_type="cartoon",
+                        selection="*",
+                        color=self.cartoon_color,
+                        radius=self.cartoon_radius,
+                        component=model,
                     )
 
         return viewer

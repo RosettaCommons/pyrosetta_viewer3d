@@ -164,7 +164,7 @@ def makeBundle(
     )
     from pyrosetta.rosetta.utility import vector1_unsigned_long
 
-    if not modules and (backend == "py3Dmol"):
+    if not modules:  # and (backend == "py3Dmol"):
         core_selector = LayerSelector()
         core_selector.set_layers(True, False, False)
         boundary_selector = LayerSelector()
@@ -174,29 +174,31 @@ def makeBundle(
         modules = [
             viewer3d.setStyle(
                 residue_selector=core_selector,
-                cartoon=True,
-                cartoon_color="red",
-                colorscheme="redCarbon",
+                cartoon=False,
+                colorscheme="red",
                 style="stick",
                 radius=0.25,
                 label=False,
             ),
             viewer3d.setStyle(
                 residue_selector=boundary_selector,
-                cartoon=True,
-                cartoon_color="orange",
-                colorscheme="orangeCarbon",
+                cartoon=False,
+                colorscheme="orange",
                 style="stick",
                 radius=0.25,
                 label=False,
             ),
             viewer3d.setStyle(
                 residue_selector=surface_selector,
-                cartoon=True,
-                cartoon_color="yellow",
-                colorscheme="yellowCarbon",
+                cartoon=False,
+                colorscheme="yellow",
                 style="stick",
                 radius=0.25,
+                label=False,
+            ),
+            viewer3d.setStyle(
+                cartoon=True,
+                radius=0,
                 label=False,
             ),
         ]

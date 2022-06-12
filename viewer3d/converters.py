@@ -143,6 +143,12 @@ def _pose_to_residue_chain_tuples(pose, residue_selector, logger=_logger):
         return map(list, zip(*residue_chain_tuples))
 
 
+def _get_nglview_selection(pose, residue_selector, logger=_logger) -> str:
+    resi, chain = _pose_to_residue_chain_tuples(pose, residue_selector, logger=_logger)
+    selection = " or ".join(map(lambda rc: f"({rc[0]}:{rc[1]})", zip(resi, chain)))
+    return selection
+
+
 def _pdbstring_to_pose(pdbstring, class_name, logger=_logger):
     """Convert pdbstring to a `Pose` with logging."""
     logger.info(
