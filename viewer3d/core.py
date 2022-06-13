@@ -61,17 +61,19 @@ class NGLviewViewer(ViewerBase):
         self.viewer = self.nglview.widget.NGLWidget()
 
     def add_objects(self, _poses, _pdbstrings):
-        for _model in range(len(_poses)):
+        _model_range = range(len(_poses))
+        for _model in _model_range:
             _pose = _poses[_model]
-            _pdbstring = _pdbstrings[_model]
             if _pose is not None:
                 structure = self.nglview.adaptor.RosettaStructure(_pose)
             else:
+                _pdbstring = _pdbstrings[_model]
                 structure = self.nglview.adaptor.TextStructure(_pdbstring, ext="pdb")
             self.viewer._load_data(structure)
             self.viewer._ngl_component_ids.append(structure.id)
             self.viewer._update_component_auto_completion()
-            self.apply_modules(_pose, _pdbstring, _model)
+        for _model in _model_range:
+            self.apply_modules(_poses[_model], _pdbstrings[_model], _model)
 
     def remove_objects(self):
         component_ids = self.viewer._ngl_component_ids

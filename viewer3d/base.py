@@ -270,27 +270,29 @@ class WidgetsBase:
         ),
     )
 
-    def update_decoy(self, index=0):
-        time.sleep(self.delay)
-        self.update_viewer(self.poses[index], self.pdbstrings[index])
-
-    def set_widgets(self, obj):
-        self.widgets = _to_widgets(obj)
-
-    def get_widgets(self):
-        _widgets = self.widgets.copy()
-        if self.n_decoys > 1:
-            _widgets.insert(0, self.decoy_widget)
-        return _widgets
-
-
-@attr.s(kw_only=False, slots=False)
-class ViewerBase(Base3D, PoseBase, WidgetsBase):
     def get_decoy_widget_index(self):
         kwargs = self.decoy_widget.kwargs
         index = kwargs["index"] if kwargs else 0
         return index
 
+    def get_widgets(self):
+        _widgets = self.widgets.copy()
+        if self.n_decoys > 1:
+            _widgets.insert(0, self.decoy_widget)
+        else:
+            self.update_decoy()
+        return _widgets
+
+    def set_widgets(self, obj):
+        self.widgets = _to_widgets(obj)
+
+    def update_decoy(self, index=0):
+        time.sleep(self.delay)
+        self.update_viewer(self.poses[index], self.pdbstrings[index])
+
+
+@attr.s(kw_only=False, slots=False)
+class ViewerBase(Base3D, PoseBase, WidgetsBase):
     def __attrs_post_init__(self):
         self.setup()
         if self.auto_show:
@@ -316,7 +318,9 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
         self.add_objects(_poses, _pdbstrings)
 
     def display_widgets(self):
-        display(*self.get_widgets())
+        widgets = self.get_widgets()
+        if widgets:
+            display(*widgets)
 
     def show(self):
         """Display Viewer in Jupyter notebook."""
