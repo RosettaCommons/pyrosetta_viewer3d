@@ -1,14 +1,19 @@
 import attr
+import itertools
 import logging
 import pyrosetta
 import pyrosetta.distributed
 import pyrosetta.distributed.io as io
 import sys
 
+from pyrosetta.rosetta.core.conformation import is_disulfide_bond
 from pyrosetta.rosetta.core.select.residue_selector import (
     ResidueSelector,
     TrueResidueSelector,
 )
+from pyrosetta.rosetta.core.id import AtomID
+from typing import Dict, Optional, Tuple, Union
+
 
 from viewer3d.config import BACKENDS
 from viewer3d.converters import (
@@ -20,7 +25,6 @@ from viewer3d.converters import (
 )
 from viewer3d.exceptions import ModuleNotImplementedError
 
-from typing import Dict, Optional, Tuple, Union
 
 _logger = logging.getLogger("viewer3d.modules")
 
@@ -104,7 +108,7 @@ class setDisulfides(ModuleBase):
         default=None,
         type=Union[float, int],
         validator=attr.validators.instance_of((float, int)),
-        converter=attr.converters.default_if_none(default=0.5),
+        converter=attr.converters.default_if_none(default=0.25),
     )
 
     @pyrosetta.distributed.requires_init
@@ -112,40 +116,50 @@ class setDisulfides(ModuleBase):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        cys_res = []
-        for i, aa in enumerate(pose.sequence(), start=1):
-            if aa == "C":
-                cys_res.append(i)
-        for i in cys_res:
-            for j in cys_res:
-                if pyrosetta.rosetta.core.conformation.is_disulfide_bond(
-                    pose.conformation(), i, j
-                ):
-                    i_xyz = pose.xyz(
-                        pyrosetta.rosetta.core.id.AtomID(
-                            pose.residue(i).atom_index("SG"), i
-                        )
-                    )
-                    j_xyz = pose.xyz(
-                        pyrosetta.rosetta.core.id.AtomID(
-                            pose.residue(j).atom_index("SG"), j
-                        )
-                    )
-                    viewer.addCylinder(
-                        {
-                            "radius": self.radius,
-                            "color": self.color,
-                            "fromCap": True,
-                            "toCap": True,
-                            "start": {"x": i_xyz[0], "y": i_xyz[1], "z": i_xyz[2]},
-                            "end": {"x": j_xyz[0], "y": j_xyz[1], "z": j_xyz[2]},
-                        }
-                    )
+        cys_res = [i for i, aa in enumerate(pose.sequence(), start=1) if aa == "C"]
+        for (i, j) in itertools.product(cys_res, repeat=2):
+            if is_disulfide_bond(pose.conformation(), i, j):
+                i_xyz = pose.xyz(AtomID(pose.residue(i).atom_index("SG"), i))
+                j_xyz = pose.xyz(AtomID(pose.residue(j).atom_index("SG"), j))
+                viewer.addCylinder(
+                    {
+                        "radius": self.radius,
+                        "color": self.color,
+                        "fromCap": True,
+                        "toCap": True,
+                        "start": {"x": i_xyz[0], "y": i_xyz[1], "z": i_xyz[2]},
+                        "end": {"x": j_xyz[0], "y": j_xyz[1], "z": j_xyz[2]},
+                    }
+                )
 
         return viewer
 
     def apply_nglview(self, viewer, pose, pdbstring, model):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+        cys_res = [i for i, aa in enumerate(pose.sequence(), start=1) if aa == "C"]
+        selection_disulfides = []
+        for (i, j) in itertools.product(cys_res, repeat=2):
+            if is_disulfide_bond(pose.conformation(), i, j):
+                i_res, i_chain = pose.pdb_info().pose2pdb(i).split()
+                j_res, j_chain = pose.pdb_info().pose2pdb(j).split()
+                sele = f"({i_res}:{i_chain}.SG or {j_res}:{j_chain}.SG)"
+                viewer.add_representation(
+                    repr_type="ball+stick",
+                    selection=sele,
+                    color=self.color,
+                    radius=self.radius,
+                    component=model,
+                )
+                # selection_disulfides.append(sele)
+        # selection = " or ".join(selection_disulfides)
+        # viewer.add_representation(
+        #     repr_type="distance",
+        #     selection=selection,
+        #     color=self.color,
+        #     # radius=self.radius,
+        #     component=model,
+        # )
+
+        return viewer
 
     def apply_pymol(self):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
@@ -264,7 +278,6 @@ class setHydrogenBonds(ModuleBase):
         return viewer
 
     def apply_nglview(self, viewer, pose, pdbstring, model):
-        # raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -728,6 +741,8 @@ class setStyle(ModuleBase):
         # Set defaults
         if self.cartoon_color is None:
             self.cartoon_color = "atomindex"
+        if self.colorscheme == "blackCarbon":
+            self.colorscheme = "element"
         if self.style == "stick":
             self.style = "licorice"
         elif self.style == "sphere":
@@ -783,7 +798,7 @@ class setStyle(ModuleBase):
             else:
                 viewer.add_representation(
                     repr_type=self.style,
-                    selection="*",
+                    selection="not hydrogen",
                     color=self.colorscheme,
                     radius=self.radius,
                     component=model,
@@ -791,7 +806,7 @@ class setStyle(ModuleBase):
                 if self.cartoon:
                     viewer.add_representation(
                         repr_type="cartoon",
-                        selection="*",
+                        selection="not hydrogen",
                         color=self.cartoon_color,
                         radius=self.cartoon_radius,
                         opacity=self.cartoon_opacity,
@@ -1017,16 +1032,16 @@ class setZoomTo(ModuleBase):
         return viewer
 
     def apply_nglview(self, viewer, pose, pdbstring, model):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
         selection = _get_nglview_selection(pose, self.residue_selector)
-        print(selection)
         if not selection:
-            pass
+            viewer.center(selection="*", component=model)
         else:
             viewer.center(selection=selection, component=model)
+
+        return viewer
 
     def apply_pymol(self):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
