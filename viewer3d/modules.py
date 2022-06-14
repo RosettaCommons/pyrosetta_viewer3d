@@ -1005,6 +1005,8 @@ class setSurface(ModuleBase):
                 component=model,
             )
 
+        return viewer
+
     def apply_pymol(self):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
