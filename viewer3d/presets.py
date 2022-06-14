@@ -20,7 +20,7 @@ out = Output()
 
 @out.capture()
 @requires_init
-def coreBoundarySurface(**kwargs):
+def coreBoundarySurface(*args, **kwargs):
     """
     Display core residues as 'blackCarbon' sticks, boundary residues as 'greyCarbon' sticks, and surface residues
     as 'whiteCarbon' sticks, with 'spectrum' cartoon representation, using the default arguments in
@@ -35,7 +35,7 @@ def coreBoundarySurface(**kwargs):
     surface_selector = LayerSelector()
     surface_selector.set_layers(False, False, True)
 
-    view = viewer3d.init(**kwargs)
+    view = viewer3d.init(*args, **kwargs)
     view.add(viewer3d.setStyle())
     view.add(
         viewer3d.setStyle(
@@ -71,7 +71,7 @@ def coreBoundarySurface(**kwargs):
 
 @out.capture()
 @requires_init
-def ligandsAndMetals(**kwargs):
+def ligandsAndMetals(*args, **kwargs):
     """
     Display residues with `ResidueProperty.LIGAND` as 'brownCarbon' sticks with opaque surface,
     and `ResidueProperty.METAL` as 'chainHetatm' spheres, with 'spectrum' cartoon representation,
@@ -83,7 +83,7 @@ def ligandsAndMetals(**kwargs):
     ligands_selector = ResiduePropertySelector(ResidueProperty.LIGAND)
 
     view = (
-        viewer3d.init(**kwargs)
+        viewer3d.init(*args, **kwargs)
         + viewer3d.setStyle(style="stick", colorscheme="lightgreyCarbon", radius=0.15)
         + viewer3d.setStyle(
             residue_selector=ligands_selector,
@@ -116,11 +116,11 @@ def ligandsAndMetals(**kwargs):
 
 @out.capture()
 @requires_init
-def templatePreset(**kwargs):
+def templatePreset(*args, **kwargs):
     """
     Add a description of the preset Viewer here
     """
-    view = viewer3d.init(**kwargs)
+    view = viewer3d.init(*args, **kwargs)
 
     # Add custom Viewer commands here
 
