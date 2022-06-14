@@ -18,6 +18,7 @@ from typing import Dict, Optional, Tuple, Union
 from viewer3d.config import BACKENDS
 from viewer3d.converters import (
     _get_nglview_selection,
+    _get_residue_chain_tuple,
     _pdbstring_to_pose,
     _pose_to_residue_chain_tuples,
     _to_0_if_le_0,
@@ -109,7 +110,13 @@ class setDisulfides(ModuleBase):
         default=None,
         type=Union[float, int],
         validator=attr.validators.instance_of((float, int)),
-        converter=attr.converters.default_if_none(default=0.25),
+        converter=attr.converters.default_if_none(default=0.1),
+    )
+    sulfur_atom_name = attr.ib(
+        default="SG",
+        type=str,
+        validator=attr.validators.instance_of(str),
+        init=False,
     )
 
     @requires_init
@@ -120,8 +127,12 @@ class setDisulfides(ModuleBase):
         cys_res = [i for i, aa in enumerate(pose.sequence(), start=1) if aa == "C"]
         for (i, j) in itertools.product(cys_res, repeat=2):
             if is_disulfide_bond(pose.conformation(), i, j):
-                i_xyz = pose.xyz(AtomID(pose.residue(i).atom_index("SG"), i))
-                j_xyz = pose.xyz(AtomID(pose.residue(j).atom_index("SG"), j))
+                i_xyz = pose.xyz(
+                    AtomID(pose.residue(i).atom_index(self.sulfur_atom_name), i)
+                )
+                j_xyz = pose.xyz(
+                    AtomID(pose.residue(j).atom_index(self.sulfur_atom_name), j)
+                )
                 viewer.addCylinder(
                     {
                         "radius": self.radius,
@@ -141,16 +152,44 @@ class setDisulfides(ModuleBase):
         selection_disulfides = []
         for (i, j) in itertools.product(cys_res, repeat=2):
             if is_disulfide_bond(pose.conformation(), i, j):
-                i_res, i_chain = pose.pdb_info().pose2pdb(i).split()
-                j_res, j_chain = pose.pdb_info().pose2pdb(j).split()
-                sele = f"({i_res}:{i_chain}.SG or {j_res}:{j_chain}.SG)"
-                viewer.add_representation(
-                    repr_type="ball+stick",
-                    selection=sele,
-                    color=self.color,
-                    radius=self.radius,
-                    component=model,
-                )
+                i_res, i_chain = _get_residue_chain_tuple(pose, i)
+                j_res, j_chain = _get_residue_chain_tuple(pose, j)
+                i_sele = f"{i_res}:{i_chain}.{self.sulfur_atom_name}"
+                j_sele = f"{j_res}:{j_chain}.{self.sulfur_atom_name}"
+                selection_disulfides.append([i_sele, j_sele])
+        selection = " or ".join([f"({s[0]} or {s[1]})" for s in selection_disulfides])
+        viewer.add_representation(
+            repr_type="ball+stick",
+            selection=selection,
+            color=self.color,
+            radius=self.radius,
+            component=model,
+        )
+        viewer.add_distance(
+            atom_pair=selection_disulfides,
+            color=self.color,
+            radius=self.radius,
+            label_visible=False,
+        )
+
+        #             r = res_hbonds[j]
+        #             don_res = r.don_res()
+        #             don_hatm_name = (
+        #                 pose.residue(don_res).atom_name(r.don_hatm()).strip()
+        #             )
+        #             don_residue, don_chain = _get_residue_chain_tuple(pose, don_res)
+        #             don_sele = f"{don_residue}:{don_chain}.{don_hatm_name}"
+        #             acc_res = r.acc_res()
+        #             acc_atm_name = pose.residue(acc_res).atom_name(r.acc_atm()).strip()
+        #             acc_residue, acc_chain = _get_residue_chain_tuple(pose, acc_res)
+        #             acc_sele = f"{acc_residue}:{acc_chain}.{acc_atm_name}"
+        #             selection_hbonds.append([don_sele, acc_sele])
+        #
+        # viewer.add_distance(
+        #     atom_pair=selection_hbonds,
+        #     color=self.color,
+        #     label_visible=False,
+        # )
 
         return viewer
 
@@ -283,49 +322,22 @@ class setHydrogenBonds(ModuleBase):
                 for j in range(1, len(res_hbonds) + 1):
                     r = res_hbonds[j]
                     don_res = r.don_res()
-                    don_residue_chain_tuple = tuple(
-                        pose.pdb_info().pose2pdb(don_res).split()
+                    don_hatm_name = (
+                        pose.residue(don_res).atom_name(r.don_hatm()).strip()
                     )
-                    don_hatm_name = pose.residue(don_res).atom_name(r.don_hatm())
-                    don_sele = f"{don_residue_chain_tuple[0]}:{don_residue_chain_tuple[1]}.{don_hatm_name}"
+                    don_residue, don_chain = _get_residue_chain_tuple(pose, don_res)
+                    don_sele = f"{don_residue}:{don_chain}.{don_hatm_name}"
                     acc_res = r.acc_res()
-                    acc_residue_chain_tuple = tuple(
-                        pose.pdb_info().pose2pdb(acc_res).split()
-                    )
-                    acc_atm_name = pose.residue(acc_res).atom_name(r.acc_atm())
-                    acc_sele = f"{acc_residue_chain_tuple[0]}:{acc_residue_chain_tuple[1]}.{acc_atm_name}"
-                    # sele = f"({don_sele} or {acc_sele})"
+                    acc_atm_name = pose.residue(acc_res).atom_name(r.acc_atm()).strip()
+                    acc_residue, acc_chain = _get_residue_chain_tuple(pose, acc_res)
+                    acc_sele = f"{acc_residue}:{acc_chain}.{acc_atm_name}"
                     selection_hbonds.append([don_sele, acc_sele])
+
         viewer.add_distance(
             atom_pair=selection_hbonds,
             color=self.color,
             label_visible=False,
         )
-
-        #             selection_hbonds.append(sele)
-        # selection = " or ".join(selection_hbonds)
-        # if self.dashed:
-        #     _logger.warning(
-        #         " ".join(
-        #             "setHydrogenBonds argument 'dashed' is not currently supported with `nglview` backend. \
-        #         Setting argument 'dashed' to False.".split()
-        #         )
-        #     )
-        # if self.radius:
-        #     viewer.add_representation(
-        #         repr_type="licorice",
-        #         selection=selection,
-        #         color=self.color,
-        #         radius=self.radius,
-        #         component=model,
-        #     )
-        # else:
-        #     viewer.add_representation(
-        #         repr_type="line",
-        #         selection=selection,
-        #         color=self.color,
-        #         component=model,
-        #     )
 
         return viewer
 
@@ -398,7 +410,7 @@ class setHydrogens(ModuleBase):
         converter=attr.converters.default_if_none(default=TrueResidueSelector()),
     )
 
-    def _addCylinder_py3Dmol(self, _viewer, i_xyz, j_xyz):
+    def _addCylinder(self, _viewer, i_xyz, j_xyz):
         _viewer.addCylinder(
             {
                 "radius": self.radius,
@@ -409,16 +421,6 @@ class setHydrogens(ModuleBase):
                 "end": {"x": j_xyz[0], "y": j_xyz[1], "z": j_xyz[2]},
             }
         )
-        return _viewer
-
-    def _addCylinder_nglview(self, _viewer, i_xyz, j_xyz):
-        _viewer.shape.add_cylinder(
-            [i_xyz[0], i_xyz[1], i_xyz[2]],
-            [j_xyz[0], j_xyz[1], j_xyz[2]],
-            self.color_rgb,
-            self.radius,
-        )
-
         return _viewer
 
     @requires_init
@@ -432,7 +434,7 @@ class setHydrogens(ModuleBase):
         residue_chain_tuples = list(zip(map(str, resi), chain))
         if pose.is_fullatom():
             for i in range(1, pose.total_residue() + 1):
-                residue_chain_tuple = tuple(pose.pdb_info().pose2pdb(i).split())
+                residue_chain_tuple = tuple(_get_residue_chain_tuple(pose, i))
                 if residue_chain_tuple in residue_chain_tuples:
                     r = pose.residue(i)
                     h_begin = r.attached_H_begin()
@@ -446,14 +448,10 @@ class setHydrogens(ModuleBase):
                                 if self.polar_only:
                                     if r.atom_is_polar_hydrogen(j):
                                         j_xyz = r.atom(j).xyz()
-                                        viewer = self._addCylinder_py3Dmol(
-                                            viewer, i_xyz, j_xyz
-                                        )
+                                        viewer = self._addCylinder(viewer, i_xyz, j_xyz)
                                 else:
                                     j_xyz = r.atom(j).xyz()
-                                    viewer = self._addCylinder_py3Dmol(
-                                        viewer, i_xyz, j_xyz
-                                    )
+                                    viewer = self._addCylinder(viewer, i_xyz, j_xyz)
 
         return viewer
 
@@ -467,9 +465,10 @@ class setHydrogens(ModuleBase):
         )
         residue_chain_tuples = list(zip(map(str, resi), chain))
         if pose.is_fullatom():
+            selection = []
             for i in range(1, pose.total_residue() + 1):
-                residue_chain_tuple = tuple(pose.pdb_info().pose2pdb(i).split())
-                if residue_chain_tuple in residue_chain_tuples:
+                residue, chain = _get_residue_chain_tuple(pose, i)
+                if (residue, chain) in residue_chain_tuples:
                     r = pose.residue(i)
                     h_begin = r.attached_H_begin()
                     h_end = r.attached_H_end()
@@ -477,19 +476,29 @@ class setHydrogens(ModuleBase):
                         i_index = h_begin[h]
                         j_index = h_end[h]
                         if all(q != 0 for q in [i_index, j_index]):
-                            i_xyz = r.atom(h).xyz()
+                            i_name = r.atom_name(h).strip()
+                            i_sele = f"{residue}:{chain}.{i_name}"
                             for j in range(i_index, j_index + 1):
                                 if self.polar_only:
                                     if r.atom_is_polar_hydrogen(j):
-                                        j_xyz = r.atom(j).xyz()
-                                        viewer = self._addCylinder_nglview(
-                                            viewer, i_xyz, j_xyz
-                                        )
+                                        j_name = r.atom_name(j).strip()
+                                        j_sele = f"{residue}:{chain}.{j_name}"
+                                        sele = f"({i_sele} or {j_sele})"
+                                        selection.append(sele)
                                 else:
-                                    j_xyz = r.atom(j).xyz()
-                                    viewer = self._addCylinder_nglview(
-                                        viewer, i_xyz, j_xyz
-                                    )
+                                    j_name = r.atom_name(j).strip()
+                                    j_sele = f"{residue}:{chain}.{j_name}"
+                                    sele = f"{i_sele} or {j_sele}"
+                                    selection.append(sele)
+
+            selection_hydrogens = " or ".join(selection)
+            viewer.add_representation(
+                repr_type="line",
+                selection=selection_hydrogens,
+                color=self.color,
+                radius=self.radius,
+                component=model,
+            )
 
         return viewer
 
