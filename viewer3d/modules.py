@@ -172,25 +172,6 @@ class setDisulfides(ModuleBase):
             label_visible=False,
         )
 
-        #             r = res_hbonds[j]
-        #             don_res = r.don_res()
-        #             don_hatm_name = (
-        #                 pose.residue(don_res).atom_name(r.don_hatm()).strip()
-        #             )
-        #             don_residue, don_chain = _get_residue_chain_tuple(pose, don_res)
-        #             don_sele = f"{don_residue}:{don_chain}.{don_hatm_name}"
-        #             acc_res = r.acc_res()
-        #             acc_atm_name = pose.residue(acc_res).atom_name(r.acc_atm()).strip()
-        #             acc_residue, acc_chain = _get_residue_chain_tuple(pose, acc_res)
-        #             acc_sele = f"{acc_residue}:{acc_chain}.{acc_atm_name}"
-        #             selection_hbonds.append([don_sele, acc_sele])
-        #
-        # viewer.add_distance(
-        #     atom_pair=selection_hbonds,
-        #     color=self.color,
-        #     label_visible=False,
-        # )
-
         return viewer
 
     def apply_pymol(self):
