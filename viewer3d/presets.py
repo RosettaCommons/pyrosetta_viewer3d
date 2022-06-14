@@ -18,7 +18,6 @@ _logger = logging.getLogger("viewer3d.presets")
 out = Output()
 
 
-@out.capture()
 @requires_init
 def coreBoundarySurface(*args, **kwargs):
     """
@@ -28,12 +27,13 @@ def coreBoundarySurface(*args, **kwargs):
     """
     __author__ = "Jason C. Klima"
 
-    core_selector = LayerSelector()
-    core_selector.set_layers(True, False, False)
-    boundary_selector = LayerSelector()
-    boundary_selector.set_layers(False, True, False)
-    surface_selector = LayerSelector()
-    surface_selector.set_layers(False, False, True)
+    with out:
+        core_selector = LayerSelector()
+        core_selector.set_layers(True, False, False)
+        boundary_selector = LayerSelector()
+        boundary_selector.set_layers(False, True, False)
+        surface_selector = LayerSelector()
+        surface_selector.set_layers(False, False, True)
 
     view = viewer3d.init(*args, **kwargs)
     view.add(viewer3d.setStyle())
@@ -69,7 +69,6 @@ def coreBoundarySurface(*args, **kwargs):
     return view
 
 
-@out.capture()
 @requires_init
 def ligandsAndMetals(*args, **kwargs):
     """
@@ -79,8 +78,9 @@ def ligandsAndMetals(*args, **kwargs):
     """
     __author__ = "Jason C. Klima"
 
-    metals_selector = ResiduePropertySelector(ResidueProperty.METAL)
-    ligands_selector = ResiduePropertySelector(ResidueProperty.LIGAND)
+    with out:
+        metals_selector = ResiduePropertySelector(ResidueProperty.METAL)
+        ligands_selector = ResiduePropertySelector(ResidueProperty.LIGAND)
 
     view = (
         viewer3d.init(*args, **kwargs)
@@ -114,7 +114,6 @@ def ligandsAndMetals(*args, **kwargs):
     return view
 
 
-@out.capture()
 @requires_init
 def templatePreset(*args, **kwargs):
     """
@@ -127,7 +126,6 @@ def templatePreset(*args, **kwargs):
     return view
 
 
-@out.capture()
 @requires_init
 def makeBundle(
     modules=[],
@@ -169,12 +167,13 @@ def makeBundle(
     from pyrosetta.rosetta.utility import vector1_unsigned_long
 
     if not modules:
-        core_selector = LayerSelector()
-        core_selector.set_layers(True, False, False)
-        boundary_selector = LayerSelector()
-        boundary_selector.set_layers(False, True, False)
-        surface_selector = LayerSelector()
-        surface_selector.set_layers(False, False, True)
+        with out:
+            core_selector = LayerSelector()
+            core_selector.set_layers(True, False, False)
+            boundary_selector = LayerSelector()
+            boundary_selector.set_layers(False, True, False)
+            surface_selector = LayerSelector()
+            surface_selector.set_layers(False, False, True)
         modules = [
             viewer3d.setStyle(
                 residue_selector=core_selector,
