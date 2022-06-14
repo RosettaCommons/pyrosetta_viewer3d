@@ -5,17 +5,22 @@ Display preset custom viewers for routine visualizations.
 import logging
 import viewer3d
 
-from pyrosetta.distributed import requires_init
+from ipywidgets.widgets import Output
 from pyrosetta.rosetta.core.chemical import ResidueProperty
 from pyrosetta.rosetta.core.select.residue_selector import (
     LayerSelector,
     ResiduePropertySelector,
 )
+from viewer3d.tracer import requires_init
+
 
 _logger = logging.getLogger("viewer3d.presets")
+out = Output()
 
 
-def coreBoundarySurface(packed_and_poses_and_pdbs=None, *args, **kwargs):
+@out.capture()
+@requires_init
+def coreBoundarySurface(**kwargs):
     """
     Display core residues as 'blackCarbon' sticks, boundary residues as 'greyCarbon' sticks, and surface residues
     as 'whiteCarbon' sticks, with 'spectrum' cartoon representation, using the default arguments in
@@ -30,9 +35,7 @@ def coreBoundarySurface(packed_and_poses_and_pdbs=None, *args, **kwargs):
     surface_selector = LayerSelector()
     surface_selector.set_layers(False, False, True)
 
-    view = viewer3d.init(
-        packed_and_poses_and_pdbs=packed_and_poses_and_pdbs, *args, **kwargs
-    )
+    view = viewer3d.init(**kwargs)
     view.add(viewer3d.setStyle())
     view.add(
         viewer3d.setStyle(
@@ -63,10 +66,12 @@ def coreBoundarySurface(packed_and_poses_and_pdbs=None, *args, **kwargs):
     )
     view.add(viewer3d.setDisulfides(radius=0.25))
 
-    view.show()
+    return view
 
 
-def ligandsAndMetals(packed_and_poses_and_pdbs=None, *args, **kwargs):
+@out.capture()
+@requires_init
+def ligandsAndMetals(**kwargs):
     """
     Display residues with `ResidueProperty.LIGAND` as 'brownCarbon' sticks with opaque surface,
     and `ResidueProperty.METAL` as 'chainHetatm' spheres, with 'spectrum' cartoon representation,
@@ -78,9 +83,7 @@ def ligandsAndMetals(packed_and_poses_and_pdbs=None, *args, **kwargs):
     ligands_selector = ResiduePropertySelector(ResidueProperty.LIGAND)
 
     view = (
-        viewer3d.init(
-            packed_and_poses_and_pdbs=packed_and_poses_and_pdbs, *args, **kwargs
-        )
+        viewer3d.init(**kwargs)
         + viewer3d.setStyle(style="stick", colorscheme="lightgreyCarbon", radius=0.15)
         + viewer3d.setStyle(
             residue_selector=ligands_selector,
@@ -108,22 +111,23 @@ def ligandsAndMetals(packed_and_poses_and_pdbs=None, *args, **kwargs):
         + viewer3d.setZoomTo(residue_selector=ligands_selector)
     )
 
-    return view()
+    return view
 
 
-def templatePreset(packed_and_poses_and_pdbs=None, *args, **kwargs):
+@out.capture()
+@requires_init
+def templatePreset(**kwargs):
     """
     Add a description of the preset Viewer here
     """
-    view = viewer3d.init(
-        packed_and_poses_and_pdbs=packed_and_poses_and_pdbs, *args, **kwargs
-    )
+    view = viewer3d.init(**kwargs)
 
     # Add custom Viewer commands here
 
-    return view()
+    return view
 
 
+@out.capture()
 @requires_init
 def makeBundle(
     modules=[],
@@ -164,7 +168,7 @@ def makeBundle(
     )
     from pyrosetta.rosetta.utility import vector1_unsigned_long
 
-    if not modules:  # and (backend == "py3Dmol"):
+    if not modules:
         core_selector = LayerSelector()
         core_selector.set_layers(True, False, False)
         boundary_selector = LayerSelector()
@@ -201,8 +205,6 @@ def makeBundle(
                 radius=0,
                 label=False,
             ),
-            viewer3d.setHydrogens(),
-            viewer3d.setHydrogenBonds(),
         ]
 
     pose = pyrosetta.Pose()
@@ -232,7 +234,8 @@ def makeBundle(
         )
 
     def update_bundle():
-        mb.apply(pose)
+        with out:
+            mb.apply(pose)
         add_pdb_info_mover.apply(pose)
         make_poly_X(pose)
         view.update_pose(pose)
@@ -247,6 +250,7 @@ def makeBundle(
             mb.helix(i).calculator_op().real_parameter(BPC_r0).set_value(
                 r0.value
             )  # in angstrem
+        update_bundle()
 
     def on_length_change(change):
         for i in range(1, num_helices + 1):
@@ -338,6 +342,5 @@ def makeBundle(
         ]
     )
     initialize_bundle()
-    update_bundle()
 
     return view

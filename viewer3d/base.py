@@ -20,7 +20,6 @@ from viewer3d.config import _import_backend, BACKENDS
 from viewer3d.converters import _to_float, _to_widgets
 from viewer3d.exceptions import ViewerImportError
 from viewer3d.modules import ModuleBase
-from viewer3d.tracer import silence_tracer
 from viewer3d.validators import _validate_int_float, _validate_window_size
 
 
@@ -298,7 +297,6 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
         if self.auto_show:
             self.show()
 
-    @silence_tracer
     def apply_modules(self, _pose, _pdbstring, _model):
         for _module in self.modules:
             func = getattr(_module, f"apply_{self.backend}")
@@ -325,10 +323,11 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
     def show(self):
         """Display Viewer in Jupyter notebook."""
         if self._in_notebook():
-            self._toggle_scrolling()
+            self._clear_output()
             self._toggle_window(self.window_size)
             self.display_widgets()
             self.show_viewer()
+            self._toggle_scrolling()
 
 
 def expand_notebook():

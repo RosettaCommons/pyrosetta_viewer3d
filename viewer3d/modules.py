@@ -2,7 +2,6 @@ import attr
 import itertools
 import logging
 import pyrosetta
-import pyrosetta.distributed
 import pyrosetta.distributed.io as io
 import sys
 
@@ -24,6 +23,7 @@ from viewer3d.converters import (
     _to_1_if_gt_1,
 )
 from viewer3d.exceptions import ModuleNotImplementedError
+from viewer3d.tracer import requires_init
 
 
 _logger = logging.getLogger("viewer3d.modules")
@@ -111,7 +111,7 @@ class setDisulfides(ModuleBase):
         converter=attr.converters.default_if_none(default=0.25),
     )
 
-    @pyrosetta.distributed.requires_init
+    @requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, model):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
@@ -134,6 +134,7 @@ class setDisulfides(ModuleBase):
 
         return viewer
 
+    @requires_init
     def apply_nglview(self, viewer, pose, pdbstring, model):
         cys_res = [i for i, aa in enumerate(pose.sequence(), start=1) if aa == "C"]
         selection_disulfides = []
@@ -149,15 +150,6 @@ class setDisulfides(ModuleBase):
                     radius=self.radius,
                     component=model,
                 )
-                # selection_disulfides.append(sele)
-        # selection = " or ".join(selection_disulfides)
-        # viewer.add_representation(
-        #     repr_type="distance",
-        #     selection=selection,
-        #     color=self.color,
-        #     # radius=self.radius,
-        #     component=model,
-        # )
 
         return viewer
 
@@ -218,7 +210,7 @@ class setHydrogenBonds(ModuleBase):
         converter=_to_0_if_le_0,
     )
 
-    @pyrosetta.distributed.requires_init
+    @requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, model):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
@@ -277,6 +269,7 @@ class setHydrogenBonds(ModuleBase):
 
         return viewer
 
+    @requires_init
     def apply_nglview(self, viewer, pose, pdbstring, model):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
@@ -402,7 +395,7 @@ class setHydrogens(ModuleBase):
         )
         return _viewer
 
-    @pyrosetta.distributed.requires_init
+    @requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, model):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
@@ -434,6 +427,7 @@ class setHydrogens(ModuleBase):
 
         return viewer
 
+    @requires_init
     def apply_nglview(self, viewer, pose, pdbstring, model):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
@@ -667,7 +661,7 @@ class setStyle(ModuleBase):
         converter=attr.converters.default_if_none(default=False),
     )
 
-    @pyrosetta.distributed.requires_init
+    @requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, model):
         if self.show_hydrogens:
             _logger.warning(
@@ -749,7 +743,7 @@ class setStyle(ModuleBase):
 
         return viewer
 
-    @pyrosetta.distributed.requires_init
+    @requires_init
     def apply_nglview(self, viewer, pose, pdbstring, model):
         # Set defaults
         if self.cartoon_color is None:
@@ -927,7 +921,7 @@ class setSurface(ModuleBase):
         validator=attr.validators.instance_of((str, type(None))),
     )
 
-    @pyrosetta.distributed.requires_init
+    @requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, model):
         py3Dmol = sys.modules["py3Dmol"]
         surface_types_dict: Dict[str, int] = {
@@ -1033,7 +1027,7 @@ class setZoomTo(ModuleBase):
         converter=attr.converters.default_if_none(default=TrueResidueSelector()),
     )
 
-    @pyrosetta.distributed.requires_init
+    @requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, model):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
@@ -1047,6 +1041,7 @@ class setZoomTo(ModuleBase):
 
         return viewer
 
+    @requires_init
     def apply_nglview(self, viewer, pose, pdbstring, model):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)

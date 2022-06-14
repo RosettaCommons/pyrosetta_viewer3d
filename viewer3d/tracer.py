@@ -1,8 +1,6 @@
-import pyrosetta
 import pyrosetta.distributed
 
 from functools import wraps
-from pyrosetta.rosetta.basic.options import get_integer_option, set_integer_option
 from typing import (
     Any,
     Callable,
@@ -14,16 +12,18 @@ from typing import (
 T = TypeVar("T", bound=Callable[..., Any])
 
 
-@pyrosetta.distributed.requires_init
-def silence_tracer(func: T) -> T:
-    """Silence PyRosetta tracer output."""
-
+def requires_init(func: T) -> T:
     @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        option = "out:level"
-        user_out_level = get_integer_option(option)
-        set_integer_option(option, 100)
-        func(self, *args, **kwargs)
-        set_integer_option(option, user_out_level)
+    def wrapper(*args, **kwargs):
+        init_kwargs = dict(
+            options="",
+            extra_options="-out:level 100",
+            set_logging_handler="logging",
+            notebook=None,
+            silent=True,
+        )
+        pyrosetta.distributed.maybe_init(**init_kwargs)
+
+        return func(*args, **kwargs)
 
     return cast(T, wrapper)
