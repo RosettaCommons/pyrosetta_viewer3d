@@ -5,6 +5,7 @@ import pyrosetta
 import pyrosetta.distributed.io as io
 import sys
 
+from PIL import ImageColor
 from pyrosetta.rosetta.core.conformation import is_disulfide_bond
 from pyrosetta.rosetta.core.select.residue_selector import (
     ResidueSelector,
@@ -293,31 +294,38 @@ class setHydrogenBonds(ModuleBase):
                     )
                     acc_atm_name = pose.residue(acc_res).atom_name(r.acc_atm())
                     acc_sele = f"{acc_residue_chain_tuple[0]}:{acc_residue_chain_tuple[1]}.{acc_atm_name}"
-                    sele = f"({don_sele} or {acc_sele})"
-                    selection_hbonds.append(sele)
-        selection = " or ".join(selection_hbonds)
-        if self.dashed:
-            _logger.warning(
-                " ".join(
-                    "setHydrogenBonds argument 'dashed' is not currently supported with `nglview` backend. \
-                Setting argument 'dashed' to False.".split()
-                )
-            )
-        if self.radius:
-            viewer.add_representation(
-                repr_type="licorice",
-                selection=selection,
-                color=self.color,
-                radius=self.radius,
-                component=model,
-            )
-        else:
-            viewer.add_representation(
-                repr_type="line",
-                selection=selection,
-                color=self.color,
-                component=model,
-            )
+                    # sele = f"({don_sele} or {acc_sele})"
+                    selection_hbonds.append([don_sele, acc_sele])
+        viewer.add_distance(
+            atom_pair=selection_hbonds,
+            color=self.color,
+            label_visible=False,
+        )
+
+        #             selection_hbonds.append(sele)
+        # selection = " or ".join(selection_hbonds)
+        # if self.dashed:
+        #     _logger.warning(
+        #         " ".join(
+        #             "setHydrogenBonds argument 'dashed' is not currently supported with `nglview` backend. \
+        #         Setting argument 'dashed' to False.".split()
+        #         )
+        #     )
+        # if self.radius:
+        #     viewer.add_representation(
+        #         repr_type="licorice",
+        #         selection=selection,
+        #         color=self.color,
+        #         radius=self.radius,
+        #         component=model,
+        #     )
+        # else:
+        #     viewer.add_representation(
+        #         repr_type="line",
+        #         selection=selection,
+        #         color=self.color,
+        #         component=model,
+        #     )
 
         return viewer
 
@@ -361,6 +369,14 @@ class setHydrogens(ModuleBase):
         validator=attr.validators.instance_of((str, int)),
         converter=attr.converters.default_if_none(default="white"),
     )
+    color_rgb = attr.ib(
+        default=attr.Factory(
+            lambda self: ImageColor.getcolor(self.color, "RGB"), takes_self=True
+        ),
+        type=Tuple[int, int, int],
+        validator=attr.validators.instance_of(tuple),
+        init=False,
+    )
     radius = attr.ib(
         default=0.05,
         type=Union[float, int],
@@ -382,7 +398,7 @@ class setHydrogens(ModuleBase):
         converter=attr.converters.default_if_none(default=TrueResidueSelector()),
     )
 
-    def _addCylinder(self, _viewer, i_xyz, j_xyz):
+    def _addCylinder_py3Dmol(self, _viewer, i_xyz, j_xyz):
         _viewer.addCylinder(
             {
                 "radius": self.radius,
@@ -393,6 +409,16 @@ class setHydrogens(ModuleBase):
                 "end": {"x": j_xyz[0], "y": j_xyz[1], "z": j_xyz[2]},
             }
         )
+        return _viewer
+
+    def _addCylinder_nglview(self, _viewer, i_xyz, j_xyz):
+        _viewer.shape.add_cylinder(
+            [i_xyz[0], i_xyz[1], i_xyz[2]],
+            [j_xyz[0], j_xyz[1], j_xyz[2]],
+            self.color_rgb,
+            self.radius,
+        )
+
         return _viewer
 
     @requires_init
@@ -420,10 +446,14 @@ class setHydrogens(ModuleBase):
                                 if self.polar_only:
                                     if r.atom_is_polar_hydrogen(j):
                                         j_xyz = r.atom(j).xyz()
-                                        viewer = self._addCylinder(viewer, i_xyz, j_xyz)
+                                        viewer = self._addCylinder_py3Dmol(
+                                            viewer, i_xyz, j_xyz
+                                        )
                                 else:
                                     j_xyz = r.atom(j).xyz()
-                                    viewer = self._addCylinder(viewer, i_xyz, j_xyz)
+                                    viewer = self._addCylinder_py3Dmol(
+                                        viewer, i_xyz, j_xyz
+                                    )
 
         return viewer
 
@@ -437,10 +467,8 @@ class setHydrogens(ModuleBase):
         )
         residue_chain_tuples = list(zip(map(str, resi), chain))
         if pose.is_fullatom():
-            selection_hydrogens = []
             for i in range(1, pose.total_residue() + 1):
                 residue_chain_tuple = tuple(pose.pdb_info().pose2pdb(i).split())
-                resi = f"{residue_chain_tuple[0]}:{residue_chain_tuple[1]}"
                 if residue_chain_tuple in residue_chain_tuples:
                     r = pose.residue(i)
                     h_begin = r.attached_H_begin()
@@ -449,24 +477,19 @@ class setHydrogens(ModuleBase):
                         i_index = h_begin[h]
                         j_index = h_end[h]
                         if all(q != 0 for q in [i_index, j_index]):
-                            i_name = r.atom_name(h)
+                            i_xyz = r.atom(h).xyz()
                             for j in range(i_index, j_index + 1):
-                                if self.polar_only and r.atom_is_polar_hydrogen(j):
-                                    j_name = r.atom_name(j)
+                                if self.polar_only:
+                                    if r.atom_is_polar_hydrogen(j):
+                                        j_xyz = r.atom(j).xyz()
+                                        viewer = self._addCylinder_nglview(
+                                            viewer, i_xyz, j_xyz
+                                        )
                                 else:
-                                    j_name = r.atom_name(j)
-                                sele = f"((({resi}.{i_name} or {resi}.{j_name}) and not ({resi}.N or {resi}.C)) or ({resi}.H or {resi}.N))"
-                                selection_hydrogens.append(sele)
-
-            # TODO: fix how amide bond gets removed
-            selection = " or ".join(selection_hydrogens)
-            viewer.add_representation(
-                repr_type="licorice",
-                selection=selection,
-                color=self.color,
-                radius=self.radius,
-                component=model,
-            )
+                                    j_xyz = r.atom(j).xyz()
+                                    viewer = self._addCylinder_nglview(
+                                        viewer, i_xyz, j_xyz
+                                    )
 
         return viewer
 
