@@ -164,3 +164,8 @@ def _pdbstring_to_pose(pdbstring, class_name, logger=_logger):
         )
     )
     return io.to_pose(io.pose_from_pdbstring(pdbstring))
+
+
+def _get_residue_chain_tuple(pose, res):
+    residue, chain = map(lambda x: x.strip(), pose.pdb_info().pose2pdb(res).split())
+    return residue, chain
