@@ -205,8 +205,6 @@ def init(
     -------
     A Viewer instance.
     """
-    # if not pyrosetta.rosetta.basic.was_init_called():
-    #     pyrosetta.init(options="-out:level 100")
     viewer = SetupViewer(
         packed_and_poses_and_pdbs=packed_and_poses_and_pdbs,
         window_size=window_size,
