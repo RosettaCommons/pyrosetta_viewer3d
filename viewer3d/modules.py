@@ -800,7 +800,9 @@ class setStyle(ModuleBase):
             if pose is None:
                 pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-            selection = _get_nglview_selection(pose, self.residue_selector)
+            selection = _get_nglview_selection(
+                pose, self.residue_selector, logger=_logger
+            )
             selection_hydrogens = (
                 f"({selection}) and not hydrogen" if self.show_hydrogens else selection
             )
@@ -883,12 +885,13 @@ class setSurface(ModuleBase):
             "MS": Molecular surface
             "SES": Solvent excluded surface
             "SAS": Solvent accessible surface
+            "AV": High quality molecular surface (only supported for `nglview` backend)
         Default: "VDW"
 
     third : optional
         `opacity`
 
-        `float` or `int` between 0 and 1 for opacity of the displayed surface.
+        `float` or `int` between 0 and 1 for opacity of the displayed surface. Not currently supported for `nglview` backend.
         Default: 0.5
 
     fourth : optional
@@ -916,6 +919,7 @@ class setSurface(ModuleBase):
             "chainHetatm": chain Hetatm colorscheme
         Default: None
         Reference: https://3dmol.csb.pitt.edu/doc/types.html#ColorschemeSpec
+        Not currently supported for `nglview` backend.
 
     Returns
     -------
@@ -933,7 +937,7 @@ class setSurface(ModuleBase):
         type=str,
         validator=[
             attr.validators.instance_of(str),
-            attr.validators.in_(("VDW", "MS", "SAS", "SES")),
+            attr.validators.in_(("VDW", "MS", "SAS", "SES", "AV")),
         ],
     )
     opacity = attr.ib(
@@ -955,6 +959,11 @@ class setSurface(ModuleBase):
 
     @requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+        if self.surface_type == "AV":
+            raise NotImplementedError(
+                "The surface type 'AV' is not supported by the `py3Dmol` backend."
+            )
+
         py3Dmol = sys.modules["py3Dmol"]
         surface_types_dict: Dict[str, int] = {
             "VDW": py3Dmol.VDW,
@@ -991,8 +1000,29 @@ class setSurface(ModuleBase):
 
         return viewer
 
+    @requires_init
     def apply_nglview(self, viewer, pose, pdbstring, model):
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+        surface_types_dict: Dict[str, str] = {
+            "VDW": "vws",
+            "MS": "ms",
+            "SAS": "sas",
+            "SES": "ses",
+            "AV": "av",
+        }
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        selection = _get_nglview_selection(pose, self.residue_selector, logger=_logger)
+        if not selection:
+            pass
+        else:
+            viewer.add_representation(
+                repr_type="surface",
+                selection=selection,
+                surfaceType=surface_types_dict[self.surface_type],
+                color=self.color,
+                component=model,
+            )
 
     def apply_pymol(self):
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
@@ -1078,7 +1108,7 @@ class setZoomTo(ModuleBase):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        selection = _get_nglview_selection(pose, self.residue_selector)
+        selection = _get_nglview_selection(pose, self.residue_selector, logger=_logger)
         if not selection:
             viewer.center(selection="*", component=model)
         else:
