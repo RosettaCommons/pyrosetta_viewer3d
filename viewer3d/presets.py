@@ -1,11 +1,23 @@
 """
 Display preset custom viewers for routine visualizations.
 """
+import pyrosetta
+
 
 import logging
 import viewer3d
 
-from ipywidgets.widgets import Output
+from ipywidgets.widgets import (
+    Button,
+    Checkbox,
+    FloatSlider,
+    IntSlider,
+    HBox,
+    Output,
+    Text,
+    ToggleButtons,
+    VBox,
+)
 from pyrosetta.rosetta.core.chemical import ResidueProperty
 from pyrosetta.rosetta.core.select.residue_selector import (
     LayerSelector,
@@ -19,7 +31,12 @@ out = Output()
 
 
 @requires_init
-def coreBoundarySurface(*args, **kwargs):
+def coreBoundarySurface(
+    packed_and_poses_and_pdbs=None,
+    window_size=(1200, 800),
+    continuous_update=True,
+    backend="py3Dmol",
+):
     """
     Display core residues as 'blackCarbon' sticks, boundary residues as 'greyCarbon' sticks, and surface residues
     as 'whiteCarbon' sticks, with 'spectrum' cartoon representation, using the default arguments in
@@ -30,41 +47,143 @@ def coreBoundarySurface(*args, **kwargs):
     with out:
         core_selector = LayerSelector()
         core_selector.set_layers(True, False, False)
+        core_selector.set_use_sc_neighbors(True)
         boundary_selector = LayerSelector()
         boundary_selector.set_layers(False, True, False)
+        boundary_selector.set_use_sc_neighbors(True)
         surface_selector = LayerSelector()
         surface_selector.set_layers(False, False, True)
+        surface_selector.set_use_sc_neighbors(True)
 
-    view = viewer3d.init(*args, **kwargs)
-    view.add(viewer3d.setStyle())
-    view.add(
+    modules = [
+        viewer3d.setStyle(
+            cartoon=True,
+            radius=0,
+            label=False,
+        ),
         viewer3d.setStyle(
             residue_selector=core_selector,
+            cartoon=False,
+            colorscheme="darkred" if backend == "nglview" else "darkredCarbon",
             style="stick",
-            colorscheme="blackCarbon",
             radius=0.25,
             label=False,
-        )
-    )
-    view.add(
+        ),
         viewer3d.setStyle(
             residue_selector=boundary_selector,
+            cartoon=False,
+            colorscheme="orange" if backend == "nglview" else "orangeCarbon",
             style="stick",
-            colorscheme="greyCarbon",
             radius=0.25,
             label=False,
-        )
-    )
-    view.add(
+        ),
         viewer3d.setStyle(
             residue_selector=surface_selector,
+            cartoon=False,
+            colorscheme="yellow" if backend == "nglview" else "yellowCarbon",
             style="stick",
-            colorscheme="whiteCarbon",
             radius=0.25,
             label=False,
-        )
+        ),
+        viewer3d.setDisulfides(radius=0.25),
+    ]
+
+    angle_exponent = FloatSlider(
+        min=-4,
+        max=4,
+        step=0.1,
+        value=2,
+        description="angle_exponent",
+        continuous_update=continuous_update,
     )
-    view.add(viewer3d.setDisulfides(radius=0.25))
+    angle_shift_factor = FloatSlider(
+        min=-2,
+        max=2,
+        step=0.1,
+        value=0.5,
+        description="angle_shift_factor",
+        continuous_update=continuous_update,
+    )
+    dist_exponent = FloatSlider(
+        min=-2,
+        max=2,
+        step=0.1,
+        value=1,
+        description="dist_exponent",
+        continuous_update=continuous_update,
+    )
+    denominator = FloatSlider(
+        min=0.1,
+        max=10,
+        step=0.1,
+        value=1,
+        description="denominator",
+        continuous_update=continuous_update,
+    )
+    dist_midpoint = FloatSlider(
+        min=0,
+        max=20,
+        step=1,
+        value=9,
+        description="dist_midpoint",
+        continuous_update=continuous_update,
+    )
+
+    view = viewer3d.init(
+        packed_and_poses_and_pdbs=packed_and_poses_and_pdbs,
+        window_size=window_size,
+        modules=modules,
+        backend=backend,
+    )
+
+    def update_viewer():
+        view.update_decoy()
+
+    def set_angle_exponent(angle_exponent):
+        with out:
+            core_selector.set_angle_exponent(angle_exponent.new)
+            boundary_selector.set_angle_exponent(angle_exponent.new)
+            surface_selector.set_angle_exponent(angle_exponent.new)
+        update_viewer()
+
+    def set_angle_shift_factor(angle_shift_factor):
+        with out:
+            core_selector.set_angle_shift_factor(angle_shift_factor.new)
+            boundary_selector.set_angle_shift_factor(angle_shift_factor.new)
+            surface_selector.set_angle_shift_factor(angle_shift_factor.new)
+        update_viewer()
+
+    def set_dist_exponent(dist_exponent):
+        with out:
+            core_selector.set_dist_exponent(dist_exponent.new)
+            boundary_selector.set_dist_exponent(dist_exponent.new)
+            surface_selector.set_dist_exponent(dist_exponent.new)
+        update_viewer()
+
+    def set_sc_neighbor_denominator(denominator):
+        with out:
+            core_selector.set_sc_neighbor_denominator(denominator.new)
+            boundary_selector.set_sc_neighbor_denominator(denominator.new)
+            surface_selector.set_sc_neighbor_denominator(denominator.new)
+        update_viewer()
+
+    def set_sc_neighbor_dist_midpoint(dist_midpoint):
+        with out:
+            core_selector.set_sc_neighbor_dist_midpoint(dist_midpoint.new)
+            boundary_selector.set_sc_neighbor_dist_midpoint(dist_midpoint.new)
+            surface_selector.set_sc_neighbor_dist_midpoint(dist_midpoint.new)
+        update_viewer()
+
+    angle_exponent.observe(set_angle_exponent, names="value")
+    angle_shift_factor.observe(set_angle_shift_factor, names="value")
+    dist_exponent.observe(set_dist_exponent, names="value")
+    denominator.observe(set_sc_neighbor_denominator, names="value")
+    dist_midpoint.observe(set_sc_neighbor_dist_midpoint, names="value")
+
+    view.set_widgets(
+        [angle_exponent, angle_shift_factor, dist_exponent, denominator, dist_midpoint]
+    )
+    update_viewer()
 
     return view
 
@@ -119,6 +238,7 @@ def templatePreset(*args, **kwargs):
     """
     Add a description of the preset Viewer here
     """
+    __author__ = ""
     view = viewer3d.init(*args, **kwargs)
 
     # Add custom Viewer commands here
@@ -138,22 +258,8 @@ def makeBundle(
     """
     Add a description of the preset Viewer here
     """
-    import pyrosetta
+    __author__ = "Ajasja Ljubetic, Jason C. Klima"
 
-    from ipywidgets.widgets import (
-        IntSlider,
-        FloatSlider,
-        Checkbox,
-        ToggleButtons,
-        HBox,
-        VBox,
-        Button,
-        Text,
-    )
-    from IPython.display import display
-    from pyrosetta.rosetta.core.select.residue_selector import (
-        LayerSelector,
-    )
     from pyrosetta.rosetta.protocols.helical_bundle import (
         BPC_delta_omega0,
         BPC_r0,
@@ -178,7 +284,7 @@ def makeBundle(
             viewer3d.setStyle(
                 residue_selector=core_selector,
                 cartoon=False,
-                colorscheme="red",
+                colorscheme="darkred",
                 style="stick",
                 radius=0.25,
                 label=False,
