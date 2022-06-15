@@ -19,7 +19,7 @@ from typing import Generic, Iterable, List, Optional, Tuple, TypeVar, Union
 from viewer3d.config import _import_backend, BACKENDS
 from viewer3d.converters import _to_float, _to_widgets
 from viewer3d.exceptions import ViewerImportError
-from viewer3d.modules import ModuleBase
+from viewer3d.modules import ModuleBase, setZoomTo
 from viewer3d.validators import _validate_int_float, _validate_window_size
 
 
@@ -90,6 +90,12 @@ class Base3D:
         default=None,
         validator=attr.validators.instance_of(bool),
         converter=attr.converters.default_if_none(default=False),
+    )
+    _setZoomTo = attr.ib(
+        type=ModuleBase,
+        default=setZoomTo(),
+        validator=attr.validators.instance_of(ModuleBase),
+        init=False,
     )
 
     def _maybe_import_backend(self):
@@ -292,12 +298,25 @@ class WidgetsBase:
 
 @attr.s(kw_only=False, slots=False)
 class ViewerBase(Base3D, PoseBase, WidgetsBase):
+    _displayed = attr.ib(type=bool, default=False, init=False)
+
     def __attrs_post_init__(self):
         self.setup()
         if self.auto_show:
             self.show()
 
+    def apply_setZoomTo(self, _pose, _pdbstring, _model):
+        func = getattr(self._setZoomTo, f"apply_{self.backend}")
+        self.viewer = func(
+            self.viewer,
+            _pose,
+            _pdbstring,
+            _model,
+        )
+
     def apply_modules(self, _pose, _pdbstring, _model):
+        if not self._displayed:
+            self.apply_setZoomTo(_pose, _pdbstring, _model)
         for _module in self.modules:
             func = getattr(_module, f"apply_{self.backend}")
             self.viewer = func(
@@ -328,6 +347,7 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
             self.display_widgets()
             self.show_viewer()
             self._toggle_scrolling()
+            self._displayed = True
 
 
 def expand_notebook():

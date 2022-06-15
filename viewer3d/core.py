@@ -19,8 +19,6 @@ _logger = logging.getLogger("viewer3d.core")
 
 @attr.s(kw_only=True, slots=False)
 class Py3DmolViewer(ViewerBase):
-    _displayed = attr.ib(type=bool, default=False, init=False)
-
     def setup(self):
         self.py3Dmol = self._maybe_import_backend()
         self.viewer = self.py3Dmol.view(
@@ -51,7 +49,6 @@ class Py3DmolViewer(ViewerBase):
 
     def show_viewer(self):
         self.viewer.show()
-        self._displayed = True
 
 
 @attr.s(kw_only=True, slots=False)
@@ -87,6 +84,11 @@ class NGLviewViewer(ViewerBase):
 
     def show_viewer(self):
         self.viewer.display(gui=True, style="ngl")
+        self.viewer._remote_call(
+            "setSize",
+            targe="Widget",
+            args=[f"{self.window_size[0]}px", f"{self.window_size[1]}px"],
+        )  # Resize NGLWidget window
         self.viewer._ipython_display_()
 
 
