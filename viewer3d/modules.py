@@ -157,20 +157,23 @@ class setDisulfides(ModuleBase):
                 i_sele = f"{i_res}:{i_chain}.{self.sulfur_atom_name}"
                 j_sele = f"{j_res}:{j_chain}.{self.sulfur_atom_name}"
                 selection_disulfides.append([i_sele, j_sele])
-        selection = " or ".join([f"({s[0]} or {s[1]})" for s in selection_disulfides])
-        viewer.add_representation(
-            repr_type="ball+stick",
-            selection=selection,
-            color=self.color,
-            radius=self.radius,
-            component=model,
-        )
-        viewer.add_distance(
-            atom_pair=selection_disulfides,
-            color=self.color,
-            radius=self.radius,
-            label_visible=False,
-        )
+        if selection_disulfides:
+            viewer.add_distance(
+                atom_pair=selection_disulfides,
+                color=self.color,
+                radius=self.radius,
+                label_visible=False,
+            )
+            selection = " or ".join(
+                [f"({s[0]} or {s[1]})" for s in selection_disulfides]
+            )
+            viewer.add_representation(
+                repr_type="ball+stick",
+                selection=selection,
+                color=self.color,
+                radius=self.radius,
+                component=model,
+            )
 
         return viewer
 
