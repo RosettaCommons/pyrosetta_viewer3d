@@ -291,8 +291,10 @@ class WidgetsBase:
     def set_widgets(self, obj):
         self.widgets = _to_widgets(obj)
 
-    def update_decoy(self, index=0):
+    def update_decoy(self, index=None):
         time.sleep(self.delay)
+        if index is None:
+            index = self.get_decoy_widget_index()
         self.update_viewer(self.poses[index], self.pdbstrings[index])
 
 
