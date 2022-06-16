@@ -23,6 +23,7 @@ from pyrosetta.rosetta.core.select.residue_selector import (
     LayerSelector,
     ResiduePropertySelector,
 )
+from viewer3d.converters import _to_backend
 from viewer3d.tracer import requires_init
 
 
@@ -55,6 +56,7 @@ def coreBoundarySurface(
         surface_selector.set_layers(False, False, True)
         surface_selector.set_use_sc_neighbors(True)
 
+    backend = _to_backend(backend)
     modules = [
         viewer3d.setStyle(
             cartoon=True,
@@ -272,6 +274,7 @@ def makeBundle(
     )
     from pyrosetta.rosetta.utility import vector1_unsigned_long
 
+    backend = _to_backend(backend)
     if not modules:
         with out:
             core_selector = LayerSelector()
@@ -283,8 +286,7 @@ def makeBundle(
         modules = [
             viewer3d.setStyle(
                 residue_selector=core_selector,
-                cartoon=False,
-                # cartoon_color="spectrum",
+                cartoon=False if backend == "nglview" else True,
                 colorscheme="darkred" if backend == "nglview" else "darkredCarbon",
                 style="stick",
                 radius=0.25,
@@ -292,8 +294,7 @@ def makeBundle(
             ),
             viewer3d.setStyle(
                 residue_selector=boundary_selector,
-                cartoon=False,
-                # cartoon_color="spectrum",
+                cartoon=False if backend == "nglview" else True,
                 colorscheme="orange" if backend == "nglview" else "orangeCarbon",
                 style="stick",
                 radius=0.25,
@@ -301,27 +302,21 @@ def makeBundle(
             ),
             viewer3d.setStyle(
                 residue_selector=surface_selector,
-                cartoon=False,
-                # cartoon_color="spectrum",
+                cartoon=False if backend == "nglview" else True,
                 colorscheme="yellow" if backend == "nglview" else "yellowCarbon",
                 style="stick",
                 radius=0.25,
                 label=False,
             ),
+        ]
+    if backend == "nglview":
+        modules.append(
             viewer3d.setStyle(
                 cartoon=True,
                 radius=0,
                 label=False,
-            ),
-        ]
-        # if backend == "nglview":
-        #     modules.append(
-        #         viewer3d.setStyle(
-        #             cartoon=True,
-        #             radius=0,
-        #             label=False,
-        #         ),
-        #     )
+            )
+        )
 
     pose = pyrosetta.Pose()
     view = viewer3d.init(
