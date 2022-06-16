@@ -304,7 +304,7 @@ class WidgetsBase:
         if index in self.poses.keys():
             self.update_objects(self.poses[index], self.pdbstrings[index])
 
-    def _maybe_setup_colab():
+    def _maybe_setup_colab(self):
         if "google.colab" in sys.modules:
             sys.modules["google.colab"].output.enable_custom_widget_manager()
 
