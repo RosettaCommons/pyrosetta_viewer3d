@@ -304,11 +304,9 @@ class WidgetsBase:
         if index in self.poses.keys():
             self.update_objects(self.poses[index], self.pdbstrings[index])
 
-    def _maybe_enable_custom_widget_manager():
+    def _maybe_setup_colab():
         if "google.colab" in sys.modules:
-            from google.colab import output
-
-            output.enable_custom_widget_manager()
+            sys.modules["google.colab"].output.enable_custom_widget_manager()
 
 
 @attr.s(kw_only=False, slots=False)
@@ -317,7 +315,7 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
 
     def __attrs_post_init__(self):
         self.setup()
-        self._maybe_enable_custom_widget_manager()
+        self._maybe_setup_colab()
         if self.auto_show:
             self.show()
 
