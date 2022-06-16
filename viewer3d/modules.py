@@ -794,13 +794,14 @@ class setStyle(ModuleBase):
             if not selection:
                 pass
             else:
-                viewer.add_representation(
-                    repr_type=self.style,
-                    selection=selection_hydrogens,
-                    color=self.colorscheme,
-                    radius=self.radius,
-                    component=model,
-                )
+                if self.radius > 1e-10:
+                    viewer.add_representation(
+                        repr_type=self.style,
+                        selection=selection_hydrogens,
+                        color=self.colorscheme,
+                        radius=self.radius,
+                        component=model,
+                    )
                 if self.cartoon:
                     viewer.remove_cartoon(component=model)
                     viewer.add_representation(
@@ -823,13 +824,14 @@ class setStyle(ModuleBase):
                         component=model,
                     )
         else:
-            viewer.add_representation(
-                repr_type=self.style,
-                selection=default_selection,
-                color=self.colorscheme,
-                radius=self.radius,
-                component=model,
-            )
+            if self.radius > 1e-10:
+                viewer.add_representation(
+                    repr_type=self.style,
+                    selection=default_selection,
+                    color=self.colorscheme,
+                    radius=self.radius,
+                    component=model,
+                )
             if self.cartoon:
                 viewer.remove_cartoon(component=model)
                 viewer.add_representation(
