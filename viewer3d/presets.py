@@ -138,43 +138,40 @@ def coreBoundarySurface(
         backend=backend,
     )
 
-    def update_viewer():
-        view.update_decoy()
-
     def set_angle_exponent(angle_exponent):
         with out:
             core_selector.set_angle_exponent(angle_exponent.new)
             boundary_selector.set_angle_exponent(angle_exponent.new)
             surface_selector.set_angle_exponent(angle_exponent.new)
-        update_viewer()
+        view.update_viewer()
 
     def set_angle_shift_factor(angle_shift_factor):
         with out:
             core_selector.set_angle_shift_factor(angle_shift_factor.new)
             boundary_selector.set_angle_shift_factor(angle_shift_factor.new)
             surface_selector.set_angle_shift_factor(angle_shift_factor.new)
-        update_viewer()
+        view.update_viewer()
 
     def set_dist_exponent(dist_exponent):
         with out:
             core_selector.set_dist_exponent(dist_exponent.new)
             boundary_selector.set_dist_exponent(dist_exponent.new)
             surface_selector.set_dist_exponent(dist_exponent.new)
-        update_viewer()
+        view.update_viewer()
 
     def set_sc_neighbor_denominator(denominator):
         with out:
             core_selector.set_sc_neighbor_denominator(denominator.new)
             boundary_selector.set_sc_neighbor_denominator(denominator.new)
             surface_selector.set_sc_neighbor_denominator(denominator.new)
-        update_viewer()
+        view.update_viewer()
 
     def set_sc_neighbor_dist_midpoint(dist_midpoint):
         with out:
             core_selector.set_sc_neighbor_dist_midpoint(dist_midpoint.new)
             boundary_selector.set_sc_neighbor_dist_midpoint(dist_midpoint.new)
             surface_selector.set_sc_neighbor_dist_midpoint(dist_midpoint.new)
-        update_viewer()
+        view.update_viewer()
 
     angle_exponent.observe(set_angle_exponent, names="value")
     angle_shift_factor.observe(set_angle_shift_factor, names="value")
@@ -185,7 +182,7 @@ def coreBoundarySurface(
     view.set_widgets(
         [angle_exponent, angle_shift_factor, dist_exponent, denominator, dist_midpoint]
     )
-    update_viewer()
+    view.update_viewer()
 
     return view
 

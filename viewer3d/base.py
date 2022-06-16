@@ -203,7 +203,7 @@ class PoseBase:
         self.poses[index].append(pose)
         self.pdbstrings[index].append(None)
         if update_viewer:
-            self.update_decoy(index=index)
+            self.update_viewer(index=index)
 
     def add_pdbstring(self, pdbstring, index=None, update_viewer=True):
         if index is None:
@@ -211,7 +211,7 @@ class PoseBase:
         self.poses[index].append(None)
         self.pdbstrings[index].append(pdbstring)
         if update_viewer:
-            self.update_decoy(index=index)
+            self.update_viewer(index=index)
 
     def remove_pose(self, index=None, model=None, update_viewer=True):
         self.remove_pdbstring(index=index, model=model, update_viewer=update_viewer)
@@ -229,7 +229,7 @@ class PoseBase:
                 f"The 'poses' and 'pdbstrings' attributes are empty at index `{index}`."
             )
         if update_viewer:
-            self.update_decoy(index=index)
+            self.update_viewer(index=index)
 
     def update_pose(self, pose, index=None, model=None, update_viewer=True):
         if index is None:
@@ -239,7 +239,7 @@ class PoseBase:
         self.poses[index][model] = pose
         self.pdbstrings[index][model] = None
         if update_viewer:
-            self.update_decoy(index=index)
+            self.update_viewer(index=index)
 
     def update_poses(self, poses, index=None, update_viewer=True):
         if index is None:
@@ -250,7 +250,7 @@ class PoseBase:
         self.poses[index] = poses
         self.pdbstrings[index] = [None] * len(poses)
         if update_viewer:
-            self.update_decoy(index=index)
+            self.update_viewer(index=index)
 
     def update_pdbstrings(self, pdbstrings, index=None, update_viewer=True):
         if index is None:
@@ -261,7 +261,7 @@ class PoseBase:
         self.poses[index] = [None] * len(pdbstrings)
         self.pdbstrings[index] = pdbstrings
         if update_viewer:
-            self.update_decoy(index=index)
+            self.update_viewer(index=index)
 
 
 @attr.s(kw_only=False, slots=False)
@@ -269,7 +269,7 @@ class WidgetsBase:
     decoy_widget = attr.ib(
         default=attr.Factory(
             lambda self: interactive(
-                self.update_decoy,
+                self.update_viewer,
                 index=IntSlider(
                     min=0,
                     max=self.n_decoys - 1,
@@ -291,18 +291,18 @@ class WidgetsBase:
         if self.n_decoys > 1:
             _widgets.insert(0, self.decoy_widget)
         else:
-            self.update_decoy()
+            self.update_viewer()
         return _widgets
 
     def set_widgets(self, obj):
         self.widgets = _to_widgets(obj)
 
-    def update_decoy(self, index=None):
+    def update_viewer(self, index=None):
         time.sleep(self.delay)
         if index is None:
             index = self.get_decoy_widget_index()
         if index in self.poses.keys():
-            self.update_viewer(self.poses[index], self.pdbstrings[index])
+            self.update_objects(self.poses[index], self.pdbstrings[index])
 
 
 @attr.s(kw_only=False, slots=False)
