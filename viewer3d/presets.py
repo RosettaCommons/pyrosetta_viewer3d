@@ -283,8 +283,8 @@ def makeBundle(
         modules = [
             viewer3d.setStyle(
                 residue_selector=core_selector,
-                cartoon=True,
-                cartoon_color="spectrum",
+                cartoon=False,
+                # cartoon_color="spectrum",
                 colorscheme="darkred" if backend == "nglview" else "darkredCarbon",
                 style="stick",
                 radius=0.25,
@@ -292,8 +292,8 @@ def makeBundle(
             ),
             viewer3d.setStyle(
                 residue_selector=boundary_selector,
-                cartoon=True,
-                cartoon_color="spectrum",
+                cartoon=False,
+                # cartoon_color="spectrum",
                 colorscheme="orange" if backend == "nglview" else "orangeCarbon",
                 style="stick",
                 radius=0.25,
@@ -301,22 +301,27 @@ def makeBundle(
             ),
             viewer3d.setStyle(
                 residue_selector=surface_selector,
-                cartoon=True,
-                cartoon_color="spectrum",
+                cartoon=False,
+                # cartoon_color="spectrum",
                 colorscheme="yellow" if backend == "nglview" else "yellowCarbon",
                 style="stick",
                 radius=0.25,
                 label=False,
             ),
+            viewer3d.setStyle(
+                cartoon=True,
+                radius=0,
+                label=False,
+            ),
         ]
-        if backend == "nglview":
-            modules.append(
-                viewer3d.setStyle(
-                    cartoon=True,
-                    radius=0,
-                    label=False,
-                ),
-            )
+        # if backend == "nglview":
+        #     modules.append(
+        #         viewer3d.setStyle(
+        #             cartoon=True,
+        #             radius=0,
+        #             label=False,
+        #         ),
+        #     )
 
     pose = pyrosetta.Pose()
     view = viewer3d.init(
