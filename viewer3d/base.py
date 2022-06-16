@@ -59,7 +59,7 @@ class Base3D:
         default=None,
         validator=_validate_int_float,
         converter=attr.converters.pipe(
-            attr.converters.default_if_none(0.25), _to_float
+            attr.converters.default_if_none(default=0.0), _to_float
         ),
     )
     continuous_update = attr.ib(
@@ -86,6 +86,12 @@ class Base3D:
         converter=_to_backend,
     )
     auto_show = attr.ib(
+        type=bool,
+        default=None,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
+    gui = attr.ib(
         type=bool,
         default=None,
         validator=attr.validators.instance_of(bool),
@@ -195,7 +201,7 @@ class PoseBase:
         if index is None:
             index = self.get_decoy_widget_index()
         self.poses[index].append(pose)
-        self.pdbstrings[index].append(io.to_pdbstring(pose))
+        self.pdbstrings[index].append(None)
         if update_viewer:
             self.update_decoy(index=index)
 
@@ -231,7 +237,7 @@ class PoseBase:
         if model is None or model not in set(range(len(self.poses[index]))):
             model = 0
         self.poses[index][model] = pose
-        self.pdbstrings[index][model] = io.to_pdbstring(pose)
+        self.pdbstrings[index][model] = None
         if update_viewer:
             self.update_decoy(index=index)
 
@@ -242,7 +248,7 @@ class PoseBase:
         for pose in poses:
             assert isinstance(pose, Pose)
         self.poses[index] = poses
-        self.pdbstrings[index] = list(map(io.to_pdbstring, poses))
+        self.pdbstrings[index] = [None] * len(poses)
         if update_viewer:
             self.update_decoy(index=index)
 
@@ -295,7 +301,8 @@ class WidgetsBase:
         time.sleep(self.delay)
         if index is None:
             index = self.get_decoy_widget_index()
-        self.update_viewer(self.poses[index], self.pdbstrings[index])
+        if index in self.poses.keys():
+            self.update_viewer(self.poses[index], self.pdbstrings[index])
 
 
 @attr.s(kw_only=False, slots=False)

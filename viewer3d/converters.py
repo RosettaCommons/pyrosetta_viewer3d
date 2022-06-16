@@ -27,7 +27,7 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
     def to_pose(obj):
         raise ViewerInputError(obj)
 
-    to_pose.register(type(None), lambda obj: Pose())
+    to_pose.register(type(None), lambda obj: None)
     to_pose.register(PackedPose, lambda obj: io.to_pose(obj))
     to_pose.register(Pose, lambda obj: obj)
     to_pose.register(str, lambda obj: None)
@@ -55,7 +55,19 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
         d = collections.defaultdict(list)
         for i, obj in enumerate(objs):
             d[i].append(obj)
-        return collections.OrderedDict(d)
+        return d
+
+    def remove_none(poses, pdbstrings):
+        """Remove `NoneType` objects from models."""
+        assert len(poses.keys()) == len(pdbstrings.keys())
+        for index in range(len(poses.keys())):
+            assert len(poses[index]) == len(pdbstrings[index])
+            for model in range(len(poses[index])):
+                if all(p[index][model] is None for p in (poses, pdbstrings)):
+                    poses[index].pop(model)
+                    pdbstrings[index].pop(model)
+
+        return poses, pdbstrings
 
     if isinstance(
         packed_and_poses_and_pdbs, collections.abc.Iterable
@@ -75,6 +87,8 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
     else:
         poses = to_dict([to_pose(packed_and_poses_and_pdbs)])
         pdbstrings = to_dict([to_pdbstring(packed_and_poses_and_pdbs)])
+
+    poses, pdbstrings = remove_none(poses, pdbstrings)
 
     return poses, pdbstrings
 

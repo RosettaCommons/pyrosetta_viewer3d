@@ -83,7 +83,7 @@ class NGLviewViewer(ViewerBase):
         self.update_objects(_poses, _pdbstrings)
 
     def show_viewer(self):
-        self.viewer.display(gui=True, style="ngl")
+        self.viewer.display(gui=self.gui, style="ngl")
         self.viewer._remote_call(
             "setSize",
             targe="Widget",
@@ -119,7 +119,7 @@ class PyMOLViewer(ViewerBase):
 @attr.s(kw_only=True, slots=False, frozen=False)
 class SetupViewer(Base3D):
     packed_and_poses_and_pdbs = attr.ib(
-        type=Union[PackedPose, Pose, Iterable[Union[PackedPose, Pose]], None],
+        type=Optional[Union[PackedPose, Pose, Iterable[Union[PackedPose, Pose]]]],
         default=None,
     )
 
@@ -137,11 +137,14 @@ class SetupViewer(Base3D):
             continuous_update=self.continuous_update,
             widgets=self.widgets,
             backend=self.backend,
+            gui=self.gui,
             n_decoys=self.n_decoys,
         )
 
     def initialize_viewer(self):
         if self.backend == BACKENDS[0]:
+            if self.gui:
+                _logger.debug(f"GUI is not supported for `{self.backend}` backend.")
             viewer = Py3DmolViewer(**self.viewer_kwargs)
         elif self.backend == BACKENDS[1]:
             viewer = NGLviewViewer(**self.viewer_kwargs)
@@ -158,6 +161,7 @@ def init(
     delay=None,
     continuous_update=None,
     backend=None,
+    gui=None,
     auto_show=None,
 ):
     """
@@ -214,6 +218,7 @@ def init(
         delay=delay,
         continuous_update=continuous_update,
         backend=backend,
+        gui=gui,
         auto_show=auto_show,
     ).initialize_viewer()
 
