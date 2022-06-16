@@ -753,8 +753,11 @@ class setStyle(ModuleBase):
         # Set defaults
         if self.cartoon_color is None:
             self.cartoon_color = "atomindex"
-        if self.colorscheme == "blackCarbon":
-            self.colorscheme = "element"
+        if self.colorscheme.endswith("Carbon"):
+            if self.colorscheme == "blackCarbon":
+                self.colorscheme = "element"
+            else:
+                self.colorscheme = self.colorscheme.replace("Carbon", "")
         if self.style == "stick":
             self.style = "licorice"
         elif self.style == "sphere":
