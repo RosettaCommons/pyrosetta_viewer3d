@@ -66,7 +66,7 @@ def coreBoundarySurface(
         viewer3d.setStyle(
             residue_selector=core_selector,
             cartoon=False,
-            colorscheme="darkred" if backend == "nglview" else "darkredCarbon",
+            colorscheme=0xF57900,
             style="stick",
             radius=0.25,
             label=False,
@@ -74,7 +74,7 @@ def coreBoundarySurface(
         viewer3d.setStyle(
             residue_selector=boundary_selector,
             cartoon=False,
-            colorscheme="orange" if backend == "nglview" else "orangeCarbon",
+            colorscheme=0x00CC00,
             style="stick",
             radius=0.25,
             label=False,
@@ -82,7 +82,7 @@ def coreBoundarySurface(
         viewer3d.setStyle(
             residue_selector=surface_selector,
             cartoon=False,
-            colorscheme="yellow" if backend == "nglview" else "yellowCarbon",
+            colorscheme=0x729FCF,
             style="stick",
             radius=0.25,
             label=False,
@@ -284,7 +284,7 @@ def makeBundle(
             viewer3d.setStyle(
                 residue_selector=core_selector,
                 cartoon=False if backend == "nglview" else True,
-                colorscheme="darkred" if backend == "nglview" else "darkredCarbon",
+                colorscheme=0xF57900,
                 style="stick",
                 radius=0.25,
                 label=False,
@@ -292,7 +292,7 @@ def makeBundle(
             viewer3d.setStyle(
                 residue_selector=boundary_selector,
                 cartoon=False if backend == "nglview" else True,
-                colorscheme="orange" if backend == "nglview" else "orangeCarbon",
+                colorscheme=0x00CC00,
                 style="stick",
                 radius=0.25,
                 label=False,
@@ -300,7 +300,7 @@ def makeBundle(
             viewer3d.setStyle(
                 residue_selector=surface_selector,
                 cartoon=False if backend == "nglview" else True,
-                colorscheme="yellow" if backend == "nglview" else "yellowCarbon",
+                colorscheme=0x729FCF,
                 style="stick",
                 radius=0.25,
                 label=False,

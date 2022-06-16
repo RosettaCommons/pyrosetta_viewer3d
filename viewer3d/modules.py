@@ -5,7 +5,6 @@ import pyrosetta
 import pyrosetta.distributed.io as io
 import sys
 
-from PIL import ImageColor
 from pyrosetta.rosetta.core.conformation import is_disulfide_bond
 from pyrosetta.rosetta.core.select.residue_selector import (
     ResidueSelector,
@@ -13,7 +12,6 @@ from pyrosetta.rosetta.core.select.residue_selector import (
 )
 from pyrosetta.rosetta.core.id import AtomID
 from typing import Dict, Optional, Tuple, Union
-
 
 from viewer3d.config import BACKENDS
 from viewer3d.converters import (
@@ -365,14 +363,6 @@ class setHydrogens(ModuleBase):
         validator=attr.validators.instance_of((str, int)),
         converter=attr.converters.default_if_none(default="white"),
     )
-    color_rgb = attr.ib(
-        default=attr.Factory(
-            lambda self: ImageColor.getcolor(self.color, "RGB"), takes_self=True
-        ),
-        type=Tuple[int, int, int],
-        validator=attr.validators.instance_of(tuple),
-        init=False,
-    )
     radius = attr.ib(
         default=0.05,
         type=Union[float, int],
@@ -632,7 +622,7 @@ class setStyle(ModuleBase):
     colorscheme = attr.ib(
         default=None,
         type=str,
-        validator=attr.validators.instance_of(str),
+        validator=attr.validators.instance_of((str, int)),
         converter=attr.converters.default_if_none(default="blackCarbon"),
     )
     radius = attr.ib(
@@ -679,6 +669,7 @@ class setStyle(ModuleBase):
 
     @requires_init
     def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+        _colorscheme = "colorscheme" if isinstance(self.colorscheme, str) else "color"
         if self.show_hydrogens:
             _logger.warning(
                 "The 'show_hydrogens' attribute is not supported for the `py3Dmol` backend. "
@@ -708,18 +699,17 @@ class setStyle(ModuleBase):
                             {
                                 "cartoon": {"color": self.cartoon_color},
                                 self.style: {
-                                    "colorscheme": self.colorscheme,
+                                    _colorscheme: self.colorscheme,
                                     "radius": self.radius,
                                 },
                             },
                         )
                     else:
-
                         viewer.setStyle(
                             {"model": model, "resi": resi, "chain": chain},
                             {
                                 self.style: {
-                                    "colorscheme": self.colorscheme,
+                                    _colorscheme: self.colorscheme,
                                     "radius": self.radius,
                                 }
                             },
@@ -740,18 +730,17 @@ class setStyle(ModuleBase):
                         {
                             "cartoon": {"color": self.cartoon_color},
                             self.style: {
-                                "colorscheme": self.colorscheme,
+                                _colorscheme: self.colorscheme,
                                 "radius": self.radius,
                             },
                         },
                     )
                 else:
-                    viewer.remove_cartoon()
                     viewer.setStyle(
                         {"model": model},
                         {
                             self.style: {
-                                "colorscheme": self.colorscheme,
+                                _colorscheme: self.colorscheme,
                                 "radius": self.radius,
                             }
                         },
@@ -939,8 +928,8 @@ class setSurface(ModuleBase):
     )
     colorscheme = attr.ib(
         default=None,
-        type=Optional[str],
-        validator=attr.validators.instance_of((str, type(None))),
+        type=Optional[Union[str, int]],
+        validator=attr.validators.instance_of(attr.validators.instance_of((str, int))),
     )
 
     @requires_init
@@ -965,7 +954,7 @@ class setSurface(ModuleBase):
         if (not resi) and (not chain):
             pass
         else:
-            if self.colorscheme:
+            if self.colorscheme is not None:
                 viewer.addSurface(
                     surface_types_dict[self.surface_type],
                     {"opacity": self.opacity, "colorscheme": self.colorscheme},
