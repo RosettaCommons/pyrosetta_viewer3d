@@ -17,7 +17,7 @@ from pyrosetta.rosetta.core.pose import append_pose_to_pose
 from typing import Generic, Iterable, List, Optional, Tuple, TypeVar, Union
 
 from viewer3d.config import _import_backend, BACKENDS
-from viewer3d.converters import _to_float, _to_widgets
+from viewer3d.converters import _to_backend, _to_float, _to_widgets
 from viewer3d.exceptions import ViewerImportError
 from viewer3d.modules import ModuleBase, setZoomTo
 from viewer3d.validators import _validate_int_float, _validate_window_size
@@ -81,9 +81,9 @@ class Base3D:
     )
     backend = attr.ib(
         type=str,
-        default=None,
+        default=BACKENDS[0],
         validator=[attr.validators.instance_of(str), attr.validators.in_(BACKENDS)],
-        converter=attr.converters.default_if_none(default=BACKENDS[0]),
+        converter=_to_backend,
     )
     auto_show = attr.ib(
         type=bool,

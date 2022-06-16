@@ -15,6 +15,7 @@ from pyrosetta.rosetta.core.pose.full_model_info import (
 from pyrosetta.rosetta.core.select import get_residues_from_subset
 from typing import List
 
+from viewer3d.config import BACKENDS
 from viewer3d.exceptions import ViewerInputError
 
 
@@ -98,6 +99,18 @@ def _to_0_if_le_0(obj):
 
 def _to_1_if_gt_1(obj):
     return 1 if isinstance(obj, (float, int)) and obj > 1 else obj
+
+
+def _to_backend(obj):
+    if isinstance(obj, int):
+        try:
+            backend = BACKENDS[obj]
+        except IndexError:
+            raise IndexError(f"Backend index doesn't exist in: `{BACKENDS}`.")
+    else:
+        backend = obj
+
+    return backend
 
 
 def _to_widgets(objs) -> List[Widget]:
