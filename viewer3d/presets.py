@@ -130,6 +130,22 @@ def coreBoundarySurface(
         description="dist_midpoint",
         continuous_update=continuous_update,
     )
+    core_cutoff = FloatSlider(
+        min=0,
+        max=10,
+        step=0.1,
+        value=5.2,
+        description="core_cutoff",
+        continuous_update=continuous_update,
+    )
+    surface_cutoff = FloatSlider(
+        min=0,
+        max=10,
+        step=0.1,
+        value=2,
+        description="surface_cutoff",
+        continuous_update=continuous_update,
+    )
 
     view = viewer3d.init(
         packed_and_poses_and_pdbs=packed_and_poses_and_pdbs,
@@ -173,14 +189,46 @@ def coreBoundarySurface(
             surface_selector.set_sc_neighbor_dist_midpoint(dist_midpoint.new)
         view.update_viewer()
 
+    def set_core_cutoff(core_cutoff):
+        with out:
+            core_selector.set_cutoffs(core=core_cutoff.new, surf=surface_cutoff.value)
+            boundary_selector.set_cutoffs(
+                core=core_cutoff.new, surf=surface_cutoff.value
+            )
+            surface_selector.set_cutoffs(
+                core=core_cutoff.new, surf=surface_cutoff.value
+            )
+        view.update_viewer()
+
+    def set_surface_cutoff(surface_cutoff):
+        with out:
+            core_selector.set_cutoffs(core=core_cutoff.value, surf=surface_cutoff.new)
+            boundary_selector.set_cutoffs(
+                core=core_cutoff.value, surf=surface_cutoff.new
+            )
+            surface_selector.set_cutoffs(
+                core=core_cutoff.value, surf=surface_cutoff.new
+            )
+        view.update_viewer()
+
     angle_exponent.observe(set_angle_exponent, names="value")
     angle_shift_factor.observe(set_angle_shift_factor, names="value")
     dist_exponent.observe(set_dist_exponent, names="value")
     denominator.observe(set_sc_neighbor_denominator, names="value")
     dist_midpoint.observe(set_sc_neighbor_dist_midpoint, names="value")
+    core_cutoff.observe(set_core_cutoff, names="value")
+    surface_cutoff.observe(set_surface_cutoff, names="value")
 
     view.set_widgets(
-        [angle_exponent, angle_shift_factor, dist_exponent, denominator, dist_midpoint]
+        [
+            angle_exponent,
+            angle_shift_factor,
+            dist_exponent,
+            denominator,
+            dist_midpoint,
+            core_cutoff,
+            surface_cutoff,
+        ]
     )
     view.update_viewer()
 
