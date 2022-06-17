@@ -81,9 +81,9 @@ class Base3D:
     )
     backend = attr.ib(
         type=str,
-        default=BACKENDS[0],
+        default=None,
         validator=[attr.validators.instance_of(str), attr.validators.in_(BACKENDS)],
-        converter=_to_backend,
+        converter=[attr.converters.default_if_none(default=0), _to_backend],
     )
     auto_show = attr.ib(
         type=bool,
@@ -352,6 +352,9 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
         widgets = self.get_widgets()
         if widgets:
             display(*widgets)
+
+    def set_modules(self, obj):
+        self.modules = ModuleBase._to_modules(obj)
 
     def show(self):
         """Display Viewer in Jupyter notebook."""
