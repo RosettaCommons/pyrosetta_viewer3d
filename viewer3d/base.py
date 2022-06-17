@@ -189,6 +189,14 @@ class Base3D:
         """Subtract all modules from the Viewer instance."""
         self.modules = []
 
+    def clear_modules(self):
+        """Subtract all modules from the Viewer instance."""
+        self.modules = []
+
+    def clear(self):
+        """Alias of the `clear_modules` method."""
+        self.clear_modules()
+
     def reset(self):
         """Delete Viewer instance attributes."""
         self.poses = None
