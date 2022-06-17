@@ -478,13 +478,13 @@ def makeBundle(
     invert.observe(on_invert_change, names="value")
 
     save_button = Button(description="save PDB")
-    save_edit = Text(value="bundle.pdb")
+    save_edit = Text(value="bundle.pdb", description="filename")
 
     def save_pdb(sender):
         pose.dump_pdb(save_edit.value)
 
     save_button.on_click(save_pdb)
-    save_box = HBox([save_button, save_edit])
+    save_box = HBox([save_button, save_edit], description="save_box")
 
     view.set_widgets(
         [

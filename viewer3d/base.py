@@ -317,7 +317,11 @@ class WidgetsBase:
         return _widgets
 
     def get_widgets_dict(self):
-        return {widget.description: widget.value for widget in self.widgets}
+        return {
+            widget.description: widget.value
+            for widget in self.widgets
+            if all(hasattr(widget, attr) for attr in ("description", "value"))
+        }
 
     def set_widgets(self, obj):
         self.widgets = _to_widgets(obj)
