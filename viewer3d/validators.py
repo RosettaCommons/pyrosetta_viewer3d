@@ -1,4 +1,12 @@
-from typing import Any, Iterable, NoReturn, Optional, Union
+import logging
+
+from functools import wraps
+from typing import Any, Callable, Iterable, NoReturn, Optional, TypeVar, Union, cast
+
+
+_logger = logging.getLogger("viewer3d.validators")
+
+V = TypeVar("V", bound=Callable[..., Any])
 
 
 def _validate_int(self, attribute: str, value: int) -> Optional[NoReturn]:
@@ -37,3 +45,18 @@ def _validate_window_size(self, attribute: str, value: Iterable) -> Optional[NoR
     ), "Input argument 'window_size' must be an iterable of length 2."
     for v in value:
         _validate_int_float(self, attribute, v)
+
+
+def requires_show(func: V) -> V:
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not self._displayed:
+            _class_name = self.__class__.__name__
+            _func_name = func.__name__
+            _logger.warning(
+                f"The `{_class_name}.{_func_name}` method requires calling `{_class_name}.show`."
+            )
+            self.show()
+        return func(self, *args, **kwargs)
+
+    return cast(V, wrapper)

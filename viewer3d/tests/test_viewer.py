@@ -1,3 +1,4 @@
+import itertools
 import glob
 import logging
 import os
@@ -51,10 +52,14 @@ class TestViewer(unittest.TestCase):
             + viewer3d.setStyle(style="line", colorscheme="blueCarbon")
         )
         view.show()
-        self.assertEqual(view.poses, [None] * len(pdbfiles))
+        self.assertEqual(
+            list(itertools.chain(*view.poses.values())), [None] * len(pdbfiles)
+        )
         self.assertEqual(len(view.modules), 2)
         view.reinit()
-        self.assertEqual(view.poses, [None] * len(pdbfiles))
+        self.assertEqual(
+            list(itertools.chain(*view.poses.values())), [None] * len(pdbfiles)
+        )
         self.assertEqual(len(view.modules), 0)
         view.reset()
         self.assertIsNone(view.poses)
@@ -76,10 +81,10 @@ class TestViewer(unittest.TestCase):
         ]
         view = sum([viewer3d.init(poses)] + modules)
         view()
-        self.assertEqual(view.poses, poses)
+        self.assertListEqual(list(itertools.chain(*view.poses.values())), poses)
         self.assertEqual(len(view.modules), 2)
         view.reinit()
-        self.assertEqual(view.poses, poses)
+        self.assertListEqual(list(itertools.chain(*view.poses.values())), poses)
         self.assertEqual(len(view.modules), 0)
         view.modules = modules
         self.assertEqual(len(view.modules), len(modules))

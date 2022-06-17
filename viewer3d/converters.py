@@ -15,6 +15,7 @@ from pyrosetta.rosetta.core.pose.full_model_info import (
 from pyrosetta.rosetta.core.select import get_residues_from_subset
 from typing import List
 
+from viewer3d.config import BACKENDS
 from viewer3d.exceptions import ViewerInputError
 
 
@@ -38,7 +39,7 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
     @to_pdbstring.register(PackedPose)
     @to_pdbstring.register(Pose)
     def _(obj):
-        return io.to_pdbstring(obj)
+        return None
 
     @to_pdbstring.register(str)
     def _(obj):
@@ -48,16 +49,46 @@ def _to_poses_pdbstrings(packed_and_poses_and_pdbs):
             with open(obj, "r") as f:
                 return f.read()
 
+    to_pdbstring.register(type(None), lambda obj: None)
+
+    def to_dict(objs):
+        d = collections.defaultdict(list)
+        for i, obj in enumerate(objs):
+            d[i].append(obj)
+        return d
+
+    def remove_none(poses, pdbstrings):
+        """Remove `NoneType` objects from models."""
+        assert len(poses.keys()) == len(pdbstrings.keys())
+        for index in range(len(poses.keys())):
+            assert len(poses[index]) == len(pdbstrings[index])
+            for model in range(len(poses[index])):
+                if all(p[index][model] is None for p in (poses, pdbstrings)):
+                    poses[index].pop(model)
+                    pdbstrings[index].pop(model)
+
+        return poses, pdbstrings
+
     if isinstance(
         packed_and_poses_and_pdbs, collections.abc.Iterable
     ) and not isinstance(packed_and_poses_and_pdbs, (Pose, PackedPose)):
         poses, pdbstrings = map(
-            list,
-            zip(*[(to_pose(p), to_pdbstring(p)) for p in packed_and_poses_and_pdbs]),
+            to_dict,
+            map(
+                list,
+                zip(
+                    *map(
+                        lambda p: (to_pose(p), to_pdbstring(p)),
+                        packed_and_poses_and_pdbs,
+                    )
+                ),
+            ),
         )
     else:
-        poses = [to_pose(packed_and_poses_and_pdbs)]
-        pdbstrings = [to_pdbstring(packed_and_poses_and_pdbs)]
+        poses = to_dict([to_pose(packed_and_poses_and_pdbs)])
+        pdbstrings = to_dict([to_pdbstring(packed_and_poses_and_pdbs)])
+
+    poses, pdbstrings = remove_none(poses, pdbstrings)
 
     return poses, pdbstrings
 
@@ -82,6 +113,18 @@ def _to_0_if_le_0(obj):
 
 def _to_1_if_gt_1(obj):
     return 1 if isinstance(obj, (float, int)) and obj > 1 else obj
+
+
+def _to_backend(obj) -> str:
+    if isinstance(obj, int):
+        try:
+            backend = BACKENDS[obj]
+        except IndexError:
+            raise IndexError(f"Backend index doesn't exist in: `{BACKENDS}`.")
+    else:
+        backend = obj
+
+    return backend
 
 
 def _to_widgets(objs) -> List[Widget]:
@@ -127,6 +170,12 @@ def _pose_to_residue_chain_tuples(pose, residue_selector, logger=_logger):
         return map(list, zip(*residue_chain_tuples))
 
 
+def _get_nglview_selection(pose, residue_selector, logger=_logger) -> str:
+    resi, chain = _pose_to_residue_chain_tuples(pose, residue_selector, logger=_logger)
+    selection = " or ".join(map(lambda rc: f"({rc[0]}:{rc[1]})", zip(resi, chain)))
+    return selection
+
+
 def _pdbstring_to_pose(pdbstring, class_name, logger=_logger):
     """Convert pdbstring to a `Pose` with logging."""
     logger.info(
@@ -142,3 +191,8 @@ def _pdbstring_to_pose(pdbstring, class_name, logger=_logger):
         )
     )
     return io.to_pose(io.pose_from_pdbstring(pdbstring))
+
+
+def _get_residue_chain_tuple(pose, res):
+    residue, chain = map(lambda x: x.strip(), pose.pdb_info().pose2pdb(res).split())
+    return residue, chain

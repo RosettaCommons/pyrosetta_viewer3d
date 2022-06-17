@@ -19,8 +19,6 @@ _logger = logging.getLogger("viewer3d.core")
 
 @attr.s(kw_only=True, slots=False)
 class Py3DmolViewer(ViewerBase):
-    _displayed = attr.ib(type=bool, default=False, init=False)
-
     def setup(self):
         self.py3Dmol = self._maybe_import_backend()
         self.viewer = self.py3Dmol.view(
@@ -28,26 +26,37 @@ class Py3DmolViewer(ViewerBase):
             height=self.window_size[1],
         )
 
-    def add_objects(self, _pose=None, _pdbstring=None):
+    def add_object(self, _poses, _pdbstrings, _model):
+        _pose = _poses[_model]
         if _pose is not None:
-            self.viewer.addModels(io.to_pdbstring(_pose), "pdb")
+            _pdbstring = io.to_pdbstring(_pose)
         else:
-            self.viewer.addModels(_pdbstring, "pdb")
+            _pdbstring = _pdbstrings[_model]
+        self.viewer.addModel(_pdbstring, "pdb")
+        self.apply_modules(_pose, _pdbstring, _model)
+        if self._displayed:
+            self.viewer.update()
 
-    def remove_objects(self):
-        self.viewer.removeAllLabels()
-        self.viewer.removeAllModels()
+    def add_objects(self, _poses, _pdbstrings, _model):
+        if _model is None:
+            for _m in range(len(_poses)):
+                self.add_object(_poses, _pdbstrings, _m)
+        elif isinstance(_model, int):
+            self.add_object(_poses, _pdbstrings, _model)
+
+    def remove_objects(self, _model):
         self.viewer.removeAllShapes()
         self.viewer.removeAllSurfaces()
-
-    def update_viewer(self, _pose=None, _pdbstring=None):
-        self.update_objects(_pose=_pose, _pdbstring=_pose)
+        self.viewer.removeAllLabels()
+        if _model is None:
+            self.viewer.removeAllModels()
+        elif isinstance(_model, int):
+            self.viewer.removeModel(_model)
         if self._displayed:
             self.viewer.update()
 
     def show_viewer(self):
         self.viewer.show()
-        self._displayed = True
 
 
 @attr.s(kw_only=True, slots=False)
@@ -56,22 +65,54 @@ class NGLviewViewer(ViewerBase):
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
 
-    def add_objects(self, _pose=None, _pdbstring=None):
+    def set_window_size(self):
+        """Resize the NGLWidget window."""
+        self.viewer._remote_call(
+            "setSize",
+            targe="Widget",
+            args=[f"{self.window_size[0]}px", f"{self.window_size[1]}px"],
+        )
+
+    def add_object(self, _poses, _pdbstrings, _model):
+        _pose = _poses[_model]
         if _pose is not None:
             structure = self.nglview.adaptor.RosettaStructure(_pose)
         else:
+            _pdbstring = _pdbstrings[_model]
             structure = self.nglview.adaptor.TextStructure(_pdbstring, ext="pdb")
-        self.viewer.add_structure(structure)
+        self.viewer._load_data(structure)
+        self.viewer._ngl_component_ids.append(structure.id)
+        self.viewer._update_component_auto_completion()
 
-    def remove_objects(self):
-        for component_id in self.viewer._ngl_component_ids:
-            self.viewer.remove_component(component_id)
+    def add_objects(self, _poses, _pdbstrings, _model):
+        _model_range = range(len(_poses))
+        if _model is None:
+            for _m in _model_range:
+                self.add_object(_poses, _pdbstrings, _m)
+            for _m in _model_range:
+                self.apply_modules(_poses[_m], _pdbstrings[_m], _m)
+        elif isinstance(_model, int):
+            self.add_object(_poses, _pdbstrings, _model)
+            self.apply_modules(_poses[_model], _pdbstrings[_model], _model)
 
-    def update_viewer(self, _pose=None, _pdbstring=None):
-        self.update_objects(_pose=_pose, _pdbstring=_pdbstring)
+    def remove_objects(self, _model):
+        component_ids = self.viewer._ngl_component_ids
+        if _model is None:
+            for component_id in component_ids:
+                component_index = component_ids.index(component_id)
+                self.viewer.remove_component(component_id)
+                self.viewer.clear(component=component_index)
+        elif isinstance(_model, int):
+            for component_id in component_ids:
+                component_index = component_ids.index(component_id)
+                if component_index == _model:
+                    self.viewer.remove_component(component_id)
+                    self.viewer.clear(component=component_index)
+                    break
 
     def show_viewer(self):
-        self.viewer.display(gui=True, style="ngl")
+        self.viewer.display(gui=self.gui, style="ngl")
+        self.set_window_size()
         self.viewer._ipython_display_()
 
 
@@ -102,7 +143,7 @@ class PyMOLViewer(ViewerBase):
 @attr.s(kw_only=True, slots=False, frozen=False)
 class SetupViewer(Base3D):
     packed_and_poses_and_pdbs = attr.ib(
-        type=Union[PackedPose, Pose, Iterable[Union[PackedPose, Pose]], None],
+        type=Optional[Union[PackedPose, Pose, Iterable[Union[PackedPose, Pose]]]],
         default=None,
     )
 
@@ -118,13 +159,17 @@ class SetupViewer(Base3D):
             modules=self.modules.copy(),
             delay=self.delay,
             continuous_update=self.continuous_update,
-            widgets=self.widgets,
-            backend=self.backend,
             n_decoys=self.n_decoys,
+            widgets=self.widgets,
+            auto_show=self.auto_show,
+            backend=self.backend,
+            gui=self.gui,
         )
 
     def initialize_viewer(self):
         if self.backend == BACKENDS[0]:
+            if self.gui:
+                _logger.debug(f"GUI is not supported for `{self.backend}` backend.")
             viewer = Py3DmolViewer(**self.viewer_kwargs)
         elif self.backend == BACKENDS[1]:
             viewer = NGLviewViewer(**self.viewer_kwargs)
@@ -141,6 +186,8 @@ def init(
     delay=None,
     continuous_update=None,
     backend=None,
+    gui=None,
+    auto_show=None,
 ):
     """
     Initialize the Viewer object.
@@ -196,6 +243,8 @@ def init(
         delay=delay,
         continuous_update=continuous_update,
         backend=backend,
+        gui=gui,
+        auto_show=auto_show,
     ).initialize_viewer()
 
     return viewer
