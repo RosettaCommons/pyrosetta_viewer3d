@@ -115,7 +115,7 @@ def _to_1_if_gt_1(obj):
     return 1 if isinstance(obj, (float, int)) and obj > 1 else obj
 
 
-def _to_backend(obj):
+def _to_backend(obj) -> str:
     if isinstance(obj, int):
         try:
             backend = BACKENDS[obj]
