@@ -65,6 +65,14 @@ class NGLviewViewer(ViewerBase):
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
 
+    def set_window_size(self):
+        """Resize the NGLWidget window."""
+        self.viewer._remote_call(
+            "setSize",
+            targe="Widget",
+            args=[f"{self.window_size[0]}px", f"{self.window_size[1]}px"],
+        )
+
     def add_object(self, _poses, _pdbstrings, _model):
         _pose = _poses[_model]
         if _pose is not None:
@@ -104,11 +112,7 @@ class NGLviewViewer(ViewerBase):
 
     def show_viewer(self):
         self.viewer.display(gui=self.gui, style="ngl")
-        self.viewer._remote_call(
-            "setSize",
-            targe="Widget",
-            args=[f"{self.window_size[0]}px", f"{self.window_size[1]}px"],
-        )  # Resize NGLWidget window
+        self.set_window_size()
         self.viewer._ipython_display_()
 
 
