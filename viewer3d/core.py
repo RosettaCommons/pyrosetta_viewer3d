@@ -26,23 +26,34 @@ class Py3DmolViewer(ViewerBase):
             height=self.window_size[1],
         )
 
-    def add_objects(self, _poses, _pdbstrings):
-        for _model in range(len(_poses)):
-            _pose = _poses[_model]
-            if _pose is not None:
-                _pdbstring = io.to_pdbstring(_pose)
-            else:
-                _pdbstring = _pdbstrings[_model]
-            self.viewer.addModel(_pdbstring, "pdb")
-            self.apply_modules(_pose, _pdbstring, _model)
-            if self._displayed:
-                self.viewer.update()
+    def add_object(self, _poses, _pdbstrings, _model):
+        _pose = _poses[_model]
+        if _pose is not None:
+            _pdbstring = io.to_pdbstring(_pose)
+        else:
+            _pdbstring = _pdbstrings[_model]
+        self.viewer.addModel(_pdbstring, "pdb")
+        self.apply_modules(_pose, _pdbstring, _model)
+        if self._displayed:
+            self.viewer.update()
 
-    def remove_objects(self):
-        self.viewer.removeAllLabels()
-        self.viewer.removeAllModels()
+    def add_objects(self, _poses, _pdbstrings, _model):
+        if _model is None:
+            for _m in range(len(_poses)):
+                self.add_object(_poses, _pdbstrings, _m)
+        elif isinstance(_model, int):
+            self.add_object(_poses, _pdbstrings, _model)
+
+    def remove_objects(self, _model):
         self.viewer.removeAllShapes()
         self.viewer.removeAllSurfaces()
+        self.viewer.removeAllLabels()
+        if _model is None:
+            self.viewer.removeAllModels()
+        elif isinstance(_model, int):
+            self.viewer.removeModel(_model)
+        if self._displayed:
+            self.viewer.update()
 
     def show_viewer(self):
         self.viewer.show()
@@ -54,29 +65,42 @@ class NGLviewViewer(ViewerBase):
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
 
-    def add_objects(self, _poses, _pdbstrings):
-        _model_range = range(len(_poses))
-        for _model in _model_range:
-            _pose = _poses[_model]
-            if _pose is not None:
-                structure = self.nglview.adaptor.RosettaStructure(_pose)
-            else:
-                _pdbstring = _pdbstrings[_model]
-                structure = self.nglview.adaptor.TextStructure(_pdbstring, ext="pdb")
-            self.viewer._load_data(structure)
-            self.viewer._ngl_component_ids.append(structure.id)
-            self.viewer._update_component_auto_completion()
-        for _model in _model_range:
-            _pose = _poses[_model]
+    def add_object(self, _poses, _pdbstrings, _model):
+        _pose = _poses[_model]
+        if _pose is not None:
+            structure = self.nglview.adaptor.RosettaStructure(_pose)
+        else:
             _pdbstring = _pdbstrings[_model]
-            self.apply_modules(_pose, _pdbstring, _model)
+            structure = self.nglview.adaptor.TextStructure(_pdbstring, ext="pdb")
+        self.viewer._load_data(structure)
+        self.viewer._ngl_component_ids.append(structure.id)
+        self.viewer._update_component_auto_completion()
 
-    def remove_objects(self):
+    def add_objects(self, _poses, _pdbstrings, _model):
+        _model_range = range(len(_poses))
+        if _model is None:
+            for _m in _model_range:
+                self.add_object(_poses, _pdbstrings, _m)
+            for _m in _model_range:
+                self.apply_modules(_poses[_m], _pdbstrings[_m], _m)
+        elif isinstance(_model, int):
+            self.add_object(_poses, _pdbstrings, _model)
+            self.apply_modules(_poses[_model], _pdbstrings[_model], _model)
+
+    def remove_objects(self, _model):
         component_ids = self.viewer._ngl_component_ids
-        for component_id in component_ids:
-            component_index = component_ids.index(component_id)
-            self.viewer.remove_component(component_id)
-            self.viewer.clear(component=component_index)
+        if _model is None:
+            for component_id in component_ids:
+                component_index = component_ids.index(component_id)
+                self.viewer.remove_component(component_id)
+                self.viewer.clear(component=component_index)
+        elif isinstance(_model, int):
+            for component_id in component_ids:
+                component_index = component_ids.index(component_id)
+                if component_index == _model:
+                    self.viewer.remove_component(component_id)
+                    self.viewer.clear(component=component_index)
+                    break
 
     def show_viewer(self):
         self.viewer.display(gui=self.gui, style="ngl")
@@ -131,10 +155,11 @@ class SetupViewer(Base3D):
             modules=self.modules.copy(),
             delay=self.delay,
             continuous_update=self.continuous_update,
+            n_decoys=self.n_decoys,
             widgets=self.widgets,
+            auto_show=self.auto_show,
             backend=self.backend,
             gui=self.gui,
-            n_decoys=self.n_decoys,
         )
 
     def initialize_viewer(self):
