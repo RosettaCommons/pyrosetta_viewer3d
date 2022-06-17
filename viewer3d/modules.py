@@ -952,7 +952,7 @@ class setSurface(ModuleBase):
     colorscheme = attr.ib(
         default=None,
         type=Optional[Union[str, int]],
-        validator=attr.validators.instance_of(attr.validators.instance_of((str, int))),
+        validator=attr.validators.optional(attr.validators.instance_of((str, int))),
     )
 
     @requires_init
