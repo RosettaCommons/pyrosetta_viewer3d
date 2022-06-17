@@ -20,7 +20,11 @@ from viewer3d.config import _import_backend, BACKENDS
 from viewer3d.converters import _to_backend, _to_float, _to_widgets
 from viewer3d.exceptions import ViewerImportError
 from viewer3d.modules import ModuleBase, setZoomTo
-from viewer3d.validators import _validate_int_float, _validate_window_size
+from viewer3d.validators import (
+    _validate_int_float,
+    _validate_window_size,
+    requires_show,
+)
 
 
 _logger = logging.getLogger("viewer3d.base")
@@ -197,6 +201,7 @@ class Base3D:
 
 @attr.s(kw_only=False, slots=False)
 class PoseBase:
+    @requires_show
     def add_pose(self, pose, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
@@ -206,6 +211,7 @@ class PoseBase:
             model = len(self.poses[index]) - 1
             self.add_objects(self.poses[index], self.pdbstrings[index], _model=model)
 
+    @requires_show
     def add_pdbstring(self, pdbstring, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
@@ -215,9 +221,11 @@ class PoseBase:
             model = len(self.poses[index]) - 1
             self.add_objects(self.poses[index], self.pdbstrings[index], _model=model)
 
+    @requires_show
     def remove_pose(self, index=None, model=None, update_viewer=True):
         self.remove_pdbstring(index=index, model=model, update_viewer=update_viewer)
 
+    @requires_show
     def remove_pdbstring(self, index=None, model=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
@@ -233,6 +241,7 @@ class PoseBase:
         if update_viewer:
             self.remove_objects(model)
 
+    @requires_show
     def update_pose(self, pose, index=None, model=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
@@ -248,6 +257,7 @@ class PoseBase:
         if update_viewer:
             self.update_objects(self.poses[index], self.pdbstrings[index], _model=model)
 
+    @requires_show
     def update_pdbstring(self, pdbstring, index=None, model=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
@@ -263,23 +273,31 @@ class PoseBase:
         if update_viewer:
             self.update_objects(self.poses[index], self.pdbstrings[index], _model=model)
 
+    @requires_show
     def update_poses(self, poses, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
-        assert isinstance(poses, list)
+        assert isinstance(poses, list), "The 'poses' argument must be of type `list`."
         for pose in poses:
-            assert isinstance(pose, Pose)
+            assert isinstance(
+                pose, Pose
+            ), f"Object must be of type `Pose`. Received: {type(pose)}"
         self.poses[index] = poses
         self.pdbstrings[index] = [None] * len(poses)
         if update_viewer:
             self.update_viewer(index=index)
 
+    @requires_show
     def update_pdbstrings(self, pdbstrings, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
-        assert isinstance(pdbstrings, list)
+        assert isinstance(
+            pdbstrings, list
+        ), "The 'pdbstrings' argument must be of type `list`."
         for pdbstring in pdbstrings:
-            assert isinstance(pdbstring, str)
+            assert isinstance(
+                pdbstring, str
+            ), f"Object must be of type `str`. Received: {type(pdbstring)}"
         self.poses[index] = [None] * len(pdbstrings)
         self.pdbstrings[index] = pdbstrings
         if update_viewer:
