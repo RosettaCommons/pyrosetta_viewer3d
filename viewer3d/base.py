@@ -316,6 +316,9 @@ class WidgetsBase:
             self.update_viewer()
         return _widgets
 
+    def get_widgets_dict(self):
+        return {widget.description: widget.value for widget in self.widgets}
+
     def set_widgets(self, obj):
         self.widgets = _to_widgets(obj)
 
