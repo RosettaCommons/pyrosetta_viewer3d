@@ -33,10 +33,10 @@ class Py3DmolViewer(ViewerBase):
                 _pdbstring = io.to_pdbstring(_pose)
             else:
                 _pdbstring = _pdbstrings[_model]
-            self.viewer.addModels(_pdbstring, "pdb", _model)
+            self.viewer.addModel(_pdbstring, "pdb")
             self.apply_modules(_pose, _pdbstring, _model)
-        if self._displayed:
-            self.viewer.update()
+            if self._displayed:
+                self.viewer.update()
 
     def remove_objects(self):
         self.viewer.removeAllLabels()
@@ -67,7 +67,9 @@ class NGLviewViewer(ViewerBase):
             self.viewer._ngl_component_ids.append(structure.id)
             self.viewer._update_component_auto_completion()
         for _model in _model_range:
-            self.apply_modules(_poses[_model], _pdbstrings[_model], _model)
+            _pose = _poses[_model]
+            _pdbstring = _pdbstrings[_model]
+            self.apply_modules(_pose, _pdbstring, _model)
 
     def remove_objects(self):
         component_ids = self.viewer._ngl_component_ids
