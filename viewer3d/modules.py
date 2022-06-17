@@ -1,17 +1,19 @@
 import attr
+import collections
 import itertools
 import logging
 import pyrosetta
 import pyrosetta.distributed.io as io
 import sys
 
+from functools import singledispatch
 from pyrosetta.rosetta.core.conformation import is_disulfide_bond
 from pyrosetta.rosetta.core.select.residue_selector import (
     ResidueSelector,
     TrueResidueSelector,
 )
 from pyrosetta.rosetta.core.id import AtomID
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from viewer3d.config import BACKENDS
 from viewer3d.converters import (
@@ -31,7 +33,25 @@ _logger = logging.getLogger("viewer3d.modules")
 
 @attr.s(kw_only=False, slots=True)
 class ModuleBase:
-    pass
+    @staticmethod
+    def _to_modules(objs) -> List["ModuleBase"]:
+        @singledispatch
+        def _to_module(obj):
+            raise ValueError(
+                "The 'modules' viewer attribute must be an instance of `ModuleBase` "
+                + f"or an iterable of `ModuleBase` objects. Received: {type(obj)}"
+            )
+
+        _to_module.register(ModuleBase, lambda obj: obj)
+
+        if objs is None:
+            _modules = []
+        elif isinstance(objs, collections.abc.Iterable):
+            _modules = list(map(_to_module, objs))
+        else:
+            _modules = [_to_module(objs)]
+
+        return _modules
 
 
 @attr.s(kw_only=False, slots=True)
@@ -1081,7 +1101,7 @@ class setZoomTo(ModuleBase):
         if (not resi) and (not chain):
             pass
         else:
-            viewer.zoomTo({"model": model}, {"resi": resi, "chain": chain})
+            viewer.zoomTo({"model": model, "resi": resi, "chain": chain})
 
         return viewer
 
