@@ -151,7 +151,6 @@ class SetupViewer(Base3D):
         self.poses, self.pdbstrings = _to_poses_pdbstrings(
             self.packed_and_poses_and_pdbs
         )
-        self.n_decoys = len(self.pdbstrings)
         self.viewer_kwargs = dict(
             poses=self.poses,
             pdbstrings=self.pdbstrings,
@@ -159,7 +158,6 @@ class SetupViewer(Base3D):
             modules=self.modules.copy(),
             delay=self.delay,
             continuous_update=self.continuous_update,
-            n_decoys=self.n_decoys,
             widgets=self.widgets,
             auto_show=self.auto_show,
             backend=self.backend,
