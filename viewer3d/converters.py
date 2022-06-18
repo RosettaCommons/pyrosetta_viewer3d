@@ -107,6 +107,13 @@ _to_float.register(int, lambda obj: float(obj))
 _to_float.register(float, lambda obj: obj)
 
 
+def _to_hex(obj):
+    if isinstance(obj, str) and obj.startswith("#"):
+        return hex(int(obj.replace("#", ""), 16) + int("0x200", 16))
+    else:
+        return obj
+
+
 def _to_0_if_le_0(obj):
     return 1e-10 if isinstance(obj, (float, int)) and obj <= 0 else obj
 

@@ -21,6 +21,7 @@ from viewer3d.converters import (
     _get_residue_chain_tuple,
     _pdbstring_to_pose,
     _pose_to_residue_chain_tuples,
+    _to_hex,
     _to_0_if_le_0,
     _to_1_if_gt_1,
 )
@@ -76,7 +77,7 @@ class setBackgroundColor(ModuleBase):
         default=None,
         type=Union[str, int],
         validator=attr.validators.instance_of((str, int)),
-        converter=attr.converters.default_if_none(default=0xFFFFFFFF),
+        converter=[attr.converters.default_if_none(default=0xFFFFFFFF), _to_hex],
     )
 
     def apply_py3Dmol(self, viewer, pose, pdbstring, model):
@@ -122,7 +123,7 @@ class setDisulfides(ModuleBase):
         default=None,
         type=Union[str, int],
         validator=attr.validators.instance_of((str, int)),
-        converter=attr.converters.default_if_none(default="gold"),
+        converter=[attr.converters.default_if_none(default="gold"), _to_hex],
     )
     radius = attr.ib(
         default=None,
@@ -237,7 +238,7 @@ class setHydrogenBonds(ModuleBase):
         default=None,
         type=Union[str, int],
         validator=attr.validators.instance_of((str, int)),
-        converter=attr.converters.default_if_none(default="black"),
+        converter=[attr.converters.default_if_none(default="black"), _to_hex],
     )
     dashed = attr.ib(
         default=True,
@@ -381,7 +382,7 @@ class setHydrogens(ModuleBase):
         default=None,
         type=Union[str, int],
         validator=attr.validators.instance_of((str, int)),
-        converter=attr.converters.default_if_none(default="white"),
+        converter=[attr.converters.default_if_none(default="white"), _to_hex],
     )
     radius = attr.ib(
         default=0.05,
@@ -618,6 +619,7 @@ class setStyle(ModuleBase):
         default=None,
         type=Optional[Union[str, int]],
         validator=attr.validators.optional(attr.validators.instance_of((str, int))),
+        converter=_to_hex,
     )
     cartoon_radius = attr.ib(
         default=None,
@@ -643,7 +645,7 @@ class setStyle(ModuleBase):
         default=None,
         type=str,
         validator=attr.validators.instance_of((str, int)),
-        converter=attr.converters.default_if_none(default="blackCarbon"),
+        converter=[attr.converters.default_if_none(default="blackCarbon"), _to_hex],
     )
     radius = attr.ib(
         default=0.1,
@@ -673,7 +675,7 @@ class setStyle(ModuleBase):
         default=None,
         type=Union[str, int],
         validator=attr.validators.instance_of((str, int)),
-        converter=attr.converters.default_if_none(default="black"),
+        converter=[attr.converters.default_if_none(default="black"), _to_hex],
     )
     command = attr.ib(
         default=None,
@@ -947,12 +949,14 @@ class setSurface(ModuleBase):
     color = attr.ib(
         default=None,
         type=Optional[Union[str, int]],
-        validator=attr.validators.instance_of((str, int, type(None))),
+        validator=attr.validators.optional(attr.validators.instance_of((str, int))),
+        converter=_to_hex,
     )
     colorscheme = attr.ib(
         default=None,
         type=Optional[Union[str, int]],
         validator=attr.validators.optional(attr.validators.instance_of((str, int))),
+        converter=_to_hex,
     )
 
     @requires_init
