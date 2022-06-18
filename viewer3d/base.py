@@ -212,41 +212,27 @@ class Base3D:
 @attr.s(kw_only=False, slots=False)
 class PoseBase:
     @requires_show
-    def _add_objects_model(self, index=None):
-        model = len(self.poses[index]) - 1
-        self.add_objects(self.poses[index], self.pdbstrings[index], _model=model)
-
-    @requires_show
-    def _remove_objects_model(self, model=None):
-        self.remove_objects(model)
-
-    @requires_show
-    def _update_objects_model(self, index=None, model=None):
-        self.update_objects(self.poses[index], self.pdbstrings[index], _model=model)
-
-    @requires_show
-    def _update_viewer_index(self, index=None):
-        self.update_viewer(index=index)
-
     def add_pose(self, pose, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
         self.poses[index].append(pose)
         self.pdbstrings[index].append(None)
         if update_viewer:
-            self._add_objects_model(index=index)
+            self.update_viewer(index=index, remove_objects=False)
 
+    @requires_show
     def add_pdbstring(self, pdbstring, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
         self.poses[index].append(None)
         self.pdbstrings[index].append(pdbstring)
         if update_viewer:
-            self._add_objects_model(index=index)
+            self.update_viewer(index=index, remove_objects=False)
 
     def remove_pose(self, index=None, model=None, update_viewer=True):
         self.remove_pdbstring(index=index, model=model, update_viewer=update_viewer)
 
+    @requires_show
     def remove_pdbstring(self, index=None, model=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
@@ -260,8 +246,9 @@ class PoseBase:
                 f"The 'poses' and 'pdbstrings' attributes are empty at index `{index}`."
             )
         if update_viewer:
-            self._remove_objects_model(model=model)
+            self.update_viewer(index=index, add_objects=False)
 
+    @requires_show
     def update_pose(self, pose, index=None, model=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
@@ -275,8 +262,9 @@ class PoseBase:
                 f"The 'poses' and 'pdbstrings' attributes do not have index `{index}`."
             )
         if update_viewer:
-            self._update_objects_model(index=index, model=model)
+            self.update_viewer(index=index, model=model)
 
+    @requires_show
     def update_pdbstring(self, pdbstring, index=None, model=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
@@ -290,8 +278,9 @@ class PoseBase:
                 f"The 'poses' and 'pdbstrings' attributes do not have index `{index}`."
             )
         if update_viewer:
-            self._update_objects_model(index=index, model=model)
+            self.update_viewer(index=index, model=model)
 
+    @requires_show
     def update_poses(self, poses, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
@@ -303,8 +292,9 @@ class PoseBase:
         self.poses[index] = poses
         self.pdbstrings[index] = [None] * len(poses)
         if update_viewer:
-            self._update_viewer_index(index=index)
+            self.update_viewer(index=index)
 
+    @requires_show
     def update_pdbstrings(self, pdbstrings, index=None, update_viewer=True):
         if index is None:
             index = self.get_decoy_widget_index()
@@ -318,19 +308,26 @@ class PoseBase:
         self.poses[index] = [None] * len(pdbstrings)
         self.pdbstrings[index] = pdbstrings
         if update_viewer:
-            self._update_viewer_index(index=index)
+            self.update_viewer(index=index)
+
+    @requires_show
+    def overlay(self, update_viewer=True):
+        """Re-index poses and pdbstrings into a single list."""
+        for index in sorted(self.poses.keys()):
+            if index != 0:
+                self.poses[0].extend(self.poses[index])
+                self.pdbstrings[0].extend(self.pdbstrings[index])
+                self.poses.pop(index)
+                self.pdbstrings.pop(index)
+        if update_viewer:
+            self.update_viewer(index=0)
 
 
 @attr.s(kw_only=False, slots=False)
 class WidgetsBase:
-    def get_decoy_widget_index(self):
-        kwargs = self.decoy_widget.kwargs
-        index = kwargs["index"] if kwargs else 0
-        return index
-
     def get_widgets(self):
         self.decoy_widget = interactive(
-            self.update_viewer,
+            self.update_decoy,
             index=IntSlider(
                 min=0,
                 max=len(self.poses.keys()) - 1,
@@ -344,6 +341,14 @@ class WidgetsBase:
         else:
             self.update_viewer()
         return _widgets
+
+    def update_decoy(self, index=0):
+        self.update_viewer(index=index)
+
+    def get_decoy_widget_index(self):
+        kwargs = self.decoy_widget.kwargs
+        index = kwargs["index"] if kwargs else 0
+        return index
 
     def get_widgets_dict(self):
         return {
@@ -391,7 +396,14 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
             func = getattr(_module, f"apply_{self.backend}")
             self.viewer = func(self.viewer, _pose, _pdbstring, _model)
 
-    def update_objects(self, _poses, _pdbstrings, _model):
+    def update_objects(
+        self,
+        _poses,
+        _pdbstrings,
+        _model,
+        _add_objects,
+        _remove_objects,
+    ):
         """
         Setup Viewer in Jupyter notebook.
 
@@ -402,14 +414,33 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
             _pdbstrings
         ), "Number of `Pose` objects and PDB `str` objects must be equal."
         time.sleep(self.delay)
-        self.remove_objects(_model)
-        self.add_objects(_poses, _pdbstrings, _model)
+        if _remove_objects:
+            self.remove_objects(_model)
+        if _add_objects:
+            self.add_objects(_poses, _pdbstrings, _model)
 
-    def update_viewer(self, index: Optional[int] = None):
+    def update_viewer(
+        self,
+        index: Optional[int] = None,
+        model: Optional[int] = None,
+        add_objects: bool = True,
+        remove_objects: bool = True,
+    ):
         if index is None:
             index = self.get_decoy_widget_index()
         if index in self.poses.keys():
-            self.update_objects(self.poses[index], self.pdbstrings[index], _model=None)
+            self.update_objects(
+                self.poses[index],
+                self.pdbstrings[index],
+                model,
+                add_objects,
+                remove_objects,
+            )
+            self.decoy_widget.children[0].value = index
+        else:
+            raise IndexError(
+                f"The 'poses' and 'pdbstrings' attributes do not have index `{index}`."
+            )
 
     def show(self):
         """Display Viewer in Jupyter notebook."""

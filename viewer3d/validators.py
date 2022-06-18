@@ -50,13 +50,18 @@ def _validate_window_size(self, attribute: str, value: Iterable) -> Optional[NoR
 def requires_show(func: V) -> V:
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        if not self._displayed:
+        if (
+            "update_viewer" in kwargs
+            and kwargs["update_viewer"]
+            and not self._displayed
+        ):
             _class_name = self.__class__.__name__
             _func_name = func.__name__
             _logger.warning(
                 f"The `{_class_name}.{_func_name}` method requires calling `{_class_name}.show`."
             )
             self.show()
+
         return func(self, *args, **kwargs)
 
     return cast(V, wrapper)
