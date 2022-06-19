@@ -445,10 +445,14 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
             _pdbstrings
         ), "Number of `Pose` objects and PDB `str` objects must be equal."
         time.sleep(self.delay)
-        if _remove_objects:
+        if _remove_objects and _add_objects:
             self.remove_objects(_model)
-        if _add_objects:
             self.add_objects(_poses, _pdbstrings, _model)
+        elif _remove_objects and not _add_objects:
+            self.remove_objects(_model)
+        elif _add_objects and not _remove_objects:
+            self.add_objects(_poses, _pdbstrings, _model)
+        self.update()
 
     def update_viewer(
         self,

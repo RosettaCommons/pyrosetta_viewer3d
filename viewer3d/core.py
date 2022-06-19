@@ -34,8 +34,6 @@ class Py3DmolViewer(ViewerBase):
             _pdbstring = _pdbstrings[_model]
         self.viewer.addModel(_pdbstring, "pdb")
         self.apply_modules(_pose, _pdbstring, _model)
-        if self._displayed:
-            self.viewer.update()
 
     def add_objects(self, _poses, _pdbstrings, _model):
         if _model is None:
@@ -52,6 +50,8 @@ class Py3DmolViewer(ViewerBase):
             self.viewer.removeAllModels()
         elif isinstance(_model, int):
             self.viewer.removeModel(_model)
+
+    def update(self):
         if self._displayed:
             self.viewer.update()
 
@@ -109,6 +109,9 @@ class NGLViewViewer(ViewerBase):
                     self.viewer.remove_component(component_id)
                     self.viewer.clear(component=component_index)
                     break
+
+    def update(self):
+        pass
 
     def show_viewer(self):
         self.viewer.display(gui=self.gui, style="ngl")
