@@ -60,7 +60,7 @@ class Py3DmolViewer(ViewerBase):
 
 
 @attr.s(kw_only=True, slots=False)
-class NGLviewViewer(ViewerBase):
+class NGLViewViewer(ViewerBase):
     def setup(self):
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
@@ -170,7 +170,7 @@ class SetupViewer(Base3D):
                 _logger.debug(f"GUI is not supported for `{self.backend}` backend.")
             viewer = Py3DmolViewer(**self.viewer_kwargs)
         elif self.backend == BACKENDS[1]:
-            viewer = NGLviewViewer(**self.viewer_kwargs)
+            viewer = NGLViewViewer(**self.viewer_kwargs)
         elif self.backend == BACKENDS[2]:
             viewer = PyMOLViewer(**self.viewer_kwargs)
 

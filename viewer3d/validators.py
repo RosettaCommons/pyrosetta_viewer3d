@@ -1,5 +1,6 @@
 import logging
 
+from decorator import decorator
 from functools import wraps
 from typing import Any, Callable, Iterable, NoReturn, Optional, TypeVar, Union, cast
 
@@ -47,21 +48,14 @@ def _validate_window_size(self, attribute: str, value: Iterable) -> Optional[NoR
         _validate_int_float(self, attribute, v)
 
 
-def requires_show(func: V) -> V:
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        if (
-            "update_viewer" in kwargs
-            and kwargs["update_viewer"]
-            and not self._displayed
-        ):
-            _class_name = self.__class__.__name__
-            _func_name = func.__name__
-            _logger.warning(
-                f"The `{_class_name}.{_func_name}` method requires calling `{_class_name}.show`."
-            )
-            self.show()
-
-        return func(self, *args, **kwargs)
-
-    return cast(V, wrapper)
+@decorator
+def requires_show(func, self, *args, **kwargs):
+    update_viewer = args[-1]
+    if update_viewer and not self._displayed:
+        _class_name = self.__class__.__name__
+        _func_name = func.__name__
+        _logger.warning(
+            f"The `{_class_name}.{_func_name}` method requires calling `{_class_name}.show`."
+        )
+        self.show()
+    return func(self, *args, **kwargs)

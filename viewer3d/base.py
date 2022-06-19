@@ -14,7 +14,7 @@ from IPython.display import clear_output
 from pyrosetta import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
 from pyrosetta.rosetta.core.pose import append_pose_to_pose
-from typing import Generic, Iterable, List, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, Generic, Iterable, List, Optional, Tuple, TypeVar, Union
 
 from viewer3d.config import _import_backend, BACKENDS
 from viewer3d.converters import _to_backend, _to_float, _to_widgets
@@ -218,7 +218,10 @@ class PoseBase:
         self.poses[index].append(pose)
         self.pdbstrings[index].append(None)
         if update_viewer:
-            self.update_viewer(index=index, remove_objects=False)
+            model = self.get_last_model(index)
+            self.update_viewer(
+                index=index, model=model, add_objects=True, remove_objects=False
+            )
 
     @requires_show
     def add_pdbstring(self, pdbstring, index=None, update_viewer=True):
@@ -227,7 +230,10 @@ class PoseBase:
         self.poses[index].append(None)
         self.pdbstrings[index].append(pdbstring)
         if update_viewer:
-            self.update_viewer(index=index, remove_objects=False)
+            model = self.get_last_model(index)
+            self.update_viewer(
+                index=index, model=model, add_objects=True, remove_objects=False
+            )
 
     def remove_pose(self, index=None, model=None, update_viewer=True):
         self.remove_pdbstring(index=index, model=model, update_viewer=update_viewer)
@@ -237,7 +243,7 @@ class PoseBase:
         if index is None:
             index = self.get_decoy_widget_index()
         if model is None or model not in set(range(len(self.pdbstrings[index]))):
-            model = -1
+            model = self.get_last_model(index)
         if len(self.pdbstrings[index]) > 0:
             self.poses[index].pop(model)
             self.pdbstrings[index].pop(model)
@@ -246,7 +252,9 @@ class PoseBase:
                 f"The 'poses' and 'pdbstrings' attributes are empty at index `{index}`."
             )
         if update_viewer:
-            self.update_viewer(index=index, add_objects=False)
+            self.update_viewer(
+                index=index, model=model, add_objects=False, remove_objects=True
+            )
 
     @requires_show
     def update_pose(self, pose, index=None, model=None, update_viewer=True):
@@ -262,7 +270,9 @@ class PoseBase:
                 f"The 'poses' and 'pdbstrings' attributes do not have index `{index}`."
             )
         if update_viewer:
-            self.update_viewer(index=index, model=model)
+            self.update_viewer(
+                index=index, model=model, add_objects=True, remove_objects=True
+            )
 
     @requires_show
     def update_pdbstring(self, pdbstring, index=None, model=None, update_viewer=True):
@@ -278,7 +288,9 @@ class PoseBase:
                 f"The 'poses' and 'pdbstrings' attributes do not have index `{index}`."
             )
         if update_viewer:
-            self.update_viewer(index=index, model=model)
+            self.update_viewer(
+                index=index, model=model, add_objects=True, remove_objects=True
+            )
 
     @requires_show
     def update_poses(self, poses, index=None, update_viewer=True):
@@ -292,7 +304,9 @@ class PoseBase:
         self.poses[index] = poses
         self.pdbstrings[index] = [None] * len(poses)
         if update_viewer:
-            self.update_viewer(index=index)
+            self.update_viewer(
+                index=index, model=None, add_objects=True, remove_objects=True
+            )
 
     @requires_show
     def update_pdbstrings(self, pdbstrings, index=None, update_viewer=True):
@@ -308,7 +322,9 @@ class PoseBase:
         self.poses[index] = [None] * len(pdbstrings)
         self.pdbstrings[index] = pdbstrings
         if update_viewer:
-            self.update_viewer(index=index)
+            self.update_viewer(
+                index=index, model=None, add_objects=True, remove_objects=True
+            )
 
     @requires_show
     def overlay(self, update_viewer=True):
@@ -325,28 +341,43 @@ class PoseBase:
 
 @attr.s(kw_only=False, slots=False)
 class WidgetsBase:
-    def get_widgets(self):
-        self.decoy_widget = interactive(
+    def get_decoy_widget(self):
+        self.update_decoy(index=0)
+        return interactive(
             self.update_decoy,
             index=IntSlider(
                 min=0,
-                max=len(self.poses.keys()) - 1,
+                max=self.get_n_decoys() - 1,
+                value=0,
                 description="Decoys",
                 continuous_update=self.continuous_update,
             ),
         )
+
+    def get_widgets(self):
+        self.decoy_widget = self.get_decoy_widget()
         _widgets = self.widgets.copy()
-        if len(self.poses.keys()) > 1:
+        if self.get_n_decoys() > 1:
             _widgets.insert(0, self.decoy_widget)
-        else:
-            self.update_viewer()
         return _widgets
 
-    def update_decoy(self, index=0):
+    def get_n_decoys(self):
+        return len(self.poses.keys())
+
+    def get_n_models(self, index):
+        return len(self.poses[index])
+
+    def get_last_model(self, index):
+        return self.get_n_models(index) - 1
+
+    def update_decoy(self, index):
         self.update_viewer(index=index)
 
     def get_decoy_widget_index(self):
-        kwargs = self.decoy_widget.kwargs
+        if hasattr(self, "decoy_widget"):
+            kwargs = self.decoy_widget.kwargs
+        else:
+            kwargs = {}
         index = kwargs["index"] if kwargs else 0
         return index
 
@@ -436,7 +467,8 @@ class ViewerBase(Base3D, PoseBase, WidgetsBase):
                 add_objects,
                 remove_objects,
             )
-            self.decoy_widget.children[0].value = index
+            if hasattr(self, "decoy_widget"):
+                self.decoy_widget.children[0].value = index
         else:
             raise IndexError(
                 f"The 'poses' and 'pdbstrings' attributes do not have index `{index}`."
