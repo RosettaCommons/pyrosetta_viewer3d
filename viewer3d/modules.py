@@ -643,7 +643,7 @@ class setStyle(ModuleBase):
     )
     colorscheme = attr.ib(
         default=None,
-        type=str,
+        type=Union[str, int],
         validator=attr.validators.instance_of((str, int)),
         converter=[attr.converters.default_if_none(default="blackCarbon"), _to_hex],
     )
