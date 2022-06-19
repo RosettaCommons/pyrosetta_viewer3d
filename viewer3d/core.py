@@ -51,6 +51,10 @@ class Py3DmolViewer(ViewerBase):
         elif isinstance(_model, int):
             self.viewer.removeModel(_model)
 
+    def set_objects(self, _poses, _pdbstrings, _model):
+        self.remove_objects(_model)
+        self.add_objects(_poses, _pdbstrings, _model)
+
     def update(self):
         if self._displayed:
             self.viewer.update()
@@ -84,31 +88,51 @@ class NGLViewViewer(ViewerBase):
         self.viewer._ngl_component_ids.append(structure.id)
         self.viewer._update_component_auto_completion()
 
-    def add_objects(self, _poses, _pdbstrings, _model):
-        _model_range = range(len(_poses))
+    def add_model(self, _poses, _pdbstrings, _model):
         if _model is None:
-            for _m in _model_range:
+            for _m in range(len(_poses)):
                 self.add_object(_poses, _pdbstrings, _m)
-            for _m in _model_range:
-                self.apply_modules(_poses[_m], _pdbstrings[_m], _m)
         elif isinstance(_model, int):
             self.add_object(_poses, _pdbstrings, _model)
+
+    def apply_to_model(self, _poses, _pdbstrings, _model):
+        if _model is None:
+            for _m in range(len(_poses)):
+                self.apply_modules(_poses[_m], _pdbstrings[_m], _m)
+        elif isinstance(_model, int):
             self.apply_modules(_poses[_model], _pdbstrings[_model], _model)
 
-    def remove_objects(self, _model):
+    def add_objects(self, _poses, _pdbstrings, _model):
+        self.add_model(_poses, _pdbstrings, _model)
+        self.apply_to_model(_poses, _pdbstrings, _model)
+
+    def get_remove_component_ids(self, _model):
         component_ids = self.viewer._ngl_component_ids
+        remove_component_ids = []
         if _model is None:
             for component_id in component_ids:
-                component_index = component_ids.index(component_id)
-                self.viewer.remove_component(component_id)
-                self.viewer.clear(component=component_index)
+                remove_component_ids.append(component_id)
         elif isinstance(_model, int):
             for component_id in component_ids:
                 component_index = component_ids.index(component_id)
                 if component_index == _model:
-                    self.viewer.remove_component(component_id)
-                    self.viewer.clear(component=component_index)
+                    remove_component_ids.append(component_id)
                     break
+        return remove_component_ids
+
+    def remove_objects(self, _model):
+        for component_id in self.get_remove_component_ids(_model):
+            self.viewer.remove_component(component_id)
+
+    def remove_component_ids(self, component_ids):
+        for component_id in component_ids:
+            self.viewer.remove_component(component_id)
+
+    def set_objects(self, _poses, _pdbstrings, _model):
+        remove_component_ids = self.get_remove_component_ids(_model)
+        self.add_model(_poses, _pdbstrings, _model)
+        self.remove_component_ids(remove_component_ids)
+        self.apply_to_model(_poses, _pdbstrings, _model)
 
     def update(self):
         pass
