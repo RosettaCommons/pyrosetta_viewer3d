@@ -2,7 +2,8 @@ import attr
 import logging
 import time
 
-from typing import NoReturn, Optional
+from pyrosetta import Pose
+from typing import List, NoReturn, Optional
 
 from viewer3d.base3d import Base3D, expand_notebook
 from viewer3d.initialization import InitBase

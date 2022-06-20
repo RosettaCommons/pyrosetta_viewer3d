@@ -5,7 +5,7 @@ import sys
 
 from IPython.core.display import display as core_display, HTML
 from IPython.display import clear_output
-from typing import Any, Generic, NoReturn, TypeVar, Tuple, Union
+from typing import Any, List, Generic, NoReturn, TypeVar, Tuple, Union
 
 from viewer3d.config import _import_backend
 from viewer3d.exceptions import ViewerImportError
