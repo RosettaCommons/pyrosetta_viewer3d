@@ -16,14 +16,14 @@ from pyrosetta.rosetta.core.select.residue_selector import (
 )
 
 
-_logger = logging.getLogger("viewer3d.tests.test_viewer")
+_logger: logging.Logger = logging.getLogger("viewer3d.tests.test_viewer")
 
 
 class TestViewer(unittest.TestCase):
 
     workdir = tempfile.TemporaryDirectory().name
 
-    def setUp(self):
+    def setUp(self) -> None:
 
         if not os.path.isdir(self.workdir):
             os.mkdir(self.workdir)
@@ -33,7 +33,7 @@ class TestViewer(unittest.TestCase):
             with open(os.path.join(self.workdir, "tmp_{0}.pdb".format(i)), "w") as f:
                 f.write(io.to_pdbstring(pose))
 
-    def tearDown(self):
+    def tearDown(self) -> None:
 
         if os.path.isdir(self.workdir):
             pdbfiles = glob.glob(os.path.join(self.workdir, "*.pdb"))
@@ -41,7 +41,7 @@ class TestViewer(unittest.TestCase):
                 os.remove(pdbfile)
             os.rmdir(self.workdir)
 
-    def test_viewer_with_pdbfiles(self):
+    def test_viewer_with_pdbfiles(self) -> None:
 
         pdbfiles = glob.glob(os.path.join(self.workdir, "*.pdb"))
         viewer3d.presets.coreBoundarySurface(pdbfiles, continuous_update=True)
@@ -65,7 +65,7 @@ class TestViewer(unittest.TestCase):
         self.assertIsNone(view.poses)
         self.assertIsNone(view.pdbstrings)
 
-    def test_viewer_with_poses(self):
+    def test_viewer_with_poses(self) -> None:
 
         pdbfiles = glob.glob(os.path.join(self.workdir, "*.pdb"))
         packed_poses = [io.pose_from_file(pdbfile) for pdbfile in pdbfiles]

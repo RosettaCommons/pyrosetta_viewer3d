@@ -27,7 +27,7 @@ from viewer3d.converters import _to_backend
 from viewer3d.tracer import requires_init
 
 
-_logger = logging.getLogger("viewer3d.presets")
+_logger: logging.Logger = logging.getLogger("viewer3d.presets")
 out = Output()
 
 

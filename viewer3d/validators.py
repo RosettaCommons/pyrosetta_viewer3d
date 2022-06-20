@@ -5,7 +5,7 @@ from functools import wraps
 from typing import Any, Callable, Iterable, NoReturn, Optional, TypeVar, Union, cast
 
 
-_logger = logging.getLogger("viewer3d.validators")
+_logger: logging.Logger = logging.getLogger("viewer3d.validators")
 
 V = TypeVar("V", bound=Callable[..., Any])
 
@@ -49,7 +49,7 @@ def _validate_window_size(self, attribute: str, value: Iterable) -> Optional[NoR
 
 
 @decorator
-def requires_show(func, self, *args, **kwargs):
+def requires_show(func: V, self, *args, **kwargs) -> V:
     update_viewer = args[-1]
     if update_viewer and not self._displayed:
         _class_name = self.__class__.__name__

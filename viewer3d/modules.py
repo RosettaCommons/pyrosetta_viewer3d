@@ -13,7 +13,7 @@ from pyrosetta.rosetta.core.select.residue_selector import (
     TrueResidueSelector,
 )
 from pyrosetta.rosetta.core.id import AtomID
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Generic, List, NoReturn, Optional, Tuple, TypeVar, Union
 
 from viewer3d.config import BACKENDS
 from viewer3d.converters import (
@@ -29,7 +29,8 @@ from viewer3d.exceptions import ModuleNotImplementedError
 from viewer3d.tracer import requires_init
 
 
-_logger = logging.getLogger("viewer3d.modules")
+_logger: logging.Logger = logging.getLogger("viewer3d.modules")
+ViewerType = TypeVar("ViewerType")
 
 
 @attr.s(kw_only=False, slots=True)
@@ -80,17 +81,21 @@ class setBackgroundColor(ModuleBase):
         converter=[attr.converters.default_if_none(default=0xFFFFFFFF), _to_hex],
     )
 
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         viewer.setBackgroundColor(self.color)
 
         return viewer
 
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         viewer.background = self.color
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -139,7 +144,9 @@ class setDisulfides(ModuleBase):
     )
 
     @requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -166,7 +173,9 @@ class setDisulfides(ModuleBase):
         return viewer
 
     @requires_init
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         cys_res = [i for i, aa in enumerate(pose.sequence(), start=1) if aa == "C"]
         selection_disulfides = []
         for (i, j) in itertools.product(cys_res, repeat=2):
@@ -196,7 +205,7 @@ class setDisulfides(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -254,7 +263,9 @@ class setHydrogenBonds(ModuleBase):
     )
 
     @requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -313,7 +324,9 @@ class setHydrogenBonds(ModuleBase):
         return viewer
 
     @requires_init
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -344,7 +357,7 @@ class setHydrogenBonds(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -419,7 +432,9 @@ class setHydrogens(ModuleBase):
         return _viewer
 
     @requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -451,7 +466,9 @@ class setHydrogens(ModuleBase):
         return viewer
 
     @requires_init
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -497,7 +514,7 @@ class setHydrogens(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -690,7 +707,9 @@ class setStyle(ModuleBase):
     )
 
     @requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         _colorscheme = "colorscheme" if isinstance(self.colorscheme, str) else "color"
         if self.show_hydrogens:
             _logger.warning(
@@ -771,7 +790,9 @@ class setStyle(ModuleBase):
         return viewer
 
     @requires_init
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         # Set defaults
         if self.cartoon_color is None:
             self.cartoon_color = "atomindex"
@@ -859,7 +880,7 @@ class setStyle(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -960,7 +981,9 @@ class setSurface(ModuleBase):
     )
 
     @requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if self.surface_type == "AV":
             raise NotImplementedError(
                 "The surface type 'AV' is not supported by the `py3Dmol` backend."
@@ -1003,7 +1026,9 @@ class setSurface(ModuleBase):
         return viewer
 
     @requires_init
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         surface_types_dict: Dict[str, str] = {
             "VDW": "vws",
             "MS": "ms",
@@ -1028,7 +1053,7 @@ class setSurface(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -1058,15 +1083,19 @@ class setZoom(ModuleBase):
         validator=attr.validators.instance_of((float, int)),
     )
 
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         viewer.zoom(self.factor)
         return viewer
 
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         viewer.control.zoom(self.factor)
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -1096,7 +1125,9 @@ class setZoomTo(ModuleBase):
     )
 
     @requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -1110,7 +1141,9 @@ class setZoomTo(ModuleBase):
         return viewer
 
     @requires_init
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -1122,5 +1155,5 @@ class setZoomTo(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
