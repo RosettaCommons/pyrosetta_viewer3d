@@ -24,7 +24,6 @@ class TestViewer(unittest.TestCase):
     workdir = tempfile.TemporaryDirectory().name
 
     def setUp(self) -> None:
-
         if not os.path.isdir(self.workdir):
             os.mkdir(self.workdir)
 
@@ -34,20 +33,18 @@ class TestViewer(unittest.TestCase):
                 f.write(io.to_pdbstring(pose))
 
     def tearDown(self) -> None:
-
         if os.path.isdir(self.workdir):
             pdbfiles = glob.glob(os.path.join(self.workdir, "*.pdb"))
             for pdbfile in pdbfiles:
                 os.remove(pdbfile)
             os.rmdir(self.workdir)
 
-    def test_viewer_with_pdbfiles(self) -> None:
-
+    def viewer_with_pdbfiles(self, backend=0) -> None:
         pdbfiles = glob.glob(os.path.join(self.workdir, "*.pdb"))
         viewer3d.presets.coreBoundarySurface(pdbfiles, continuous_update=True)
         viewer3d.presets.ligandsAndMetals(pdbfiles, window_size=(200.01, 200.01))
         view = (
-            viewer3d.init(pdbfiles, (1600, 400), delay=0.1234567890)
+            viewer3d.init(pdbfiles, (1600, 400), delay=0.1234567890, backend=backend)
             + viewer3d.setBackgroundColor("black")
             + viewer3d.setStyle(style="line", colorscheme="blueCarbon")
         )
@@ -65,8 +62,7 @@ class TestViewer(unittest.TestCase):
         self.assertIsNone(view.poses)
         self.assertIsNone(view.pdbstrings)
 
-    def test_viewer_with_poses(self) -> None:
-
+    def viewer_with_poses(self, backend=0) -> None:
         pdbfiles = glob.glob(os.path.join(self.workdir, "*.pdb"))
         packed_poses = [io.pose_from_file(pdbfile) for pdbfile in pdbfiles]
         poses = [io.to_pose(p) for p in packed_poses]
@@ -79,7 +75,7 @@ class TestViewer(unittest.TestCase):
             viewer3d.setBackgroundColor("grey"),
             viewer3d.setStyle(style="sphere", colorscheme="greenCarbon", radius=1.0),
         ]
-        view = sum([viewer3d.init(poses)] + modules)
+        view = sum([viewer3d.init(poses, backend=backend)] + modules)
         view()
         self.assertListEqual(list(itertools.chain(*view.poses.values())), poses)
         self.assertEqual(len(view.modules), 2)
@@ -91,7 +87,7 @@ class TestViewer(unittest.TestCase):
         view.reset()
         self.assertIsNone(view.poses)
         self.assertIsNone(view.pdbstrings)
-        view = viewer3d.init(poses, modules=modules)
+        view = viewer3d.init(poses, modules=modules, backend=backend)
         self.assertEqual(len(view.modules), len(modules))
         view.reset()
         self.assertIsNone(view.modules)
@@ -99,7 +95,7 @@ class TestViewer(unittest.TestCase):
         metals_selector = ResiduePropertySelector(ResidueProperty(31))
         ligands_selector = ResiduePropertySelector(ResidueProperty(2))
         view = (
-            viewer3d.init(poses, window_size=(800, 600))
+            viewer3d.init(poses, window_size=(800, 600), backend=backend)
             + viewer3d.setStyle()
             + viewer3d.setStyle(
                 residue_selector=ligands_selector,
@@ -117,7 +113,7 @@ class TestViewer(unittest.TestCase):
         view.reset()
 
         polar_residue_selector = ResiduePropertySelector(ResidueProperty(52))
-        view = viewer3d.init(packed_poses)
+        view = viewer3d.init(packed_poses, backend=backend)
         view.add(viewer3d.setStyle(radius=0.1))
         view.add(
             viewer3d.setStyle(
@@ -135,7 +131,7 @@ class TestViewer(unittest.TestCase):
 
         view = sum(
             [
-                viewer3d.init(poses),
+                viewer3d.init(poses, backend=backend),
                 viewer3d.setStyle(
                     cartoon=False,
                     style="sphere",
@@ -160,7 +156,7 @@ class TestViewer(unittest.TestCase):
         chB = ChainSelector("B")
         view = sum(
             [
-                viewer3d.init(poses),
+                viewer3d.init(poses, backend=backend),
                 viewer3d.setStyle(cartoon_color="lightgrey", radius=0.25),
                 viewer3d.setSurface(
                     residue_selector=chA,
@@ -208,10 +204,12 @@ class TestViewer(unittest.TestCase):
             ),
             viewer3d.setZoomTo(residue_selector=sheet_selector),
         ]
-        viewer3d.init(poses, window_size=(1200, 600), modules=modules).show()
+        viewer3d.init(
+            poses, window_size=(1200, 600), modules=modules, backend=backend
+        ).show()
 
         view = (
-            viewer3d.init(pose, delay=0.15)
+            viewer3d.init(pose, delay=0.15, backend=backend)
             + viewer3d.setStyle(radius=0.1)
             + viewer3d.setDisulfides(radius=0.1)
         )
@@ -233,7 +231,10 @@ class TestViewer(unittest.TestCase):
             # Add custom Viewer commands
             view = (
                 viewer3d.init(
-                    packed_and_poses_and_pdbs=packed_and_poses_and_pdbs, *args, **kwargs
+                    packed_and_poses_and_pdbs=packed_and_poses_and_pdbs,
+                    backend=backend,
+                    *args,
+                    **kwargs
                 )
                 + viewer3d.setBackgroundColor("white")
                 + viewer3d.setStyle(
@@ -273,3 +274,15 @@ class TestViewer(unittest.TestCase):
             return view()
 
         myCustomPreset(pose)
+
+    def test_viewer_with_pdbfiles_py3Dmol(self):
+        self.viewer_with_pdbfiles(backend=0)
+
+    def test_viewer_with_poses_py3Dmol(self):
+        self.viewer_with_poses(backend=0)
+
+    def test_viewer_with_pdbfiles_nglview(self):
+        self.viewer_with_pdbfiles(backend=1)
+
+    def test_viewer_with_poses_nglview(self):
+        self.viewer_with_poses(backend=1)
