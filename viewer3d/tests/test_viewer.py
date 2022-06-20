@@ -56,7 +56,7 @@ class TestViewer(unittest.TestCase):
             list(itertools.chain(*view.poses.values())), [None] * len(pdbfiles)
         )
         self.assertEqual(len(view.modules), 2)
-        view.reinit()
+        view.clear()
         self.assertEqual(
             list(itertools.chain(*view.poses.values())), [None] * len(pdbfiles)
         )
@@ -71,7 +71,7 @@ class TestViewer(unittest.TestCase):
         packed_poses = [io.pose_from_file(pdbfile) for pdbfile in pdbfiles]
         poses = [io.to_pose(p) for p in packed_poses]
         pose = poses[0]
-        viewer3d.presets.coreBoundarySurface(packed_poses, delay=0)
+        viewer3d.presets.coreBoundarySurface(packed_poses)
         viewer3d.presets.ligandsAndMetals(
             packed_poses, continuous_update=True, window_size=(100.0, 100.0)
         )
@@ -83,7 +83,7 @@ class TestViewer(unittest.TestCase):
         view()
         self.assertListEqual(list(itertools.chain(*view.poses.values())), poses)
         self.assertEqual(len(view.modules), 2)
-        view.reinit()
+        view.clear()
         self.assertListEqual(list(itertools.chain(*view.poses.values())), poses)
         self.assertEqual(len(view.modules), 0)
         view.modules = modules
