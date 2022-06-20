@@ -5,7 +5,7 @@ import sys
 
 from IPython.core.display import display as core_display, HTML
 from IPython.display import clear_output
-from typing import Any, Generic, TypeVar, Tuple
+from typing import Any, Generic, NoReturn, TypeVar, Tuple, Union
 
 from viewer3d.config import _import_backend
 from viewer3d.exceptions import ViewerImportError
@@ -98,28 +98,46 @@ class Base3D:
         return self.__add__(other)
 
     def reinit(self) -> None:
-        """Subtract all modules from the Viewer instance."""
+        """
+        Subtract all modules from the Viewer instance. Alias of the `clear_modules` method.
+        """
         _logger.warning(
             "The 'reinit' method is deprecated. Please use the `clear` method instead."
         )
         self.clear_modules()
 
     def clear(self) -> None:
-        """Alias of the `clear_modules` method."""
+        """
+        Subtract all modules from the Viewer instance. Alias of the `clear_modules` method.
+        """
         self.clear_modules()
 
     def clear_modules(self) -> None:
         """Subtract all modules from the Viewer instance."""
         self.modules = []
 
-    def get_n_models(self, index: int) -> int:
+    def get_n_models(self, index: int) -> Union[NoReturn, int]:
+        """Get the number of models at the poses index."""
+        assert len(self.poses[index]) == len(
+            self.pdbstrings[index]
+        ), "Number of `Pose` objects and PDB `str` objects must be equal."
         return len(self.poses[index])
 
     def get_last_model(self, index: int) -> int:
+        """Get last model index."""
         return self.get_n_models(index) - 1
 
-    def set_modules(self, obj: Any) -> None:
-        self.modules = ModuleBase._to_modules(obj)
+    def set_modules(self, modules: Any) -> None:
+        """
+        Set the Viewer instance modules.
+
+        Args:
+            modules: a Viewer module or iterable of Viewer instance modules.
+
+        Returns:
+            `None`
+        """
+        self.modules = ModuleBase._to_modules(modules)
 
     def reset(self) -> None:
         """Delete Viewer instance attributes."""

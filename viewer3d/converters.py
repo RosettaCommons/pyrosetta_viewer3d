@@ -168,7 +168,6 @@ def _pose_to_residue_chain_tuples(
     Given a `Pose` object and `ResidueSelector` object, return a `tuple` of `list`s containing
     PDB residue numbers and chain IDs for the selection.
     """
-
     pdb_numbering = list(
         zip(get_res_num_from_pdb_info(pose), get_chains_from_pdb_info(pose))
     )

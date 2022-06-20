@@ -52,14 +52,30 @@ class WidgetsBase:
         return index
 
     def get_widgets_dict(self) -> Dict[str, Any]:
+        """
+        Return the widgets dictionary of descriptions and values.
+
+        Returns:
+            A `dict` object with each widget's "description" attribute as a key
+                and "value" attribute as a value if they have been set.
+        """
         return {
             widget.description: widget.value
             for widget in self.widgets
             if all(hasattr(widget, attr) for attr in ("description", "value"))
         }
 
-    def set_widgets(self, obj) -> None:
-        self.widgets = _to_widgets(obj)
+    def set_widgets(self, widgets: Any) -> None:
+        """
+        Set the Viewer instance widgets.
+
+        Args:
+            widgets: a `Widget` object or an iterable of `Widget` objects.
+
+        Returns:
+            `None`
+        """
+        self.widgets = _to_widgets(widgets)
 
     def display_widgets(self) -> None:
         widgets = self.get_widgets()

@@ -387,6 +387,12 @@ class setHydrogens(ModuleBase):
         `True` or `False`. `True` to show only polar hydrogen atoms, and `False` to show all hydrogen atoms.
         Default: False
 
+    fourth : optional
+        `residue_selector`
+
+        An instance of `pyrosetta.rosetta.core.select.residue_selector.ResidueSelector` on which to apply the style(s).
+        Default: None
+
     Returns
     -------
     A Viewer instance.
@@ -550,16 +556,28 @@ class setStyle(ModuleBase):
         Reference: https://3dmol.csb.pitt.edu/doc/types.html#ColorSpec
 
     fourth : optional
+        `cartoon_radius`
+
+        Set the cartoon radius for the `nglview` backend.
+
+    fifth : optional
+        `cartoon_opacity`
+
+        Set the cartoon opacity for the `nglview` backend.
+
+    sixth : optional
         `style`
 
         `str` indicating a representation style of heavy atoms, choosing from either "line", "cross", "stick", or "sphere".
         Default: "stick"
 
-    fifth : optional
+    seventh : optional
         `colorscheme`
 
-        `str` indicating the color scheme for heavy atoms represented by the `style` option. Options include:
-            A lower-case standard color followed by "Carbon" (e.g. "orangeCarbon")
+        For the `py3Dmol` backend, a `str` indicating the color scheme for
+        heavy atoms represented by the `style` option.
+        Options include:
+            A lowercased standard color optionally followed by "Carbon" (e.g. "orangeCarbon")
             "ssPyMOL": PyMol secondary colorscheme
             "ssJmol": Jmol secondary colorscheme
             "Jmol": Jmol primary colorscheme
@@ -572,40 +590,69 @@ class setStyle(ModuleBase):
         Default: "blackCarbon"
         Reference: https://3dmol.csb.pitt.edu/doc/types.html#ColorschemeSpec
 
-    sixth : optional
+    For the `nglview` backend, a `str` indicating the color scheme for
+    heavy atoms represented by the `style` option.
+    Options include:
+        A lowercased standard color.
+        "atomindex"
+        "bfactor"
+        "chainid"
+        "chainindex"
+        "chainname"
+        "densityfit"
+        "electrostatic"
+        "element"
+        "entityindex"
+        "entitytype"
+        "geoquality"
+        "hydrophobicity"
+        "modelindex"
+        "moleculetype"
+        "occupancy"
+        "random"
+        "residueindex"
+        "resname"
+        "sstruc"
+        "uniform"
+        "value"
+        "volume"
+    Default: "element"
+    Reference: https://nglviewer.org/ngl/api/manual/coloring.html
+
+    eighth : optional
         `radius`
 
         `float` or `int` indicating the radius of the heavy atoms represented by the `style` option.
         Default: 0.1
 
-    seventh : optional
+    ninth : optional
         `label`
 
         `True` or `False` to show labels next to residues selected by the `residue_selector` option.
         Default: True
 
-    eighth : optional
+    tenth : optional
         `label_fontsize`
 
         `int` or `float` indicating the font size of labels next to residues selected by the `residue_selector` option,
         only if `label` is `True`.
         Default: 12
 
-    ninth : optional
+    eleventh : optional
         `label_background`
 
         `True` or `False` to show the background of labels next to residues selected by the `residue_selector` option,
         only if `label` is `True`.
         Default: False
 
-    tenth : optional
+    twelfth : optional
         `label_fontcolor`
 
         `str` indicating a standard font color (e.g. "grey") for label text next to residues selected by the `residue_selector` option,
         only if `label` is `True`.
         Default: "black"
 
-    eleventh : optional
+    thirteenth : optional
         `command`
 
         `dict` or `tuple` of `dict`s of `py3Dmol.view.setStyle()` commands. If specified, this option overrides all other options.
@@ -614,6 +661,12 @@ class setStyle(ModuleBase):
             command = {"hetflag": True}, {"stick": {"singleBond": False, "colorscheme": "greyCarbon", "radius": 0.15}}
             view = viewer.init(poses) + viewer.setStyle(command=command)
             view.show()
+
+    fourteenth : optional
+        `show_hydrogens`
+
+        `bool` object for the `nglview` backend to show all hydrogens.
+        Defualt: False
 
     Returns
     -------

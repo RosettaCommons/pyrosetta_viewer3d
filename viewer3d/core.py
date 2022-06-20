@@ -18,6 +18,8 @@ ViewerType = TypeVar("ViewerType", bound=ViewerBase)
 
 @attr.s(kw_only=True, slots=False)
 class Py3DmolViewer(ViewerBase):
+    """Viewer object for the `py3Dmol` backend."""
+
     def setup(self) -> None:
         self.py3Dmol = self._maybe_import_backend()
         self.viewer = self.py3Dmol.view(
@@ -69,6 +71,8 @@ class Py3DmolViewer(ViewerBase):
 
 @attr.s(kw_only=True, slots=False)
 class NGLViewViewer(ViewerBase):
+    """Viewer object for the `nglview` backend."""
+
     def setup(self) -> None:
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
@@ -160,6 +164,8 @@ class NGLViewViewer(ViewerBase):
 
 @attr.s(kw_only=True, slots=False)
 class PyMOLViewer(ViewerBase):
+    """Viewer object for the `pymol` backend."""
+
     def __attrs_pre_init__(self):
         self.pymol = self._maybe_import_backend()
 
@@ -184,6 +190,8 @@ class PyMOLViewer(ViewerBase):
 
 @attr.s(kw_only=True, slots=False, frozen=False)
 class SetupViewer(InitBase):
+    """Initialize a Viewer object with the user-provided parameters."""
+
     packed_and_poses_and_pdbs = attr.ib(
         type=Optional[Union[PackedPose, Pose, Iterable[Union[PackedPose, Pose]]]],
         default=None,
@@ -232,49 +240,36 @@ def init(
     """
     Initialize the Viewer object.
 
-    Parameters
-    ----------
-    first : required
-        `packed_and_poses_and_pdbs`
-
-        `PackedPose`, `Pose`, or `str` of a valid path to a .pdb file, or a `list`, `set`, or `tuple` of these objects.
-
-    second : optional
-        `window_size`
-
-        `list` or `tuple` of `int` or `float` values for the (width, height) dimensions of the displayed window screen size.
-        Default: (1200, 800)
-
-    third : optional
-        `modules`
-
-        `list` of instantiated visualization modules to run upon changing amongst `packed_and_poses_and_pdbs` objects
-        with the slider, matching the namespace `viewer3d.set*`
-        Default: []
-
-    fourth : optional
-        `delay`
-
-        `float` or `int` time delay in seconds before rendering the Viewer in a Jupyter notebook, which is useful to prevent
-        overburdening the Jupyter notebook client if `for` looping over quick modifications to a `Pose`, and should be >= 0.
-        Default: 0.25
-
-    fifth : optional
-        `continuous_update`
-
-        `True` or `False`. When using the interactive slider widget, `False` restricts rendering to mouse release events.
-        Default: False
-
-    sixth : optional
-        `backend`
-
-        The viewer backend to for the visualization. Supported backends are 'py3Dmol', 'nglview', and 'pymol'.
-        Default: 'py3Dmol'
-
+    Args:
+        packed_and_poses_and_pdbs: An optional `PackedPose`, `Pose`, or `str` of a valid path
+            to a .pdb file, or an iterable of these objects.
+            Default: `None`
+        window_size: an optional `list` or `tuple` of `int` or `float` values for the
+            (width, height) dimensions of the displayed window screen size.
+            Default: `(1200, 800)`
+        modules: an optional `list` of instantiated visualization modules to apply
+            upon changing amongst `Pose` or PDB string `str` objects with the interactive
+            slider widget, matching the namespace `viewer3d.set*`.
+            Default: `[]`
+        delay: an optional `float` or `int` time delay in seconds before rendering
+            the Viewer in a Jupyter notebook, which is useful to prevent overburdening
+            the Jupyter notebook client if `for` looping over quick modifications
+            o a `Pose`, and should be >= 0.
+            Default: `0.0`
+        continuous_update: a `bool` object. When using the interactive slider widget,
+            `False` restricts rendering to mouse button release events.
+            Default: `False`
+        backend: an optional `str` or `int` object representing the backend to use for
+            the visualization. The currently supported backends are 'py3Dmol' and 'nglview'.
+            Default: `0` or `py3Dmol`
+        gui: a `bool` object only supported by the `nglview` backend. If `True`, then show
+            the NGLView graphical user interface.
+            Default: `False`
+        auto_show: a `bool` object. If `True`, then automatically run the `show` method
+            upon running the `init` method.
 
     Returns
-    -------
-    A Viewer instance.
+        A `Py3DmolViewer` instance, a `NGLViewViewer` instance, or a `PyMOLViewer` instance.
     """
     viewer = SetupViewer(
         packed_and_poses_and_pdbs=packed_and_poses_and_pdbs,
