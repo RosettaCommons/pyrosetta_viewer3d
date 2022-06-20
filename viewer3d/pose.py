@@ -2,7 +2,7 @@ import attr
 import logging
 
 from pyrosetta import Pose
-from typing import Optional
+from typing import List, NoReturn, Optional
 
 from viewer3d.validators import requires_show
 

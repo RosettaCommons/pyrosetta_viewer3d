@@ -26,7 +26,7 @@ _logger: logging.Logger = logging.getLogger("viewer3d.converters")
 def _to_poses_pdbstrings(
     packed_and_poses_and_pdbs: Any,
 ) -> Tuple[
-    DefaultDict[int, List[Optional[Pose]], DefaultDict[int, List[Optional[str]]]]
+    DefaultDict[int, List[Optional[Pose]]], DefaultDict[int, List[Optional[str]]]
 ]:
     @singledispatch
     def to_pose(obj: Any):

@@ -7,6 +7,7 @@ import pyrosetta.distributed.io as io
 import sys
 
 from functools import singledispatch
+from pyrosetta import Pose
 from pyrosetta.rosetta.core.conformation import is_disulfide_bond
 from pyrosetta.rosetta.core.select.residue_selector import (
     ResidueSelector,
