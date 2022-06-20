@@ -60,7 +60,6 @@ def coreBoundarySurface(
     modules = [
         viewer3d.setStyle(
             cartoon=True,
-            radius=0,
             label=False,
         ),
         viewer3d.setStyle(
@@ -88,6 +87,7 @@ def coreBoundarySurface(
             label=False,
         ),
         viewer3d.setDisulfides(radius=0.25),
+
     ]
 
     angle_exponent = FloatSlider(
@@ -97,6 +97,7 @@ def coreBoundarySurface(
         value=2,
         description="angle_exponent",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
     angle_shift_factor = FloatSlider(
         min=-2,
@@ -105,6 +106,7 @@ def coreBoundarySurface(
         value=0.5,
         description="angle_shift_factor",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
     dist_exponent = FloatSlider(
         min=-2,
@@ -113,6 +115,7 @@ def coreBoundarySurface(
         value=1,
         description="dist_exponent",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
     denominator = FloatSlider(
         min=0.1,
@@ -121,6 +124,7 @@ def coreBoundarySurface(
         value=1,
         description="denominator",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
     dist_midpoint = FloatSlider(
         min=0,
@@ -129,6 +133,7 @@ def coreBoundarySurface(
         value=9,
         description="dist_midpoint",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
     core_cutoff = FloatSlider(
         min=0,
@@ -137,6 +142,7 @@ def coreBoundarySurface(
         value=5.2,
         description="core_cutoff",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
     surface_cutoff = FloatSlider(
         min=0,
@@ -145,6 +151,7 @@ def coreBoundarySurface(
         value=2,
         description="surface_cutoff",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
 
     view = viewer3d.init(
@@ -221,13 +228,13 @@ def coreBoundarySurface(
 
     view.set_widgets(
         [
-            angle_exponent,
-            angle_shift_factor,
-            dist_exponent,
-            denominator,
-            dist_midpoint,
             core_cutoff,
             surface_cutoff,
+            dist_exponent,
+            dist_midpoint,
+            angle_exponent,
+            angle_shift_factor,
+            denominator,
         ]
     )
     view.update_viewer()
