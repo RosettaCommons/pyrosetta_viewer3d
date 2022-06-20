@@ -475,6 +475,8 @@ def makeBundle(
     z0_offset = FloatSlider(
       min=-3,
       max=3,
+      value=0,
+      step=0.1,
       description="z0_offset",
       style={"description_width": "initial"},
       continuous_update=continuous_update,
@@ -483,6 +485,8 @@ def makeBundle(
     z1_offset = FloatSlider(
       min=-3,
       max=3,
+      value=0,
+      step=0.1,
       description="z1_offset",
       style={"description_width": "initial"},
       continuous_update=continuous_update,
