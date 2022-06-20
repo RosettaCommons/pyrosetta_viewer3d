@@ -99,16 +99,18 @@ class Base3D:
 
     def reinit(self) -> None:
         """Subtract all modules from the Viewer instance."""
-        _logger.warning("Deprecated. Please use the `clear` method instead.")
-        self.modules = []
-
-    def clear_modules(self) -> None:
-        """Subtract all modules from the Viewer instance."""
-        self.modules = []
+        _logger.warning(
+            "The 'reinit' method is deprecated. Please use the `clear` method instead."
+        )
+        self.clear_modules()
 
     def clear(self) -> None:
         """Alias of the `clear_modules` method."""
         self.clear_modules()
+
+    def clear_modules(self) -> None:
+        """Subtract all modules from the Viewer instance."""
+        self.modules = []
 
     def get_n_models(self, index: int) -> int:
         return len(self.poses[index])
