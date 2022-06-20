@@ -127,6 +127,15 @@ class Base3D:
         """Get last model index."""
         return self.get_n_models(index) - 1
 
+    def get_modules(self) -> List[ModuleBaseType]:
+        """
+        Get a copy of the Viewer instance modules.
+
+        Returns:
+            A `list` object of `ModuleBaseType` objects.
+        """
+        return self.modules.copy()
+
     def set_modules(self, modules: Any) -> None:
         """
         Set the Viewer instance modules.
