@@ -4,6 +4,7 @@ Display `PackedPose` objects, `Pose` objects, or `.pdb` files within a Jupyter n
 # Description
 The `viewer3d` macromolecular viewer quickly renders `.pdb` files, dynamically instantiating `Pose` objects if required for certain visualization modules (matching the name `viewer3d.set*`). So when adding visualization modules to the viewer or using presets, passing `Pose` or `PackedPose` objects to the viewer is suggested for quicker rendering. If a `Pose` object or `list`, `tuple`, or `set` of `Pose` objects are provided to the viewer, the `Pose`(s) pointer location(s) in memory remain fixed, and so the viewer can dynamically update upon `Pose` conformational changes by calling the following methods:
 
+`update_viewer(index=None, model=None, add_objects=True, remove_objects=True)`
 `add_pose(pose, index=None, update_viewer=True)`
 `add_pdbstring(pdbstring, index=None, update_viewer=True)`
 `remove_pose(index=None, model=None, update_viewer=True)`
@@ -209,7 +210,7 @@ v.add_pose(pose2)
 View different sets of different overlaid poses:
 ```
 pose = pyrosetta.toolbox.pose_from_rcsb("2FD7")
-v = viewer3d.init(pose, delay=1, backend=1) #+ viewer3d.setStyle(radius=0.1) + viewer3d.setDisulfides(radius=0.1)
+v = viewer3d.init(pose, delay=0, backend=1)
 backrub = pyrosetta.rosetta.protocols.backrub.BackrubMover()
 minimize = pyrosetta.rosetta.protocols.minimization_packing.MinMover()
 v.set_modules([viewer3d.setStyle(), viewer3d.setDisulfides()])
@@ -221,4 +222,8 @@ for h in range(5):
             minimize.apply(pose)
         v.add_pose(pose.clone(), index=h, update_viewer=False)
 v.show()
+```
+
+```
+v.overlay()
 ```
