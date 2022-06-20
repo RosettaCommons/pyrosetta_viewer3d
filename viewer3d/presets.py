@@ -419,6 +419,8 @@ def makeBundle(
         mb = MakeBundle()
     mb.set_reset_pose(True)
     mb.set_use_degrees(True)
+    # TODO set crick parameters file
+    #mb.set
     # TODO this is a bug in make bundle, because it does not expose the setters for residue name 
     # mb.residue_name(aa)
     add_pdb_info_mover = AddPDBInfoMover()
