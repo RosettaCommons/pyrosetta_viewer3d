@@ -459,14 +459,16 @@ def makeBundle(
     omega0 = FloatSlider(
         min=-5,
         max=5,
-        step=0.1,
+        step=0.05,
         value=0,
         description="omega0",
         continuous_update=continuous_update,
     )
     delta_omega1 = FloatSlider(
-        min=0,
-        max=360,
+        min=-180,
+        max=180,
+        value=0,
+        step=1,
         description="delta_omega1",
         style={"description_width": "initial"},
         continuous_update=continuous_update,
