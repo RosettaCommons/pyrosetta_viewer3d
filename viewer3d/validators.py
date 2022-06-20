@@ -50,7 +50,11 @@ def _validate_window_size(self, attribute: str, value: Iterable) -> Optional[NoR
 
 @decorator
 def requires_show(func: V, self, *args, **kwargs) -> V:
-    """Call the `show` method if the 'update_viewer' argument parameter is `True`."""
+    """
+    Call the `show` method if the 'update_viewer' argument parameter is `True`.
+    The 'update_viewer' keyword argument must be the last keyword argument
+    of the decorated function.
+    """
     update_viewer = args[-1]
     if update_viewer and not self._displayed:
         _class_name = self.__class__.__name__

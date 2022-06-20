@@ -434,12 +434,12 @@ def makeBundle(
             keep_disulfide_cys=True,
         )
 
-    def update_bundle(update_viewer=True):
+    def update_bundle():
         with out:
             mb.apply(pose)
         add_pdb_info_mover.apply(pose)
         make_poly_X(pose)
-        view.update_pose(pose, update_viewer=update_viewer)
+        view.update_viewer()
 
     def initialize_bundle():
         for i in range(1, num_helices + 1):
@@ -451,7 +451,7 @@ def makeBundle(
             mb.helix(i).calculator_op().real_parameter(BPC_r0).set_value(
                 r0.value
             )  # in angstrem
-        update_bundle(update_viewer=False)
+        update_bundle()
 
     def on_length_change(change):
         for i in range(1, num_helices + 1):

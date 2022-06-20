@@ -26,7 +26,7 @@ class ViewerBase(Base3D, InitBase, PoseBase, WidgetsBase):
             self.show()
 
     def apply_setZoomTo(self, _pose: Pose, _pdbstring: str, _model: int) -> None:
-        "Apply `setZoomTo` module to model."
+        """Apply `setZoomTo` module to model."""
         func = getattr(self._setZoomTo, f"apply_{self.backend}")
         self.viewer = func(
             self.viewer,
@@ -36,7 +36,7 @@ class ViewerBase(Base3D, InitBase, PoseBase, WidgetsBase):
         )
 
     def apply_modules(self, _pose: Pose, _pdbstring: str, _model: int) -> None:
-        "Apply modules to model."
+        """Apply modules to model."""
         if not self._displayed:
             self.apply_setZoomTo(_pose, _pdbstring, _model)
         for _module in self.modules:
