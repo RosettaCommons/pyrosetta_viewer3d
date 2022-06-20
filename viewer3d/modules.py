@@ -7,13 +7,14 @@ import pyrosetta.distributed.io as io
 import sys
 
 from functools import singledispatch
+from pyrosetta import Pose
 from pyrosetta.rosetta.core.conformation import is_disulfide_bond
 from pyrosetta.rosetta.core.select.residue_selector import (
     ResidueSelector,
     TrueResidueSelector,
 )
 from pyrosetta.rosetta.core.id import AtomID
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Generic, List, NoReturn, Optional, Tuple, TypeVar, Union
 
 from viewer3d.config import BACKENDS
 from viewer3d.converters import (
@@ -21,6 +22,7 @@ from viewer3d.converters import (
     _get_residue_chain_tuple,
     _pdbstring_to_pose,
     _pose_to_residue_chain_tuples,
+    _to_hex,
     _to_0_if_le_0,
     _to_1_if_gt_1,
 )
@@ -28,7 +30,8 @@ from viewer3d.exceptions import ModuleNotImplementedError
 from viewer3d.tracer import requires_init
 
 
-_logger = logging.getLogger("viewer3d.modules")
+_logger: logging.Logger = logging.getLogger("viewer3d.modules")
+ViewerType = TypeVar("ViewerType")
 
 
 @attr.s(kw_only=False, slots=True)
@@ -76,20 +79,24 @@ class setBackgroundColor(ModuleBase):
         default=None,
         type=Union[str, int],
         validator=attr.validators.instance_of((str, int)),
-        converter=attr.converters.default_if_none(default=0xFFFFFFFF),
+        converter=[attr.converters.default_if_none(default=0xFFFFFFFF), _to_hex],
     )
 
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         viewer.setBackgroundColor(self.color)
 
         return viewer
 
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         viewer.background = self.color
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -122,7 +129,7 @@ class setDisulfides(ModuleBase):
         default=None,
         type=Union[str, int],
         validator=attr.validators.instance_of((str, int)),
-        converter=attr.converters.default_if_none(default="gold"),
+        converter=[attr.converters.default_if_none(default="gold"), _to_hex],
     )
     radius = attr.ib(
         default=None,
@@ -138,7 +145,9 @@ class setDisulfides(ModuleBase):
     )
 
     @requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -165,7 +174,9 @@ class setDisulfides(ModuleBase):
         return viewer
 
     @requires_init
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         cys_res = [i for i, aa in enumerate(pose.sequence(), start=1) if aa == "C"]
         selection_disulfides = []
         for (i, j) in itertools.product(cys_res, repeat=2):
@@ -195,7 +206,7 @@ class setDisulfides(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -237,7 +248,7 @@ class setHydrogenBonds(ModuleBase):
         default=None,
         type=Union[str, int],
         validator=attr.validators.instance_of((str, int)),
-        converter=attr.converters.default_if_none(default="black"),
+        converter=[attr.converters.default_if_none(default="black"), _to_hex],
     )
     dashed = attr.ib(
         default=True,
@@ -253,7 +264,9 @@ class setHydrogenBonds(ModuleBase):
     )
 
     @requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -312,7 +325,9 @@ class setHydrogenBonds(ModuleBase):
         return viewer
 
     @requires_init
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -343,7 +358,7 @@ class setHydrogenBonds(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -372,6 +387,12 @@ class setHydrogens(ModuleBase):
         `True` or `False`. `True` to show only polar hydrogen atoms, and `False` to show all hydrogen atoms.
         Default: False
 
+    fourth : optional
+        `residue_selector`
+
+        An instance of `pyrosetta.rosetta.core.select.residue_selector.ResidueSelector` on which to apply the style(s).
+        Default: None
+
     Returns
     -------
     A Viewer instance.
@@ -381,7 +402,7 @@ class setHydrogens(ModuleBase):
         default=None,
         type=Union[str, int],
         validator=attr.validators.instance_of((str, int)),
-        converter=attr.converters.default_if_none(default="white"),
+        converter=[attr.converters.default_if_none(default="white"), _to_hex],
     )
     radius = attr.ib(
         default=0.05,
@@ -418,7 +439,9 @@ class setHydrogens(ModuleBase):
         return _viewer
 
     @requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -450,7 +473,9 @@ class setHydrogens(ModuleBase):
         return viewer
 
     @requires_init
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -496,7 +521,7 @@ class setHydrogens(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -531,16 +556,28 @@ class setStyle(ModuleBase):
         Reference: https://3dmol.csb.pitt.edu/doc/types.html#ColorSpec
 
     fourth : optional
+        `cartoon_radius`
+
+        Set the cartoon radius for the `nglview` backend.
+
+    fifth : optional
+        `cartoon_opacity`
+
+        Set the cartoon opacity for the `nglview` backend.
+
+    sixth : optional
         `style`
 
         `str` indicating a representation style of heavy atoms, choosing from either "line", "cross", "stick", or "sphere".
         Default: "stick"
 
-    fifth : optional
+    seventh : optional
         `colorscheme`
 
-        `str` indicating the color scheme for heavy atoms represented by the `style` option. Options include:
-            A lower-case standard color followed by "Carbon" (e.g. "orangeCarbon")
+        For the `py3Dmol` backend, a `str` indicating the color scheme for
+        heavy atoms represented by the `style` option.
+        Options include:
+            A lowercased standard color optionally followed by "Carbon" (e.g. "orangeCarbon")
             "ssPyMOL": PyMol secondary colorscheme
             "ssJmol": Jmol secondary colorscheme
             "Jmol": Jmol primary colorscheme
@@ -553,40 +590,69 @@ class setStyle(ModuleBase):
         Default: "blackCarbon"
         Reference: https://3dmol.csb.pitt.edu/doc/types.html#ColorschemeSpec
 
-    sixth : optional
+    For the `nglview` backend, a `str` indicating the color scheme for
+    heavy atoms represented by the `style` option.
+    Options include:
+        A lowercased standard color.
+        "atomindex"
+        "bfactor"
+        "chainid"
+        "chainindex"
+        "chainname"
+        "densityfit"
+        "electrostatic"
+        "element"
+        "entityindex"
+        "entitytype"
+        "geoquality"
+        "hydrophobicity"
+        "modelindex"
+        "moleculetype"
+        "occupancy"
+        "random"
+        "residueindex"
+        "resname"
+        "sstruc"
+        "uniform"
+        "value"
+        "volume"
+    Default: "element"
+    Reference: https://nglviewer.org/ngl/api/manual/coloring.html
+
+    eighth : optional
         `radius`
 
         `float` or `int` indicating the radius of the heavy atoms represented by the `style` option.
         Default: 0.1
 
-    seventh : optional
+    ninth : optional
         `label`
 
         `True` or `False` to show labels next to residues selected by the `residue_selector` option.
         Default: True
 
-    eighth : optional
+    tenth : optional
         `label_fontsize`
 
         `int` or `float` indicating the font size of labels next to residues selected by the `residue_selector` option,
         only if `label` is `True`.
         Default: 12
 
-    ninth : optional
+    eleventh : optional
         `label_background`
 
         `True` or `False` to show the background of labels next to residues selected by the `residue_selector` option,
         only if `label` is `True`.
         Default: False
 
-    tenth : optional
+    twelfth : optional
         `label_fontcolor`
 
         `str` indicating a standard font color (e.g. "grey") for label text next to residues selected by the `residue_selector` option,
         only if `label` is `True`.
         Default: "black"
 
-    eleventh : optional
+    thirteenth : optional
         `command`
 
         `dict` or `tuple` of `dict`s of `py3Dmol.view.setStyle()` commands. If specified, this option overrides all other options.
@@ -595,6 +661,12 @@ class setStyle(ModuleBase):
             command = {"hetflag": True}, {"stick": {"singleBond": False, "colorscheme": "greyCarbon", "radius": 0.15}}
             view = viewer.init(poses) + viewer.setStyle(command=command)
             view.show()
+
+    fourteenth : optional
+        `show_hydrogens`
+
+        `bool` object for the `nglview` backend to show all hydrogens.
+        Defualt: False
 
     Returns
     -------
@@ -618,6 +690,7 @@ class setStyle(ModuleBase):
         default=None,
         type=Optional[Union[str, int]],
         validator=attr.validators.optional(attr.validators.instance_of((str, int))),
+        converter=_to_hex,
     )
     cartoon_radius = attr.ib(
         default=None,
@@ -641,9 +714,9 @@ class setStyle(ModuleBase):
     )
     colorscheme = attr.ib(
         default=None,
-        type=str,
+        type=Union[str, int],
         validator=attr.validators.instance_of((str, int)),
-        converter=attr.converters.default_if_none(default="blackCarbon"),
+        converter=[attr.converters.default_if_none(default="blackCarbon"), _to_hex],
     )
     radius = attr.ib(
         default=0.1,
@@ -673,7 +746,7 @@ class setStyle(ModuleBase):
         default=None,
         type=Union[str, int],
         validator=attr.validators.instance_of((str, int)),
-        converter=attr.converters.default_if_none(default="black"),
+        converter=[attr.converters.default_if_none(default="black"), _to_hex],
     )
     command = attr.ib(
         default=None,
@@ -688,7 +761,9 @@ class setStyle(ModuleBase):
     )
 
     @requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         _colorscheme = "colorscheme" if isinstance(self.colorscheme, str) else "color"
         if self.show_hydrogens:
             _logger.warning(
@@ -769,7 +844,9 @@ class setStyle(ModuleBase):
         return viewer
 
     @requires_init
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         # Set defaults
         if self.cartoon_color is None:
             self.cartoon_color = "atomindex"
@@ -857,7 +934,7 @@ class setStyle(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -947,16 +1024,20 @@ class setSurface(ModuleBase):
     color = attr.ib(
         default=None,
         type=Optional[Union[str, int]],
-        validator=attr.validators.instance_of((str, int, type(None))),
+        validator=attr.validators.optional(attr.validators.instance_of((str, int))),
+        converter=_to_hex,
     )
     colorscheme = attr.ib(
         default=None,
         type=Optional[Union[str, int]],
         validator=attr.validators.optional(attr.validators.instance_of((str, int))),
+        converter=_to_hex,
     )
 
     @requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if self.surface_type == "AV":
             raise NotImplementedError(
                 "The surface type 'AV' is not supported by the `py3Dmol` backend."
@@ -999,7 +1080,9 @@ class setSurface(ModuleBase):
         return viewer
 
     @requires_init
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         surface_types_dict: Dict[str, str] = {
             "VDW": "vws",
             "MS": "ms",
@@ -1024,7 +1107,7 @@ class setSurface(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -1054,15 +1137,19 @@ class setZoom(ModuleBase):
         validator=attr.validators.instance_of((float, int)),
     )
 
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         viewer.zoom(self.factor)
         return viewer
 
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         viewer.control.zoom(self.factor)
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
 
 
@@ -1092,7 +1179,9 @@ class setZoomTo(ModuleBase):
     )
 
     @requires_init
-    def apply_py3Dmol(self, viewer, pose, pdbstring, model):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -1106,7 +1195,9 @@ class setZoomTo(ModuleBase):
         return viewer
 
     @requires_init
-    def apply_nglview(self, viewer, pose, pdbstring, model):
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -1118,5 +1209,5 @@ class setZoomTo(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self):
+    def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])

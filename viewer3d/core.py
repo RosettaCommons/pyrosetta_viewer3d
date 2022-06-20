@@ -1,32 +1,35 @@
 import attr
-import collections
 import logging
-import os
 import pyrosetta.distributed.io as io
 
-from ipywidgets.widgets import Widget
 from pyrosetta import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Generic, Iterable, List, Optional, TypeVar, Union
 
-from viewer3d.base import ViewerBase, Base3D
+from viewer3d.base import ViewerBase
+from viewer3d.initialization import InitBase
 from viewer3d.config import BACKENDS
 from viewer3d.converters import _to_poses_pdbstrings
 
 
-_logger = logging.getLogger("viewer3d.core")
+_logger: logging.Logger = logging.getLogger("viewer3d.core")
+ViewerType = TypeVar("ViewerType", bound=ViewerBase)
 
 
 @attr.s(kw_only=True, slots=False)
 class Py3DmolViewer(ViewerBase):
-    def setup(self):
+    """Viewer object for the `py3Dmol` backend."""
+
+    def setup(self) -> None:
         self.py3Dmol = self._maybe_import_backend()
         self.viewer = self.py3Dmol.view(
             width=self.window_size[0],
             height=self.window_size[1],
         )
 
-    def add_object(self, _poses, _pdbstrings, _model):
+    def add_object(
+        self, _poses: List[Pose], _pdbstrings: List[str], _model: Optional[int]
+    ) -> None:
         _pose = _poses[_model]
         if _pose is not None:
             _pdbstring = io.to_pdbstring(_pose)
@@ -34,17 +37,17 @@ class Py3DmolViewer(ViewerBase):
             _pdbstring = _pdbstrings[_model]
         self.viewer.addModel(_pdbstring, "pdb")
         self.apply_modules(_pose, _pdbstring, _model)
-        if self._displayed:
-            self.viewer.update()
 
-    def add_objects(self, _poses, _pdbstrings, _model):
+    def add_objects(
+        self, _poses: List[Pose], _pdbstrings: List[str], _model: Optional[int]
+    ) -> None:
         if _model is None:
             for _m in range(len(_poses)):
                 self.add_object(_poses, _pdbstrings, _m)
         elif isinstance(_model, int):
             self.add_object(_poses, _pdbstrings, _model)
 
-    def remove_objects(self, _model):
+    def remove_objects(self, _model: Optional[int]) -> None:
         self.viewer.removeAllShapes()
         self.viewer.removeAllSurfaces()
         self.viewer.removeAllLabels()
@@ -52,20 +55,29 @@ class Py3DmolViewer(ViewerBase):
             self.viewer.removeAllModels()
         elif isinstance(_model, int):
             self.viewer.removeModel(_model)
-        if self._displayed:
-            self.viewer.update()
 
-    def show_viewer(self):
+    def set_objects(
+        self, _poses: List[Pose], _pdbstrings: List[str], _model: Optional[int]
+    ) -> None:
+        self.remove_objects(_model)
+        self.add_objects(_poses, _pdbstrings, _model)
+
+    def update(self) -> None:
+        self.viewer.update()
+
+    def show_viewer(self) -> None:
         self.viewer.show()
 
 
 @attr.s(kw_only=True, slots=False)
-class NGLviewViewer(ViewerBase):
-    def setup(self):
+class NGLViewViewer(ViewerBase):
+    """Viewer object for the `nglview` backend."""
+
+    def setup(self) -> None:
         self.nglview = self._maybe_import_backend()
         self.viewer = self.nglview.widget.NGLWidget()
 
-    def set_window_size(self):
+    def set_window_size(self) -> None:
         """Resize the NGLWidget window."""
         self.viewer._remote_call(
             "setSize",
@@ -73,7 +85,9 @@ class NGLviewViewer(ViewerBase):
             args=[f"{self.window_size[0]}px", f"{self.window_size[1]}px"],
         )
 
-    def add_object(self, _poses, _pdbstrings, _model):
+    def add_object(
+        self, _poses: List[Pose], _pdbstrings: List[str], _model: Optional[int]
+    ) -> None:
         _pose = _poses[_model]
         if _pose is not None:
             structure = self.nglview.adaptor.RosettaStructure(_pose)
@@ -84,33 +98,65 @@ class NGLviewViewer(ViewerBase):
         self.viewer._ngl_component_ids.append(structure.id)
         self.viewer._update_component_auto_completion()
 
-    def add_objects(self, _poses, _pdbstrings, _model):
-        _model_range = range(len(_poses))
+    def add_model(
+        self, _poses: List[Pose], _pdbstrings: List[str], _model: Optional[int]
+    ) -> None:
         if _model is None:
-            for _m in _model_range:
+            for _m in range(len(_poses)):
                 self.add_object(_poses, _pdbstrings, _m)
-            for _m in _model_range:
-                self.apply_modules(_poses[_m], _pdbstrings[_m], _m)
         elif isinstance(_model, int):
             self.add_object(_poses, _pdbstrings, _model)
+
+    def apply_to_model(
+        self, _poses: List[Pose], _pdbstrings: List[str], _model: Optional[int]
+    ) -> None:
+        if _model is None:
+            for _m in range(len(_poses)):
+                self.apply_modules(_poses[_m], _pdbstrings[_m], _m)
+        elif isinstance(_model, int):
             self.apply_modules(_poses[_model], _pdbstrings[_model], _model)
 
-    def remove_objects(self, _model):
+    def add_objects(
+        self, _poses: List[Pose], _pdbstrings: List[str], _model: Optional[int]
+    ) -> None:
+        self.add_model(_poses, _pdbstrings, _model)
+        self.apply_to_model(_poses, _pdbstrings, _model)
+
+    def get_remove_component_ids(self, _model: Optional[int]) -> List[str]:
         component_ids = self.viewer._ngl_component_ids
+        remove_component_ids = []
         if _model is None:
             for component_id in component_ids:
-                component_index = component_ids.index(component_id)
-                self.viewer.remove_component(component_id)
-                self.viewer.clear(component=component_index)
+                remove_component_ids.append(component_id)
         elif isinstance(_model, int):
             for component_id in component_ids:
                 component_index = component_ids.index(component_id)
                 if component_index == _model:
-                    self.viewer.remove_component(component_id)
-                    self.viewer.clear(component=component_index)
+                    remove_component_ids.append(component_id)
                     break
 
-    def show_viewer(self):
+        return remove_component_ids
+
+    def remove_objects(self, _model: Optional[int]) -> None:
+        for component_id in self.get_remove_component_ids(_model):
+            self.viewer.remove_component(component_id)
+
+    def remove_component_ids(self, component_ids: List[str]) -> None:
+        for component_id in component_ids:
+            self.viewer.remove_component(component_id)
+
+    def set_objects(
+        self, _poses: List[Pose], _pdbstrings: List[str], _model: Optional[int]
+    ) -> None:
+        remove_component_ids = self.get_remove_component_ids(_model)
+        self.add_model(_poses, _pdbstrings, _model)
+        self.remove_component_ids(remove_component_ids)
+        self.apply_to_model(_poses, _pdbstrings, _model)
+
+    def update(self) -> None:
+        pass
+
+    def show_viewer(self) -> None:
         self.viewer.display(gui=self.gui, style="ngl")
         self.set_window_size()
         self.viewer._ipython_display_()
@@ -118,6 +164,8 @@ class NGLviewViewer(ViewerBase):
 
 @attr.s(kw_only=True, slots=False)
 class PyMOLViewer(ViewerBase):
+    """Viewer object for the `pymol` backend."""
+
     def __attrs_pre_init__(self):
         self.pymol = self._maybe_import_backend()
 
@@ -141,17 +189,18 @@ class PyMOLViewer(ViewerBase):
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)
-class SetupViewer(Base3D):
+class SetupViewer(InitBase):
+    """Initialize a Viewer object with the user-provided parameters."""
+
     packed_and_poses_and_pdbs = attr.ib(
         type=Optional[Union[PackedPose, Pose, Iterable[Union[PackedPose, Pose]]]],
         default=None,
     )
 
-    def __attrs_post_init__(self):
+    def __attrs_post_init__(self) -> None:
         self.poses, self.pdbstrings = _to_poses_pdbstrings(
             self.packed_and_poses_and_pdbs
         )
-        self.n_decoys = len(self.pdbstrings)
         self.viewer_kwargs = dict(
             poses=self.poses,
             pdbstrings=self.pdbstrings,
@@ -159,20 +208,19 @@ class SetupViewer(Base3D):
             modules=self.modules.copy(),
             delay=self.delay,
             continuous_update=self.continuous_update,
-            n_decoys=self.n_decoys,
             widgets=self.widgets,
             auto_show=self.auto_show,
             backend=self.backend,
             gui=self.gui,
         )
 
-    def initialize_viewer(self):
+    def initialize_viewer(self) -> Generic[ViewerType]:
         if self.backend == BACKENDS[0]:
             if self.gui:
                 _logger.debug(f"GUI is not supported for `{self.backend}` backend.")
             viewer = Py3DmolViewer(**self.viewer_kwargs)
         elif self.backend == BACKENDS[1]:
-            viewer = NGLviewViewer(**self.viewer_kwargs)
+            viewer = NGLViewViewer(**self.viewer_kwargs)
         elif self.backend == BACKENDS[2]:
             viewer = PyMOLViewer(**self.viewer_kwargs)
 
@@ -188,53 +236,40 @@ def init(
     backend=None,
     gui=None,
     auto_show=None,
-):
+) -> Generic[ViewerType]:
     """
     Initialize the Viewer object.
 
-    Parameters
-    ----------
-    first : required
-        `packed_and_poses_and_pdbs`
-
-        `PackedPose`, `Pose`, or `str` of a valid path to a .pdb file, or a `list`, `set`, or `tuple` of these objects.
-
-    second : optional
-        `window_size`
-
-        `list` or `tuple` of `int` or `float` values for the (width, height) dimensions of the displayed window screen size.
-        Default: (1200, 800)
-
-    third : optional
-        `modules`
-
-        `list` of instantiated visualization modules to run upon changing amongst `packed_and_poses_and_pdbs` objects
-        with the slider, matching the namespace `viewer3d.set*`
-        Default: []
-
-    fourth : optional
-        `delay`
-
-        `float` or `int` time delay in seconds before rendering the Viewer in a Jupyter notebook, which is useful to prevent
-        overburdening the Jupyter notebook client if `for` looping over quick modifications to a `Pose`, and should be >= 0.
-        Default: 0.25
-
-    fifth : optional
-        `continuous_update`
-
-        `True` or `False`. When using the interactive slider widget, `False` restricts rendering to mouse release events.
-        Default: False
-
-    sixth : optional
-        `backend`
-
-        The viewer backend to for the visualization. Supported backends are 'py3Dmol', 'nglview', and 'pymol'.
-        Default: 'py3Dmol'
-
+    Args:
+        packed_and_poses_and_pdbs: An optional `PackedPose`, `Pose`, or `str` of a valid path
+            to a .pdb file, or an iterable of these objects.
+            Default: `None`
+        window_size: an optional `list` or `tuple` of `int` or `float` values for the
+            (width, height) dimensions of the displayed window screen size.
+            Default: `(1200, 800)`
+        modules: an optional `list` of instantiated visualization modules to apply
+            upon changing amongst `Pose` or PDB string `str` objects with the interactive
+            slider widget, matching the namespace `viewer3d.set*`.
+            Default: `[]`
+        delay: an optional `float` or `int` time delay in seconds before rendering
+            the Viewer in a Jupyter notebook, which is useful to prevent overburdening
+            the Jupyter notebook client if `for` looping over quick modifications
+            o a `Pose`, and should be >= 0.
+            Default: `0.0`
+        continuous_update: a `bool` object. When using the interactive slider widget,
+            `False` restricts rendering to mouse button release events.
+            Default: `False`
+        backend: an optional `str` or `int` object representing the backend to use for
+            the visualization. The currently supported backends are 'py3Dmol' and 'nglview'.
+            Default: `0` or `py3Dmol`
+        gui: a `bool` object only supported by the `nglview` backend. If `True`, then show
+            the NGLView graphical user interface.
+            Default: `False`
+        auto_show: a `bool` object. If `True`, then automatically run the `show` method
+            upon running the `init` method.
 
     Returns
-    -------
-    A Viewer instance.
+        A `Py3DmolViewer` instance, a `NGLViewViewer` instance, or a `PyMOLViewer` instance.
     """
     viewer = SetupViewer(
         packed_and_poses_and_pdbs=packed_and_poses_and_pdbs,
