@@ -109,76 +109,6 @@ view()
 ```
 
 ```
-from pyrosetta.rosetta.core.select.residue_selector import SecondaryStructureSelector
-helix_selector = SecondaryStructureSelector("H")
-sheet_selector = SecondaryStructureSelector("E")
-loop_selector = SecondaryStructureSelector("L")
-
-modules = [
-    viewer3d.setBackgroundColor(color="grey"),
-    viewer3d.setStyle(residue_selector=helix_selector, cartoon_color="blue", label=False, radius=0),
-    viewer3d.setStyle(residue_selector=sheet_selector, cartoon_color="red", label=False, radius=0),
-    viewer3d.setStyle(residue_selector=loop_selector, cartoon_color="white", label=False, radius=0)
-]
-
-view = viewer3d.init(poses, window_size=(1200, 600), modules=modules, continuous_update=True)
-view()
-```
-
-```
-view.clear() # Subtract all visualization modules previously added to the Viewer
-view()
-```
-
-View live trajectory:
-```
-pose = pyrosetta.toolbox.pose_from_rcsb("2FD7")
-v = viewer3d.init(pose, delay=0.15) + viewer3d.setStyle(radius=0.1) + viewer3d.setDisulfides(radius=0.1)
-backrub = pyrosetta.rosetta.protocols.backrub.BackrubMover()
-minimize = pyrosetta.rosetta.protocols.minimization_packing.MinMover()
-
-for _ in range(100):
-    backrub.apply(pose)
-    minimize.apply(pose)
-    v.update_pose(pose)
-```
-
-Display preset custom viewers for routine visualizations:
-```
-viewer3d.presets.coreBoundarySurface(poses, window_size=(800, 600), continuous_update=True)
-```
-
-```
-view = viewer3d.presets.makeBundle(backend=1)
-view.show()
-```
-
-Visualize the residue 1 <i>psi</i>-space of a 20-residue polyvaline linear peptide:
-```
-from bokeh.palettes import Viridis
-n = 11 # 256
-v = viewer3d.init(backend=1)
-pose = pyrosetta.io.pose_from_sequence("V" * 20)
-for i, hex_str in enumerate(Viridis[n]):
-    v.set_modules(viewer3d.setStyle(cartoon_color=hex_str, radius=0))
-    pose.set_psi(1, i * 360 / n)
-    v.add_pose(pose)
-```
-
-Overlay multiple poses:
-```
-pose1 = pyrosetta.toolbox.rcsb.pose_from_rcsb("6V67")
-pose2 = pyrosetta.toolbox.rcsb.pose_from_rcsb("1ATP")
-v = viewer3d.init()
-v += viewer3d.setStyle(colorscheme='redCarbon')
-v += viewer3d.setSurface()
-v.add_pose(pose1) # Automatically updates the viewer with the currently set modules
-v.reset() # Subtract all modules
-v += viewer3d.setStyle(colorscheme='blueCarbon')
-v.add_pose(pose2)
-```
-
-```
 import pyrosetta.distributed.io as io
 import viewer3d
 from pyrosetta.rosetta.core.select.residue_selector import (
@@ -204,4 +134,91 @@ view = (
     + viewer3d.setZoom(-1) \
 )
 view.show()
+```
+
+```
+from pyrosetta.rosetta.core.select.residue_selector import SecondaryStructureSelector
+helix_selector = SecondaryStructureSelector("H")
+sheet_selector = SecondaryStructureSelector("E")
+loop_selector = SecondaryStructureSelector("L")
+
+modules = [
+    viewer3d.setBackgroundColor(color="grey"),
+    viewer3d.setStyle(residue_selector=helix_selector, cartoon_color="blue", label=False, radius=0),
+    viewer3d.setStyle(residue_selector=sheet_selector, cartoon_color="red", label=False, radius=0),
+    viewer3d.setStyle(residue_selector=loop_selector, cartoon_color="white", label=False, radius=0)
+]
+
+view = viewer3d.init(poses, window_size=(1200, 600), modules=modules, continuous_update=True)
+view()
+```
+
+```
+view.clear() # Subtract all visualization modules previously added to the Viewer
+view()
+```
+
+View a live trajectory:
+```
+pose = pyrosetta.toolbox.pose_from_rcsb("2FD7")
+v = viewer3d.init(pose, delay=0.1) + viewer3d.setStyle(radius=0.1) + viewer3d.setDisulfides(radius=0.1)
+backrub = pyrosetta.rosetta.protocols.backrub.BackrubMover()
+minimize = pyrosetta.rosetta.protocols.minimization_packing.MinMover()
+
+for _ in range(100):
+    backrub.apply(pose)
+    minimize.apply(pose)
+    v.update_pose(pose)
+```
+
+Display preset custom viewers for routine visualizations:
+```
+viewer3d.presets.coreBoundarySurface(poses, window_size=(800, 600), continuous_update=True)
+```
+
+```
+view = viewer3d.presets.makeBundle(backend=1)
+view.show()
+```
+
+Visualize the residue 1 <i>psi</i>-space of a 20-residue polyvaline extended peptide:
+```
+from bokeh.palettes import Viridis
+n = 11 # 256
+v = viewer3d.init(backend=1)
+pose = pyrosetta.io.pose_from_sequence("V" * 20)
+for i, hex_str in enumerate(Viridis[n]):
+    v.set_modules(viewer3d.setStyle(cartoon_color=hex_str, radius=0))
+    pose.set_psi(1, i * 360 / n)
+    v.add_pose(pose)
+```
+
+Overlay multiple poses:
+```
+pose1 = pyrosetta.toolbox.rcsb.pose_from_rcsb("6V67")
+pose2 = pyrosetta.toolbox.rcsb.pose_from_rcsb("1ATP")
+v = viewer3d.init()
+v += viewer3d.setStyle(colorscheme='redCarbon')
+v += viewer3d.setSurface()
+v.add_pose(pose1) # Automatically updates the viewer with the currently set modules
+v.reset() # Subtract all modules
+v += viewer3d.setStyle(colorscheme='blueCarbon')
+v.add_pose(pose2)
+```
+
+View different sets of different overlaid poses:
+```
+pose = pyrosetta.toolbox.pose_from_rcsb("2FD7")
+v = viewer3d.init(pose, delay=1, backend=1) #+ viewer3d.setStyle(radius=0.1) + viewer3d.setDisulfides(radius=0.1)
+backrub = pyrosetta.rosetta.protocols.backrub.BackrubMover()
+minimize = pyrosetta.rosetta.protocols.minimization_packing.MinMover()
+v.set_modules([viewer3d.setStyle(), viewer3d.setDisulfides()])
+
+for h in range(5):
+    for i in range(5):
+        for j in range(5):
+            backrub.apply(pose)
+            minimize.apply(pose)
+        v.add_pose(pose.clone(), index=h, update_viewer=False)
+v.show()
 ```
