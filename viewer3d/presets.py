@@ -36,12 +36,28 @@ def coreBoundarySurface(
     packed_and_poses_and_pdbs=None,
     window_size=(1200, 800),
     continuous_update=True,
-    backend="py3Dmol",
+    backend=0,
 ):
     """
-    Display core residues as 'blackCarbon' sticks, boundary residues as 'greyCarbon' sticks, and surface residues
-    as 'whiteCarbon' sticks, with 'spectrum' cartoon representation, using the default arguments in
-    `pyrosetta.rosetta.core.select.residue_selector.LayerSelector()` to select layers.
+    Interactively visualize core, boundary, and surface layer residue selectors
+    with cartoon representation.
+
+    Args:
+        packed_and_poses_and_pdbs: An optional `PackedPose`, `Pose`, or `str` of a valid path
+            to a .pdb file, or an iterable of these objects.
+            Default: `None`
+        window_size: an optional `list` or `tuple` of `int` or `float` values for the
+            (width, height) dimensions of the displayed window screen size.
+            Default: `(1200, 800)`
+        continuous_update: a `bool` object. When using the interactive slider widget,
+            `False` restricts rendering to mouse button release events.
+            Default: `True`
+        backend: an optional `str` or `int` object representing the backend to use for
+            the visualization. The currently supported backends are 'py3Dmol' and 'nglview'.
+            Default: `0` or `py3Dmol`
+
+    Returns:
+        A `Py3DmolViewer` instance, a `NGLViewViewer` instance, or a `PyMOLViewer` instance.
     """
     __author__ = "Jason C. Klima"
 
@@ -241,6 +257,13 @@ def ligandsAndMetals(*args, **kwargs):
     Display residues with `ResidueProperty.LIGAND` as 'brownCarbon' sticks with opaque surface,
     and `ResidueProperty.METAL` as 'chainHetatm' spheres, with 'spectrum' cartoon representation,
     disulfide bonds, polar hydrogens, and dashed hydrogen bonds.
+
+    Args:
+        *args: Variable length argument list.
+        **kwargs: Arbitrary keyword arguments.
+
+    Returns:
+        A `Py3DmolViewer` instance, a `NGLViewViewer` instance, or a `PyMOLViewer` instance.
     """
     __author__ = "Jason C. Klima"
 
@@ -298,12 +321,34 @@ def makeBundle(
     modules=[],
     aa="VAL",
     num_helices=4,
-    backend="py3Dmol",
+    backend=0,
     window_size=None,
     continuous_update=True,
 ):
     """
-    Add a description of the preset Viewer here
+    Interactively build and visualize a helical bundle parametrically with
+    core, boundary, and surface layer residue selector representations.
+
+    Args:
+        modules: an optional `list` object containing instantiated visualization modules.
+            Default: `[]`
+        aa: an optional `str` object representing the 3-letter amino acid for
+            the poly-XXX helical bundle.
+            Default: 'VAL'
+        num_helices: an `int` object representing the number of helices to generate.
+            Default: `4`
+        backend: an optional `str` or `int` object representing the backend to use for
+            the visualization.
+            Default: `0` or `py3Dmol`
+        window_size: an optional `list` or `tuple` of `int` or `float` values for the
+            (width, height) dimensions of the displayed window screen size.
+            Default: `(1200, 800)`
+        continuous_update: a `bool` object. When using the interactive widgets,
+            `False` restricts rendering to mouse button release events.
+            Default: `False`
+
+    Returns:
+        A `Py3DmolViewer` instance, a `NGLViewViewer` instance, or a `PyMOLViewer` instance.
     """
     __author__ = "Ajasja Ljubetic, Jason C. Klima"
 
