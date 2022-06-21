@@ -186,10 +186,20 @@ def _pose_to_residue_chain_tuples(
 
 
 def _get_nglview_selection(
-    pose, residue_selector: ResidueSelector, logger: logging.Logger = _logger
+    pose,
+    residue_selector: ResidueSelector,
+    show_hydrogens: bool = False,
+    logger: logging.Logger = _logger,
 ) -> str:
+    def _format_residue(rc: Tuple[str, str]) -> str:
+        if show_hydrogens:
+            return f"({rc[0]}:{rc[1]})"
+        else:
+            return f"({rc[0]}:{rc[1]} and not _H)"
+
     resi, chain = _pose_to_residue_chain_tuples(pose, residue_selector, logger=_logger)
-    selection = " or ".join(map(lambda rc: f"({rc[0]}:{rc[1]})", zip(resi, chain)))
+    selection = " or ".join(map(_format_residue, zip(resi, chain)))
+
     return selection
 
 
