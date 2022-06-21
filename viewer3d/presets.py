@@ -436,6 +436,10 @@ def makeBundle(
         mb = MakeBundle()
     mb.set_reset_pose(True)
     mb.set_use_degrees(True)
+    # TODO set crick parameters file
+    #mb.set
+    # TODO this is a bug in make bundle, because it does not expose the setters for residue name 
+    # mb.residue_name(aa)
     add_pdb_info_mover = AddPDBInfoMover()
 
     def make_poly_X(pose):
@@ -519,24 +523,49 @@ def makeBundle(
     omega0 = FloatSlider(
         min=-5,
         max=5,
-        step=0.1,
+        step=0.05,
         value=0,
         description="omega0",
         continuous_update=continuous_update,
     )
     delta_omega1 = FloatSlider(
-        min=0,
-        max=360,
+        min=-180,
+        max=180,
+        value=0,
+        step=1,
         description="delta_omega1",
         style={"description_width": "initial"},
         continuous_update=continuous_update,
     )
+
+    z0_offset = FloatSlider(
+      min=-3,
+      max=3,
+      value=0,
+      step=0.1,
+      description="z0_offset",
+      style={"description_width": "initial"},
+      continuous_update=continuous_update,
+    )
+
+    z1_offset = FloatSlider(
+      min=-3,
+      max=3,
+      value=0,
+      step=0.1,
+      description="z1_offset",
+      style={"description_width": "initial"},
+      continuous_update=continuous_update,
+    )
+
     invert = Checkbox(value=False, description="invert")
 
     length.observe(on_length_change, names="value")
     r0.observe(on_param_change, names="value")
     omega0.observe(on_param_change, names="value")
     delta_omega1.observe(on_param_change, names="value")
+    z0_offset.observe(on_param_change, names="value")
+    z1_offset.observe(on_param_change, names="value")
     invert.observe(on_invert_change, names="value")
 
     save_button = Button(description="save PDB")
@@ -555,6 +584,8 @@ def makeBundle(
             r0,
             omega0,
             delta_omega1,
+            z0_offset,
+            z1_offset,
             invert,
             save_box,
         ]
