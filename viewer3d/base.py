@@ -36,7 +36,7 @@ class ViewerBase(Base3D, InitBase, PoseBase, WidgetsBase):
         )
 
     def apply_modules(self, _pose: Pose, _pdbstring: str, _model: int) -> None:
-        """Apply modules to model."""
+        """Apply visualization modules to model."""
         if not self._displayed:
             self.apply_setZoomTo(_pose, _pdbstring, _model)
         for _module in self.modules:
@@ -100,6 +100,8 @@ class ViewerBase(Base3D, InitBase, PoseBase, WidgetsBase):
         if index is None:
             index = self.get_decoy_widget_index()
         if index in self.poses.keys():
+            if hasattr(self, "decoy_widget"):
+                self.decoy_widget.children[0].value = index
             self.update_objects(
                 self.poses[index],
                 self.pdbstrings[index],
@@ -107,8 +109,6 @@ class ViewerBase(Base3D, InitBase, PoseBase, WidgetsBase):
                 add_objects,
                 remove_objects,
             )
-            if hasattr(self, "decoy_widget"):
-                self.decoy_widget.children[0].value = index
         else:
             raise IndexError(
                 f"The 'poses' and 'pdbstrings' attributes do not have index `{index}`."
