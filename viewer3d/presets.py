@@ -1,5 +1,5 @@
 """
-Display preset custom viewers for routine visualizations.
+Display simple preset custom viewers for routine visualizations.
 """
 import pyrosetta
 
@@ -21,9 +21,14 @@ from ipywidgets.widgets import (
 )
 from pyrosetta.rosetta.core.chemical import ResidueProperty
 from pyrosetta.rosetta.core.select.residue_selector import (
+    AndResidueSelector,
     LayerSelector,
+    NotResidueSelector,
+    OrResidueSelector,
     ResiduePropertySelector,
 )
+from pyrosetta.rosetta.protocols.hbnet import UnsatSelector
+
 from viewer3d.converters import _to_backend
 from viewer3d.tracer import requires_init
 
@@ -321,14 +326,118 @@ def ligandsAndMetals(*args, **kwargs):
 
 
 @requires_init
-def templatePreset(*args, **kwargs):
+def backboneUnsatSelector(
+    pose,
+    scorefxn=None,
+    hbond_energy_cutoff=(-0.25),
+    backend=0,
+):
     """
-    Add a description of the preset Viewer here
-    """
-    __author__ = ""
-    view = viewer3d.init(*args, **kwargs)
+    Visualize unsatisfied hydrogen bonds on backbone amine and carbonyl moieties.
+    Residues with an unsatisfied backbone amine are colored blue, residues with
+    an unsatisfied backbone carbonyl are colored red, and residues with both an
+    unsatisfied backbone amine and unsatisfied backbone carbonyl are colored yellow.
+    Residues with satisfied backbone hydrogen bonds are colored black. Cartoon
+    representation is shown, and hydrogen bonds are shown in black dashed lines.
 
-    # Add custom Viewer commands here
+    Args:
+        pose: a required `Pose` object to display.
+        scorefxn: an optional scorefunction to use.
+            Default: 'ref2015'
+        hbond_energy_cutoff: an optional energy cutoff for selecting unsatisfied
+            hydrogen bonds.
+            Default: `-0.25`
+        backend: an optional `str` or `int` object representing the backend to use for
+            the visualization.
+            Default: `0` or `py3Dmol`
+
+    Returns:
+        A `Py3DmolViewer` instance, a `NGLViewViewer` instance, or a `PyMOLViewer` instance.
+    """
+    __author__ = "Jason C. Klima"
+
+    with out:
+        if scorefxn is None:
+            # TODO check if '-beta' is initialized
+            scorefxn = pyrosetta.create_score_function("ref2015")
+
+        unsat_amine_selector = UnsatSelector()
+        unsat_amine_selector.set_scorefxn(scorefxn)
+        unsat_amine_selector.set_consider_mainchain_only(False)
+        unsat_amine_selector.set_hbond_energy_cutoff(hbond_energy_cutoff)
+        unsat_amine_selector.set_legacy(False)
+        unsat_amine_selector.set_mode(False)
+        unsat_amine_selector.apply(pose)
+
+        unsat_carbonyl_selector = UnsatSelector()
+        unsat_carbonyl_selector.set_scorefxn(scorefxn)
+        unsat_carbonyl_selector.set_consider_mainchain_only(False)
+        unsat_carbonyl_selector.set_hbond_energy_cutoff(hbond_energy_cutoff)
+        unsat_carbonyl_selector.set_legacy(False)
+        unsat_carbonyl_selector.set_mode(True)
+        unsat_carbonyl_selector.apply(pose)
+
+        unsat_carbonyl_and_amine_selector = AndResidueSelector(
+            unsat_amine_selector, unsat_carbonyl_selector
+        )
+        unsat_selector = OrResidueSelector(
+            unsat_amine_selector, unsat_carbonyl_selector
+        )
+        not_unsat_selector = NotResidueSelector(unsat_selector)
+
+    view = (
+        viewer3d.init(pose, backend=backend)
+        + viewer3d.setBackgroundColor("white")
+        + viewer3d.setStyle(style="stick", colorscheme="blackCarbon", radius=0.15)
+        + viewer3d.setHydrogenBonds(color="black")
+        + viewer3d.setDisulfides(radius=0.15)
+        + viewer3d.setHydrogens(
+            residue_selector=not_unsat_selector,
+            color="gray",
+            radius=0.033,
+            polar_only=True,
+        )
+        + viewer3d.setStyle(
+            residue_selector=unsat_amine_selector,
+            style="stick",
+            colorscheme="blueCarbon",
+            radius=0.15,
+            label=True,
+        )
+        + viewer3d.setHydrogens(
+            residue_selector=unsat_amine_selector,
+            color="white",
+            radius=0.033,
+            polar_only=True,
+        )
+        + viewer3d.setStyle(
+            residue_selector=unsat_carbonyl_selector,
+            style="stick",
+            colorscheme="redCarbon",
+            radius=0.15,
+            label=True,
+        )
+        + viewer3d.setStyle(
+            residue_selector=unsat_carbonyl_and_amine_selector,
+            style="stick",
+            colorscheme="yellowCarbon",
+            radius=0.15,
+            label=True,
+        )
+        + viewer3d.setHydrogens(
+            residue_selector=unsat_carbonyl_selector,
+            color="white",
+            radius=0.033,
+            polar_only=True,
+        )
+        + viewer3d.setZoomTo(residue_selector=unsat_selector)
+    )
+    if view.backend == "py3Dmol":
+        view += viewer3d.setStyle(
+            cartoon=True,
+            radius=0.0,
+            label=False,
+        )
 
     return view
 
@@ -560,5 +669,18 @@ def makeBundle(
         ]
     )
     initialize_bundle()
+
+    return view
+
+
+@requires_init
+def templatePreset(*args, **kwargs):
+    """
+    Add a description of the preset Viewer here
+    """
+    __author__ = ""
+    view = viewer3d.init(*args, **kwargs)
+
+    # Add custom Viewer commands here
 
     return view
