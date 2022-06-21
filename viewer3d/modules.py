@@ -896,10 +896,10 @@ class setStyle(ModuleBase):
                 pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
             selection = _get_nglview_selection(
-                pose, self.residue_selector, logger=_logger
-            )
-            selection_hydrogens = (
-                f"({selection}) and not hydrogen" if self.show_hydrogens else selection
+                pose,
+                self.residue_selector,
+                show_hydrogens=self.show_hydrogens,
+                logger=_logger,
             )
 
             if not selection:
@@ -908,7 +908,7 @@ class setStyle(ModuleBase):
                 if self.radius > 1e-10:
                     viewer.add_representation(
                         repr_type=self.style,
-                        selection=selection_hydrogens,
+                        selection=selection,
                         color=self.colorscheme,
                         radius=self.radius,
                         component=model,
@@ -927,7 +927,7 @@ class setStyle(ModuleBase):
                     viewer.add_representation(
                         repr_type="label",
                         labelType="res",
-                        selection=selection_hydrogens,
+                        selection=selection,  # selection_hydrogens,
                         showBorder=self.label_background,
                         borderColor="gray",
                         showBackground=self.label_background,
@@ -1112,15 +1112,16 @@ class setSurface(ModuleBase):
             "SES": "ses",
             "AV": "av",
         }
-        if isinstance(self.color, str) and self.color.endswith("Carbon"):
-            self.add_element_selection_scheme(self.color)
-        if isinstance(self.colorscheme, str) and self.colorscheme.endswith("Carbon"):
-            self.add_element_selection_scheme(self.colorscheme)
+        for _colorscheme in (self.color, self.colorscheme):
+            if isinstance(_colorscheme, str) and _colorscheme.endswith("Carbon"):
+                self.add_element_selection_scheme(_colorscheme)
 
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        selection = _get_nglview_selection(pose, self.residue_selector, logger=_logger)
+        selection = _get_nglview_selection(
+            pose, self.residue_selector, show_hydrogens=True, logger=_logger
+        )
         if not selection:
             pass
         else:
@@ -1228,7 +1229,9 @@ class setZoomTo(ModuleBase):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        selection = _get_nglview_selection(pose, self.residue_selector, logger=_logger)
+        selection = _get_nglview_selection(
+            pose, self.residue_selector, show_hydrogens=True, logger=_logger
+        )
         if not selection:
             viewer.center(selection="*", component=model)
         else:
