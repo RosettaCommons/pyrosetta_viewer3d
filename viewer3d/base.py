@@ -353,7 +353,8 @@ class WidgetsBase:
         self.widgets = _to_widgets(obj)
 
     def update_viewer(self, index: Optional[int] = None):
-        time.sleep(self.delay)
+        if self.delay:
+            time.sleep(self.delay)
         if index is None:
             index = self.get_decoy_widget_index()
         if index in self.poses.keys():

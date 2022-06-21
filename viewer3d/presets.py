@@ -17,6 +17,7 @@ from ipywidgets.widgets import (
     Text,
     ToggleButtons,
     VBox,
+    Label,
 )
 from pyrosetta.rosetta.core.chemical import ResidueProperty
 from pyrosetta.rosetta.core.select.residue_selector import (
@@ -59,13 +60,9 @@ def coreBoundarySurface(
     backend = _to_backend(backend)
     modules = [
         viewer3d.setStyle(
-            cartoon=True,
-            radius=0,
-            label=False,
-        ),
-        viewer3d.setStyle(
             residue_selector=core_selector,
-            cartoon=False,
+            cartoon=True,
+            cartoon_color="white",
             colorscheme=0xF57900,
             style="stick",
             radius=0.25,
@@ -73,7 +70,8 @@ def coreBoundarySurface(
         ),
         viewer3d.setStyle(
             residue_selector=boundary_selector,
-            cartoon=False,
+            cartoon=True,
+            cartoon_color="white",
             colorscheme=0x00CC00,
             style="stick",
             radius=0.25,
@@ -81,7 +79,8 @@ def coreBoundarySurface(
         ),
         viewer3d.setStyle(
             residue_selector=surface_selector,
-            cartoon=False,
+            cartoon=True,
+            cartoon_color="white",
             colorscheme=0x729FCF,
             style="stick",
             radius=0.25,
@@ -97,6 +96,7 @@ def coreBoundarySurface(
         value=2,
         description="angle_exponent",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
     angle_shift_factor = FloatSlider(
         min=-2,
@@ -105,6 +105,7 @@ def coreBoundarySurface(
         value=0.5,
         description="angle_shift_factor",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
     dist_exponent = FloatSlider(
         min=-2,
@@ -113,6 +114,7 @@ def coreBoundarySurface(
         value=1,
         description="dist_exponent",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
     denominator = FloatSlider(
         min=0.1,
@@ -121,6 +123,7 @@ def coreBoundarySurface(
         value=1,
         description="denominator",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
     dist_midpoint = FloatSlider(
         min=0,
@@ -129,6 +132,7 @@ def coreBoundarySurface(
         value=9,
         description="dist_midpoint",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
     core_cutoff = FloatSlider(
         min=0,
@@ -137,6 +141,7 @@ def coreBoundarySurface(
         value=5.2,
         description="core_cutoff",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
     surface_cutoff = FloatSlider(
         min=0,
@@ -145,6 +150,7 @@ def coreBoundarySurface(
         value=2,
         description="surface_cutoff",
         continuous_update=continuous_update,
+        style={"description_width": "initial"},
     )
 
     view = viewer3d.init(
@@ -219,15 +225,26 @@ def coreBoundarySurface(
     core_cutoff.observe(set_core_cutoff, names="value")
     surface_cutoff.observe(set_surface_cutoff, names="value")
 
+    # TODO description is currently not shown -- move it to dropdown in the future?
+    advanced_label = Label(
+        "Advanced parameters:",
+        description="""
+distance factor = 1 / (1 + exp( n*(d - m) ) ), where d is the distance of the neighbor from the residue CA, m is the midpoint of the distance falloff, and n is a falloff exponent factor that determines the sharpness of the distance falloff (with higher values giving sharper falloff near the midpoint distance).
+
+angle factor = ( (cos(theta)+a)/(1+a) )^b, where theta is the angle between the CA-CB vector and the CA-neighbor vector, a is an offset factor that widens the cone somewhat, and b is an exponent that determines the sharpness of the angular falloff (with lower values resulting in a broader cone with a sharper edge falloff).
+    """,
+    )
+
     view.set_widgets(
         [
-            angle_exponent,
-            angle_shift_factor,
-            dist_exponent,
-            denominator,
-            dist_midpoint,
             core_cutoff,
             surface_cutoff,
+            advanced_label,
+            dist_exponent,
+            dist_midpoint,
+            angle_exponent,
+            angle_shift_factor,
+            denominator,
         ]
     )
     view.update_viewer()
