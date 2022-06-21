@@ -275,14 +275,14 @@ class TestViewer(unittest.TestCase):
 
         myCustomPreset(pose)
 
-    def test_viewer_with_pdbfiles_py3Dmol(self):
+    def test_py3Dmol_with_pdbfiles(self):
         self.viewer_with_pdbfiles(backend=0)
 
-    def test_viewer_with_poses_py3Dmol(self):
+    def test_py3Dmol_with_poses(self):
         self.viewer_with_poses(backend=0)
 
-    def test_viewer_with_pdbfiles_nglview(self):
+    def test_nglview_with_pdbfiles(self):
         self.viewer_with_pdbfiles(backend=1)
 
-    def test_viewer_with_poses_nglview(self):
+    def test_nglview_with_poses(self):
         self.viewer_with_poses(backend=1)
