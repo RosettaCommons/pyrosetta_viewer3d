@@ -1,5 +1,6 @@
 import attr
 import collections
+import copy
 import itertools
 import logging
 import pyrosetta
@@ -16,6 +17,7 @@ from pyrosetta.rosetta.core.select.residue_selector import (
 from pyrosetta.rosetta.core.id import AtomID
 from typing import Dict, Generic, List, NoReturn, Optional, Tuple, TypeVar, Union
 
+from viewer3d.colors import default_element_colors
 from viewer3d.config import BACKENDS
 from viewer3d.converters import (
     _get_nglview_selection,
@@ -55,6 +57,29 @@ class ModuleBase:
             _modules = [_to_module(objs)]
 
         return _modules
+
+    def add_element_selection_scheme(self, name: str) -> None:
+        """
+        Add element-based selection scheme to NGLView ColormakerRegistry
+        based on '<color>Carbon' naming system.
+        """
+
+        @singledispatch
+        def _int_to_str(obj):
+            return obj
+
+        @_int_to_str.register(int)
+        def _to_str(obj):
+            return hex(obj).replace("0x", "#")
+
+        _default_element_colors = copy.deepcopy(default_element_colors)
+        _default_element_colors["C"] = name.replace("Carbon", "")
+        _selection_scheme = [
+            [_int_to_str(color), f"_{element}"]
+            for (element, color) in _default_element_colors.items()
+        ]
+        cm = sys.modules["nglview"].color.ColormakerRegistry
+        cm.add_selection_scheme(name, _selection_scheme)
 
 
 @attr.s(kw_only=False, slots=True)
@@ -851,10 +876,7 @@ class setStyle(ModuleBase):
         if self.cartoon_color is None:
             self.cartoon_color = "atomindex"
         if isinstance(self.colorscheme, str) and self.colorscheme.endswith("Carbon"):
-            if self.colorscheme == "blackCarbon":
-                self.colorscheme = "element"
-            else:
-                self.colorscheme = self.colorscheme.replace("Carbon", "")
+            self.add_element_selection_scheme(self.colorscheme)
         if self.style == "stick":
             self.style = "licorice"
         elif self.style == "sphere":
@@ -1090,6 +1112,11 @@ class setSurface(ModuleBase):
             "SES": "ses",
             "AV": "av",
         }
+        if isinstance(self.color, str) and self.color.endswith("Carbon"):
+            self.add_element_selection_scheme(self.color)
+        if isinstance(self.colorscheme, str) and self.colorscheme.endswith("Carbon"):
+            self.add_element_selection_scheme(self.colorscheme)
+
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
