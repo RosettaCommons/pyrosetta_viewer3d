@@ -551,6 +551,23 @@ class setHydrogens(ModuleBase):
 
 
 @attr.s(kw_only=True, slots=True)
+class setScoretype(ModuleBase):
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[0])
+
+    @requires_init
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        pass
+
+    def apply_pymol(self) -> NoReturn:
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
+
+
+@attr.s(kw_only=True, slots=True)
 class setStyle(ModuleBase):
     """
     Show and color cartoon, and/or show heavy atoms with provided style, color and radius for each initialized
@@ -1240,4 +1257,27 @@ class setZoomTo(ModuleBase):
         return viewer
 
     def apply_pymol(self) -> NoReturn:
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
+
+
+@attr.s(kw_only=True, slots=True, frozen=True)
+class setTemplate(ModuleBase):
+    """Template class for developing new visualization modules."""
+
+    @requires_init
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[0])
+
+    @requires_init
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+
+    @requires_init
+    def apply_pymol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
