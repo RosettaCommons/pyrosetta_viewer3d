@@ -1,11 +1,14 @@
 import attr
+import bokeh.palettes
 import collections
 import copy
 import itertools
 import logging
+import numpy
 import pyrosetta
 import pyrosetta.distributed.io as io
 import sys
+import uuid
 
 from functools import singledispatch
 from pyrosetta import Pose
@@ -22,8 +25,10 @@ from viewer3d.config import BACKENDS
 from viewer3d.converters import (
     _get_nglview_selection,
     _get_residue_chain_tuple,
+    _int_to_str,
     _pdbstring_to_pose,
     _pose_to_residue_chain_tuples,
+    _py3Dmol_to_nglview_style,
     _to_hex,
     _to_0_if_le_0,
     _to_1_if_gt_1,
@@ -58,28 +63,43 @@ class ModuleBase:
 
         return _modules
 
+    def add_selection_scheme(
+        self, name: str, selection_scheme: List[List[Union[str, int]]]
+    ) -> None:
+        cm = sys.modules["nglview"].color.ColormakerRegistry
+        cm.add_selection_scheme(name, selection_scheme)
+
     def add_element_selection_scheme(self, name: str) -> None:
         """
         Add element-based selection scheme to NGLView ColormakerRegistry
-        based on '<color>Carbon' naming system.
+        based on '<color>Carbon' naming system or an arbitrary `str` object.
         """
-
-        @singledispatch
-        def _int_to_str(obj):
-            return obj
-
-        @_int_to_str.register(int)
-        def _to_str(obj):
-            return hex(obj).replace("0x", "#")
-
         _default_element_colors = copy.deepcopy(default_element_colors)
-        _default_element_colors["C"] = name.replace("Carbon", "")
+        if name.endswith("Carbon"):
+            _default_element_colors["C"] = name.replace("Carbon", "")
+        else:
+            _default_element_colors["C"] = name
         _selection_scheme = [
             [_int_to_str(color), f"_{element}"]
             for (element, color) in _default_element_colors.items()
         ]
-        cm = sys.modules["nglview"].color.ColormakerRegistry
-        cm.add_selection_scheme(name, _selection_scheme)
+        self.add_selection_scheme(name, _selection_scheme)
+
+    # def add_per_residue_element_selection_scheme(
+    #     self, name: str, color: str, residue_chain_tuples: List[Tuple[str, str]]
+    # ) -> None:
+    #     """
+    #     Add per-residue, per-element selection scheme to NGLView ColormakerRegistry.
+    #     """
+    #     _default_element_colors = copy.deepcopy(default_element_colors)
+    #     _default_element_colors["C"] = color
+    #     _selection_scheme = [
+    #         [_int_to_str(color), f"{resi}:{chain}_{element}"]
+    #         for (element, color) in _default_element_colors.items()
+    #         for (resi, chain) in residue_chain_tuples
+    #     ]
+    #     cm = sys.modules["nglview"].color.ColormakerRegistry
+    #     cm.add_selection_scheme(name, _selection_scheme)
 
 
 @attr.s(kw_only=False, slots=True)
@@ -551,7 +571,77 @@ class setHydrogens(ModuleBase):
 
 
 @attr.s(kw_only=True, slots=True)
-class setScoretype(ModuleBase):
+class setPerResidueRealMetric(ModuleBase):
+
+    scoretype = attr.ib(
+        default=None,
+        # type=Union[str, int],
+        validator=attr.validators.instance_of(str),
+        # converter=[attr.converters.default_if_none(default="white"), _to_hex],
+    )
+    vmin = attr.ib(
+        default=None,
+        # type=Union[str, int],
+        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
+        # converter=[attr.converters.default_if_none(default="white"), _to_hex],
+    )
+    vmax = attr.ib(
+        default=None,
+        # type=Union[str, int],
+        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
+        # converter=[attr.converters.default_if_none(default="white"), _to_hex],
+    )
+    palette = attr.ib(
+        default=None,
+        type=List[Union[str, int]],
+        validator=attr.validators.deep_iterable(
+            member_validator=attr.validators.instance_of((str, int)),
+            iterable_validator=attr.validators.instance_of(collections.abc.Iterable),
+        ),
+        converter=attr.converters.default_if_none(default=bokeh.palettes.Magma256),
+    )
+    style = attr.ib(
+        default="stick",
+        type=str,
+        validator=[
+            attr.validators.instance_of(str),
+            attr.validators.in_(("line", "cross", "stick", "sphere", "ball+stick")),
+        ],
+    )
+    radius = attr.ib(
+        default=0.05,
+        type=Union[float, int],
+        validator=attr.validators.instance_of((float, int)),
+        converter=_to_0_if_le_0,
+    )
+    show_hydrogens = attr.ib(
+        default=None,
+        type=bool,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
+    # residue_selector = attr.ib(
+    #     default=None,
+    #     type=Optional[ResidueSelector],
+    #     validator=attr.validators.optional(
+    #         attr.validators.instance_of(ResidueSelector)
+    #     ),
+    #     converter=attr.converters.default_if_none(default=TrueResidueSelector()),
+    # )
+
+    def get_elements_from_residue(self, residue: "Residue") -> List[str]:
+        residue_type = residue.type()
+        elements = [
+            residue_type.element(atom).name.upper()
+            for atom in range(1, residue.natoms() + 1)
+        ]
+        return elements
+
+    def get_nearest_value_key(self, _dict, _value):
+        index, value = min(enumerate(_dict.keys()), key=lambda x: abs(x[1] - _value))
+
+        return value
+
     def apply_py3Dmol(
         self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
     ) -> Generic[ViewerType]:
@@ -561,7 +651,66 @@ class setScoretype(ModuleBase):
     def apply_nglview(
         self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
     ) -> Generic[ViewerType]:
-        pass
+        self.style = _py3Dmol_to_nglview_style(self.style)
+
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        values = [
+            value
+            for (scoretype, value) in pose.scores.items()
+            if self.scoretype in scoretype
+        ]
+        if self.vmin is None:
+            self.vmin = min(values)
+        if self.vmax is None:
+            self.vmax = max(values)
+        _palette_value_dict = collections.OrderedDict(
+            zip(numpy.linspace(self.vmin, self.vmax, len(self.palette)), self.palette)
+        )
+        _default_element_colors = copy.deepcopy(default_element_colors)
+        _selection_scheme = []
+        for scoretype, value in pose.scores.items():
+            if self.scoretype in scoretype:
+                _r = scoretype.split("_")[-1]
+                if _r.isdigit():
+                    _residue, _chain = _get_residue_chain_tuple(pose, int(_r))
+                else:
+                    _residue, _chain = _r[:-1], _r[-1]
+                _resnum = pose.pdb_info().pdb2pose(_chain, int(_residue))
+                _elements_from_residue = self.get_elements_from_residue(
+                    pose.residue(_resnum)
+                )
+                _nearest_value = self.get_nearest_value_key(_palette_value_dict, value)
+                _C_color = _palette_value_dict[_nearest_value]
+                _default_element_colors["C"] = _C_color
+                # _selection_scheme.append(
+                #     [
+                #         _int_to_str(_C_color),
+                #         f"{_residue}:{_chain}",
+                #     ]
+                # )
+                for (_element, _element_color) in _default_element_colors.items():
+                    if _element in _elements_from_residue:
+                        _selection_scheme.append(
+                            [
+                                _int_to_str(_element_color),
+                                f"{_residue}:{_chain} and _{_element}",
+                            ]
+                        )
+        _selection_name = f"{self.scoretype}_{uuid.uuid4().hex}"
+        self.add_selection_scheme(_selection_name, _selection_scheme)
+        # print(_selection_scheme)
+        _default_selection = "*" if self.show_hydrogens else "not hydrogen"
+        viewer.add_representation(
+            repr_type=self.style,
+            selection=_default_selection,
+            color=_selection_name,
+            radius=self.radius,
+            component=model,
+        )
+
+        return viewer
 
     def apply_pymol(self) -> NoReturn:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
@@ -894,14 +1043,7 @@ class setStyle(ModuleBase):
             self.cartoon_color = "atomindex"
         if isinstance(self.colorscheme, str) and self.colorscheme.endswith("Carbon"):
             self.add_element_selection_scheme(self.colorscheme)
-        if self.style == "stick":
-            self.style = "licorice"
-        elif self.style == "sphere":
-            self.style = "spacefill"
-        elif self.style == "cross":
-            self.style = "point"
-        elif self.style == "line":
-            self.style = "line"
+        self.style = _py3Dmol_to_nglview_style(self.style)
         default_selection = "*" if self.show_hydrogens else "not hydrogen"
 
         if self.command:
