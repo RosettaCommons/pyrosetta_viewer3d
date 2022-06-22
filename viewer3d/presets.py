@@ -326,19 +326,20 @@ def ligandsAndMetals(*args, **kwargs):
 
 
 @requires_init
-def backboneUnsatSelector(
+def unsatSelector(
     pose,
     scorefxn=None,
-    hbond_energy_cutoff=(-0.25),
+    hbond_energy_cutoff=(-0.5),
     backend=0,
 ):
     """
-    Visualize unsatisfied hydrogen bonds on backbone amine and carbonyl moieties.
+    Visualize residues with unsatisfied backbone amine and backbone carbonyl hydrogen bonds.
+
     Residues with an unsatisfied backbone amine are colored blue, residues with
     an unsatisfied backbone carbonyl are colored red, and residues with both an
     unsatisfied backbone amine and unsatisfied backbone carbonyl are colored yellow.
     Residues with satisfied backbone hydrogen bonds are colored black. Cartoon
-    representation is shown, and hydrogen bonds are shown in black dashed lines.
+    representation is shown and hydrogen bonds are shown in black dashed lines.
 
     Args:
         pose: a required `Pose` object to display.
@@ -346,7 +347,7 @@ def backboneUnsatSelector(
             Default: 'ref2015'
         hbond_energy_cutoff: an optional energy cutoff for selecting unsatisfied
             hydrogen bonds.
-            Default: `-0.25`
+            Default: `-0.5`
         backend: an optional `str` or `int` object representing the backend to use for
             the visualization.
             Default: `0` or `py3Dmol`
@@ -358,7 +359,7 @@ def backboneUnsatSelector(
 
     with out:
         if scorefxn is None:
-            # TODO check if '-beta' is initialized
+            # TODO check if '-beta' is initialized and score with beta
             scorefxn = pyrosetta.create_score_function("ref2015")
 
         unsat_amine_selector = UnsatSelector()
