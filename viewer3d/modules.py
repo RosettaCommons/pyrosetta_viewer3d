@@ -614,7 +614,7 @@ class setPerResidueRealMetric(ModuleBase):
     fourth: optional
         `palette`
 
-        An iterable of `str` objects representing a color map.
+        An iterable of `str` (or `int`) objects representing a color map.
         Default: `bokeh.palettes.Greens256`
 
     fifth: optional
