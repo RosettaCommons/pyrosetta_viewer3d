@@ -18,7 +18,18 @@ from pyrosetta.rosetta.core.select.residue_selector import (
     TrueResidueSelector,
 )
 from pyrosetta.rosetta.core.id import AtomID
-from typing import Dict, Generic, List, NoReturn, Optional, Tuple, TypeVar, Union
+from typing import (
+    Dict,
+    Generic,
+    Iterable,
+    List,
+    NoReturn,
+    Optional,
+    OrderedDict,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from viewer3d.colors import default_element_colors
 from viewer3d.config import BACKENDS
@@ -572,33 +583,79 @@ class setHydrogens(ModuleBase):
 
 @attr.s(kw_only=True, slots=True)
 class setPerResidueRealMetric(ModuleBase):
+    """
+    first: required
+        `scoretype`
+
+        `str` object matching a scoretype name. The scoretype name must contain a
+        trailing underscore followed by either a residue number (rosetta numbering) or
+        pdb number (pdb numbering), per the default output of `PerResidueRealMetrics`.
+        Examples:
+            Scoretype "res_energy_18A" would be selected by `scoretype='res_energy'`
+            Scoretype "atomic_clashes_4" would be selected by `scoretype='atomic_clashes'`
+
+    second: optional
+        `vmin`
+
+        `float` or `int` object representing the minimum
+        Default: None
+
+    thrid: optional
+        `vmax`
+
+        Default: None
+
+    fourth: optional
+        `palette`
+
+    fifth: optional:
+        `style`
+
+        `str` indicating a representation style of heavy atoms, choosing from either "line", "cross", "stick", or "sphere".
+        Default: "stick"
+
+    sixth : optional
+        `radius`
+
+        `float` or `int` indicating the radius of the heavy atoms represented by the `style` option.
+        Default: 0.1
+
+    seventh : optional
+        `show_hydrogens`
+
+        `bool` object for the `nglview` backend to show all hydrogens.
+        Defualt: False
+
+    eighth : optional
+        `bonds`
+
+        `str` object for the `nglview` backend to show double bonds.
+        Options are: "off", "symmetric", "offset"
+        Defualt: "symmetric"
+    """
 
     scoretype = attr.ib(
-        default=None,
-        # type=Union[str, int],
+        type=str,
         validator=attr.validators.instance_of(str),
-        # converter=[attr.converters.default_if_none(default="white"), _to_hex],
     )
     vmin = attr.ib(
         default=None,
-        # type=Union[str, int],
+        type=Union[float, int],
         validator=attr.validators.optional(attr.validators.instance_of((float, int))),
-        # converter=[attr.converters.default_if_none(default="white"), _to_hex],
     )
     vmax = attr.ib(
         default=None,
-        # type=Union[str, int],
+        type=Union[float, int],
         validator=attr.validators.optional(attr.validators.instance_of((float, int))),
-        # converter=[attr.converters.default_if_none(default="white"), _to_hex],
     )
     palette = attr.ib(
         default=None,
-        type=List[Union[str, int]],
+        type=Iterable[Union[str, int]],
         validator=attr.validators.deep_iterable(
             member_validator=attr.validators.instance_of((str, int)),
             iterable_validator=attr.validators.instance_of(collections.abc.Iterable),
         ),
-        converter=attr.converters.default_if_none(default=bokeh.palettes.Magma256),
+        converter=attr.converters.default_if_none(default=bokeh.palettes.Greens256),
     )
     style = attr.ib(
         default="stick",
@@ -609,7 +666,7 @@ class setPerResidueRealMetric(ModuleBase):
         ],
     )
     radius = attr.ib(
-        default=0.05,
+        default=0.1,
         type=Union[float, int],
         validator=attr.validators.instance_of((float, int)),
         converter=_to_0_if_le_0,
@@ -620,14 +677,26 @@ class setPerResidueRealMetric(ModuleBase):
         validator=attr.validators.instance_of(bool),
         converter=attr.converters.default_if_none(default=False),
     )
-    # residue_selector = attr.ib(
-    #     default=None,
-    #     type=Optional[ResidueSelector],
-    #     validator=attr.validators.optional(
-    #         attr.validators.instance_of(ResidueSelector)
-    #     ),
-    #     converter=attr.converters.default_if_none(default=TrueResidueSelector()),
-    # )
+    bonds = attr.ib(
+        default=None,
+        type=bool,
+        validator=[
+            attr.validators.instance_of(str),
+            attr.validators.in_(("off", "symmetric", "offset")),
+        ],
+        converter=attr.converters.default_if_none(default="symmetric"),
+    )
+
+    def set_vmin_vmax(self, pose: Pose) -> None:
+        values = [
+            value
+            for (scoretype, value) in pose.scores.items()
+            if self.scoretype in scoretype
+        ]
+        if self.vmin is None:
+            self.vmin = min(values)
+        if self.vmax is None:
+            self.vmax = max(values)
 
     def get_elements_from_residue(self, residue: "Residue") -> List[str]:
         residue_type = residue.type()
@@ -637,15 +706,48 @@ class setPerResidueRealMetric(ModuleBase):
         ]
         return elements
 
-    def get_nearest_value_key(self, _dict, _value):
+    def get_nearest_value_from_keys(self, _dict, _value):
         index, value = min(enumerate(_dict.keys()), key=lambda x: abs(x[1] - _value))
 
         return value
 
+    def get_palette_value_dict(self) -> OrderedDict[float, str]:
+        _palette_value_dict = collections.OrderedDict(
+            zip(numpy.linspace(self.vmin, self.vmax, len(self.palette)), self.palette)
+        )
+        return _palette_value_dict
+
     def apply_py3Dmol(
         self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
     ) -> Generic[ViewerType]:
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[0])
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        self.set_vmin_vmax(pose)
+        _palette_value_dict = self.get_palette_value_dict()
+        _selection_scheme = []
+        for scoretype, value in pose.scores.items():
+            _r = scoretype.split("_")[-1]
+            if _r.isdigit():
+                resi, chain = _get_residue_chain_tuple(pose, int(_r))
+            else:
+                resi, chain = _r[:-1], _r[-1]
+            _nearest_value = self.get_nearest_value_from_keys(
+                _palette_value_dict, value
+            )
+            _C_color = _palette_value_dict[_nearest_value]
+            # TODO Set element-based color scheme
+            viewer.setStyle(
+                {"model": model, "resi": resi, "chain": chain},
+                {
+                    self.style: {
+                        "color": _C_color,
+                        "radius": self.radius,
+                    }
+                },
+            )
+
+        return viewer
 
     @requires_init
     def apply_nglview(
@@ -656,18 +758,8 @@ class setPerResidueRealMetric(ModuleBase):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        values = [
-            value
-            for (scoretype, value) in pose.scores.items()
-            if self.scoretype in scoretype
-        ]
-        if self.vmin is None:
-            self.vmin = min(values)
-        if self.vmax is None:
-            self.vmax = max(values)
-        _palette_value_dict = collections.OrderedDict(
-            zip(numpy.linspace(self.vmin, self.vmax, len(self.palette)), self.palette)
-        )
+        self.set_vmin_vmax(pose)
+        _palette_value_dict = self.get_palette_value_dict()
         _default_element_colors = copy.deepcopy(default_element_colors)
         _selection_scheme = []
         for scoretype, value in pose.scores.items():
@@ -681,15 +773,11 @@ class setPerResidueRealMetric(ModuleBase):
                 _elements_from_residue = self.get_elements_from_residue(
                     pose.residue(_resnum)
                 )
-                _nearest_value = self.get_nearest_value_key(_palette_value_dict, value)
+                _nearest_value = self.get_nearest_value_from_keys(
+                    _palette_value_dict, value
+                )
                 _C_color = _palette_value_dict[_nearest_value]
                 _default_element_colors["C"] = _C_color
-                # _selection_scheme.append(
-                #     [
-                #         _int_to_str(_C_color),
-                #         f"{_residue}:{_chain}",
-                #     ]
-                # )
                 for (_element, _element_color) in _default_element_colors.items():
                     if _element in _elements_from_residue:
                         _selection_scheme.append(
@@ -700,13 +788,13 @@ class setPerResidueRealMetric(ModuleBase):
                         )
         _selection_name = f"{self.scoretype}_{uuid.uuid4().hex}"
         self.add_selection_scheme(_selection_name, _selection_scheme)
-        # print(_selection_scheme)
         _default_selection = "*" if self.show_hydrogens else "not hydrogen"
         viewer.add_representation(
             repr_type=self.style,
             selection=_default_selection,
             color=_selection_name,
             radius=self.radius,
+            multipleBond=self.bonds,
             component=model,
         )
 
@@ -859,6 +947,13 @@ class setStyle(ModuleBase):
         `bool` object for the `nglview` backend to show all hydrogens.
         Defualt: False
 
+    fifteenth : optional
+        `bonds`
+
+        `str` object for the `nglview` backend to show double bonds.
+        Options are: "off", "symmetric", "offset"
+        Defualt: "symmetric"
+
     Returns
     -------
     A Viewer instance.
@@ -949,6 +1044,15 @@ class setStyle(ModuleBase):
         type=bool,
         validator=attr.validators.instance_of(bool),
         converter=attr.converters.default_if_none(default=False),
+    )
+    bonds = attr.ib(
+        default=None,
+        type=bool,
+        validator=[
+            attr.validators.instance_of(str),
+            attr.validators.in_(("off", "symmetric", "offset")),
+        ],
+        converter=attr.converters.default_if_none(default="symmetric"),
     )
 
     @requires_init
@@ -1070,6 +1174,7 @@ class setStyle(ModuleBase):
                         selection=selection,
                         color=self.colorscheme,
                         radius=self.radius,
+                        multipleBond=self.bonds,
                         component=model,
                     )
                 if self.cartoon:
@@ -1100,6 +1205,7 @@ class setStyle(ModuleBase):
                     selection=default_selection,
                     color=self.colorscheme,
                     radius=self.radius,
+                    multipleBond=self.bonds,
                     component=model,
                 )
             if self.cartoon:
