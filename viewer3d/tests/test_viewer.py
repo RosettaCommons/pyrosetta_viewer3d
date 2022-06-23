@@ -1,3 +1,4 @@
+import bokeh.palettes
 import itertools
 import glob
 import logging
@@ -220,6 +221,31 @@ class TestViewer(unittest.TestCase):
             minimize.apply(pose)
             view.show()
         view.reset()
+
+        scorefxn = pyrosetta.create_score_function("ref2015")
+        e = (
+            pyrosetta.rosetta.core.simple_metrics.per_residue_metrics.PerResidueEnergyMetric()
+        )
+        e.set_scorefunction(scorefxn)
+        v = viewer3d.init(backend=backend, gui=True)
+        palette = list(bokeh.palettes.Greens256) + list(
+            reversed(bokeh.palettes.Reds256)
+        )
+        v += viewer3d.setStyle(radius=0)
+        v += viewer3d.setPerResidueRealMetric(
+            scoretype="energy", vmin=-10, vmax=10, radius=0.2, log=10, palette=palette
+        )
+        v += viewer3d.setHydrogens(polar_only=True, color="lightgray")
+        v += viewer3d.setHydrogenBonds()
+        v += viewer3d.setDisulfides()
+        for h in range(10):
+            _pose = pose.clone()
+            _pose.scores.clear()
+            for i in range(20):
+                minimize.apply(_pose)
+            e.apply(_pose)
+            v.add_pose(_pose, index=h, update_viewer=False)
+        v.show()
 
         def myCustomPreset(packed_and_poses_and_pdbs=None, *args, **kwargs):
             """
