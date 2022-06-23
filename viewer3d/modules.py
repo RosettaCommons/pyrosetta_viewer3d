@@ -632,6 +632,13 @@ class setPerResidueRealMetric(ModuleBase):
         `str` object for the `nglview` backend to show double bonds.
         Options are: "off", "symmetric", "offset"
         Defualt: "symmetric"
+
+    ninth: optional
+        `log`
+
+        `None` for linear color mapping of 'vmin' to 'vmax'. If an `int`
+        or `float` object is provided, map colors spaced evenly on a log
+        scale with the base provided.
     """
 
     scoretype = attr.ib(
@@ -686,6 +693,12 @@ class setPerResidueRealMetric(ModuleBase):
         ],
         converter=attr.converters.default_if_none(default="symmetric"),
     )
+    log = attr.ib(
+        default=None,
+        type=Optional[Union[float, int]],
+        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
+        converter=_to_0_if_le_0,
+    )
 
     def set_vmin_vmax(self, pose: Pose) -> None:
         values = [
@@ -693,6 +706,10 @@ class setPerResidueRealMetric(ModuleBase):
             for (scoretype, value) in pose.scores.items()
             if self.scoretype in scoretype
         ]
+        if not values:
+            raise ValueError(
+                f"Scoretype matching '{self.scoretype}' not found in `pose.scores` keys."
+            )
         if self.vmin is None:
             self.vmin = min(values)
         if self.vmax is None:
@@ -712,9 +729,14 @@ class setPerResidueRealMetric(ModuleBase):
         return value
 
     def get_palette_value_dict(self) -> OrderedDict[float, str]:
-        _palette_value_dict = collections.OrderedDict(
-            zip(numpy.linspace(self.vmin, self.vmax, len(self.palette)), self.palette)
-        )
+        if self.log is not None:
+            _space = numpy.logspace(
+                self.vmin, self.vmax, len(self.palette), base=self.log
+            )
+        else:
+            _space = numpy.linspace(self.vmin, self.vmax, len(self.palette))
+        _palette_value_dict = collections.OrderedDict(zip(_space, self.palette))
+
         return _palette_value_dict
 
     def apply_py3Dmol(
