@@ -12,12 +12,13 @@ import uuid
 
 from functools import singledispatch
 from pyrosetta import Pose
-from pyrosetta.rosetta.core.conformation import is_disulfide_bond
+from pyrosetta.rosetta.core.id import AtomID
+from pyrosetta.rosetta.core.conformation import Residue, is_disulfide_bond
 from pyrosetta.rosetta.core.select.residue_selector import (
     ResidueSelector,
     TrueResidueSelector,
 )
-from pyrosetta.rosetta.core.id import AtomID
+
 from typing import (
     Dict,
     Generic,
@@ -584,6 +585,8 @@ class setHydrogens(ModuleBase):
 @attr.s(kw_only=True, slots=True)
 class setPerResidueRealMetric(ModuleBase):
     """
+    Show and color residues by a per-residue real metric in the `pose.scores` dictionary.
+
     first: required
         `scoretype`
 
@@ -592,53 +595,65 @@ class setPerResidueRealMetric(ModuleBase):
         pdb number (pdb numbering), per the default output of `PerResidueRealMetrics`.
         Examples:
             Scoretype "res_energy_18A" would be selected by `scoretype='res_energy'`
-            Scoretype "atomic_clashes_4" would be selected by `scoretype='atomic_clashes'`
+            Scoretype "custom_type_atomic_clashes_4" would be selected by `scoretype='atomic_clashes'`
 
     second: optional
         `vmin`
 
-        `float` or `int` object representing the minimum
+        `float` or `int` object representing the minimum value for color mapping
+        to scoretype values. If `None`, set 'vmin' to the minimum scoretype value.
         Default: None
 
-    thrid: optional
+    third: optional
         `vmax`
 
+        `float` or `int` object representing the maximum value for color mapping
+        to scoretype values. If `None`, set 'vmin' to the maximum scoretype value.
         Default: None
 
     fourth: optional
         `palette`
 
-    fifth: optional:
-        `style`
+        An iterable of `str` objects representing a color map.
+        Default: `bokeh.palettes.Greens256`
 
-        `str` indicating a representation style of heavy atoms, choosing from either "line", "cross", "stick", or "sphere".
-        Default: "stick"
-
-    sixth : optional
-        `radius`
-
-        `float` or `int` indicating the radius of the heavy atoms represented by the `style` option.
-        Default: 0.1
-
-    seventh : optional
-        `show_hydrogens`
-
-        `bool` object for the `nglview` backend to show all hydrogens.
-        Defualt: False
-
-    eighth : optional
-        `bonds`
-
-        `str` object for the `nglview` backend to show double bonds.
-        Options are: "off", "symmetric", "offset"
-        Defualt: "symmetric"
-
-    ninth: optional
+    fifth: optional
         `log`
 
         `None` for linear color mapping of 'vmin' to 'vmax'. If an `int`
         or `float` object is provided, map colors spaced evenly on a log
         scale with the base provided.
+
+    sixth: optional:
+        `style`
+
+        `str` indicating a representation style of heavy atoms, choosing from
+        either "line", "cross", "stick", or "sphere".
+        Default: "stick"
+
+    seventh : optional
+        `radius`
+
+        `float` or `int` indicating the radius of the heavy atoms represented by
+        the `style` option.
+        Default: 0.1
+
+    eighth : optional
+        `show_hydrogens`
+
+        `bool` object for the `nglview` backend to show all hydrogens.
+        Defualt: False
+
+    ninth : optional
+        `bonds`
+
+        `str` object for the `nglview` backend to show double bonds.
+        Available options are: "off", "symmetric", or "offset"
+        Defualt: "symmetric"
+
+    Returns
+    -------
+    A Viewer instance.
     """
 
     scoretype = attr.ib(
@@ -663,6 +678,12 @@ class setPerResidueRealMetric(ModuleBase):
             iterable_validator=attr.validators.instance_of(collections.abc.Iterable),
         ),
         converter=attr.converters.default_if_none(default=bokeh.palettes.Greens256),
+    )
+    log = attr.ib(
+        default=None,
+        type=Optional[Union[float, int]],
+        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
+        converter=_to_0_if_le_0,
     )
     style = attr.ib(
         default="stick",
@@ -693,12 +714,6 @@ class setPerResidueRealMetric(ModuleBase):
         ],
         converter=attr.converters.default_if_none(default="symmetric"),
     )
-    log = attr.ib(
-        default=None,
-        type=Optional[Union[float, int]],
-        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
-        converter=_to_0_if_le_0,
-    )
 
     def set_vmin_vmax(self, pose: Pose) -> None:
         values = [
@@ -715,7 +730,7 @@ class setPerResidueRealMetric(ModuleBase):
         if self.vmax is None:
             self.vmax = max(values)
 
-    def get_elements_from_residue(self, residue: "Residue") -> List[str]:
+    def get_elements_from_residue(self, residue: Residue) -> List[str]:
         residue_type = residue.type()
         elements = [
             residue_type.element(atom).name.upper()
@@ -723,7 +738,9 @@ class setPerResidueRealMetric(ModuleBase):
         ]
         return elements
 
-    def get_nearest_value_from_keys(self, _dict, _value):
+    def get_nearest_value_from_keys(
+        self, _dict: Dict[float, str], _value: float
+    ) -> float:
         index, value = min(enumerate(_dict.keys()), key=lambda x: abs(x[1] - _value))
 
         return value
