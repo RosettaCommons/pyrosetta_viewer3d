@@ -1,10 +1,11 @@
 """
 Display simple preset custom viewers for routine visualizations.
 """
-import pyrosetta
-
-
+import bokeh.palettes
+import collections
 import logging
+import pyrosetta
+import pyrosetta.distributed.io as io
 import viewer3d
 
 from ipywidgets.widgets import (
@@ -19,6 +20,7 @@ from ipywidgets.widgets import (
     VBox,
     Label,
 )
+from pyrosetta import Pose
 from pyrosetta.rosetta.core.chemical import ResidueProperty
 from pyrosetta.rosetta.core.select.residue_selector import (
     AndResidueSelector,
@@ -26,6 +28,9 @@ from pyrosetta.rosetta.core.select.residue_selector import (
     NotResidueSelector,
     OrResidueSelector,
     ResiduePropertySelector,
+)
+from pyrosetta.rosetta.core.simple_metrics.per_residue_metrics import (
+    PerResidueEnergyMetric,
 )
 from pyrosetta.rosetta.protocols.hbnet import UnsatSelector
 
@@ -323,6 +328,76 @@ def ligandsAndMetals(*args, **kwargs):
     )
 
     return view
+
+
+@requires_init
+def perResidueEnergyMetric(
+    poses,
+    scorefxn=None,
+    vmin=(-5),
+    vmax=5,
+    log=None,
+    backend=1,
+):
+    """
+    Score the input pose with `PerResidueEnergyMetric` and color sidechains by score,
+    with cartoon backbone, polar hydrogens, hydrogen bonds, and disulfides also shown.
+
+    Args:
+        poses: a required `Pose` object or iterable of `Pose` objects to score and display.
+        scorefxn: an optional scorefunction to use.
+            Default: 'ref2015'
+        vmin: a `float` or `int` object representing the minimum value for color mapping
+            to scoretype values. If `None`, set 'vmin' to the minimum scoretype value.
+            Default: `-5`
+        vmax: a `float` or `int` object representing the maximum value for color mapping
+            to scoretype values. If `None`, set 'vmin' to the maximum scoretype value.
+            Default: `5`
+        log: `None` for linear color mapping of 'vmin' to 'vmax'. If an `int`
+            or `float` object is provided, map colors spaced evenly on a log
+            scale with the base provided.
+            Default: `None`
+        backend: an optional `str` or `int` object representing the backend to use for
+            the visualization.
+            Default: `1` or `nglview`
+
+
+    Returns:
+        A `Py3DmolViewer` instance, a `NGLViewViewer` instance, or a `PyMOLViewer` instance.
+    """
+    __author__ = "Jason C. Klima"
+
+    if scorefxn is None:
+        scorefxn = pyrosetta.create_score_function("ref2015")
+    e = PerResidueEnergyMetric()
+    e.set_scorefunction(scorefxn)
+    _msg = "The 'poses' argument parameter must be a `Pose` object or an iterable of `Pose` objects. "
+    if isinstance(poses, collections.abc.Iterable) and not isinstance(poses, Pose):
+        for pose in poses:
+            if isinstance(pose, Pose):
+                e.apply(pose)
+            else:
+                raise ValueError(_msg + f"Received: {type(pose)}")
+    elif isinstance(poses, Pose):
+        e.apply(poses)
+    else:
+        raise ValueError(_msg + f"Received: {type(poses)}")
+    v = viewer3d.init(poses, backend=backend)
+    v += viewer3d.setStyle(radius=0)
+    palette = list(bokeh.palettes.Greens256) + list(reversed(bokeh.palettes.Reds256))
+    v += viewer3d.setPerResidueRealMetric(
+        scoretype="res_energy",
+        vmin=vmin,
+        vmax=vmax,
+        radius=0.2,
+        log=log,
+        palette=palette,
+    )
+    v += viewer3d.setHydrogens(polar_only=True, color="lightgray")
+    v += viewer3d.setHydrogenBonds()
+    v += viewer3d.setDisulfides()
+
+    return v
 
 
 @requires_init
