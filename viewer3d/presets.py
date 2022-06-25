@@ -340,21 +340,22 @@ def perResidueEnergyMetric(
     backend=1,
 ):
     """
-    Score the input pose with `PerResidueEnergyMetric` and color sidechains by score,
-    with cartoon backbone, polar hydrogens, hydrogen bonds, and disulfides also shown.
+    Score the input pose(s) with `PerResidueEnergyMetric` and color sidechains by
+    per-residue total score, with cartoon backbone, polar hydrogens, hydrogen bonds,
+    and disulfide bonds also shown.
 
     Args:
         poses: a required `Pose` object or iterable of `Pose` objects to score and display.
         scorefxn: an optional scorefunction to use.
             Default: 'ref2015'
-        vmin: a `float` or `int` object representing the minimum value for color mapping
-            to scoretype values. If `None`, set 'vmin' to the minimum scoretype value.
+        vmin: a `float` or `int` object representing the minimum energy value for color map.
+            If `None`, set 'vmin' to the minimum scoretype value.
             Default: `-5`
-        vmax: a `float` or `int` object representing the maximum value for color mapping
-            to scoretype values. If `None`, set 'vmin' to the maximum scoretype value.
+        vmax: a `float` or `int` object representing the maximum energy value for color map.
+            If `None`, set 'vmin' to the maximum scoretype value.
             Default: `5`
-        log: `None` for linear color mapping of 'vmin' to 'vmax'. If an `int`
-            or `float` object is provided, map colors spaced evenly on a log
+        log: `None` to map colors spaced evenly on a linear scale between 'vmin' to 'vmax'.
+            If an `int` or `float` object is provided, map colors spaced evenly on a log
             scale with the base provided.
             Default: `None`
         backend: an optional `str` or `int` object representing the backend to use for

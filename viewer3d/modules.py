@@ -584,15 +584,15 @@ class setPerResidueRealMetric(ModuleBase):
     second: optional
         `vmin`
 
-        `float` or `int` object representing the minimum value for color mapping
-        to scoretype values. If `None`, set 'vmin' to the minimum scoretype value.
+        `float` or `int` object representing the minimum scoretype value for the palette.
+        If `None`, set 'vmin' to the minimum scoretype value.
         Default: None
 
     third: optional
         `vmax`
 
-        `float` or `int` object representing the maximum value for color mapping
-        to scoretype values. If `None`, set 'vmin' to the maximum scoretype value.
+        `float` or `int` object representing the maximum scoretype value for the palette.
+        If `None`, set 'vmin' to the maximum scoretype value.
         Default: None
 
     fourth: optional
@@ -604,8 +604,8 @@ class setPerResidueRealMetric(ModuleBase):
     fifth: optional
         `log`
 
-        `None` for linear color mapping of 'vmin' to 'vmax'. If an `int`
-        or `float` object is provided, map colors spaced evenly on a log
+        `None` to map colors spaced evenly on a linear scale between 'vmin' to 'vmax'.
+        If an `int` or `float` object is provided, map colors spaced evenly on a log
         scale with the base provided.
         Default: None
 
