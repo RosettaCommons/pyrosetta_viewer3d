@@ -97,22 +97,6 @@ class ModuleBase:
         ]
         self.add_selection_scheme(name, _selection_scheme)
 
-    # def add_per_residue_element_selection_scheme(
-    #     self, name: str, color: str, residue_chain_tuples: List[Tuple[str, str]]
-    # ) -> None:
-    #     """
-    #     Add per-residue, per-element selection scheme to NGLView ColormakerRegistry.
-    #     """
-    #     _default_element_colors = copy.deepcopy(default_element_colors)
-    #     _default_element_colors["C"] = color
-    #     _selection_scheme = [
-    #         [_int_to_str(color), f"{resi}:{chain}_{element}"]
-    #         for (element, color) in _default_element_colors.items()
-    #         for (resi, chain) in residue_chain_tuples
-    #     ]
-    #     cm = sys.modules["nglview"].color.ColormakerRegistry
-    #     cm.add_selection_scheme(name, _selection_scheme)
-
 
 @attr.s(kw_only=False, slots=True)
 class setBackgroundColor(ModuleBase):
