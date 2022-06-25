@@ -607,6 +607,7 @@ class setPerResidueRealMetric(ModuleBase):
         `None` for linear color mapping of 'vmin' to 'vmax'. If an `int`
         or `float` object is provided, map colors spaced evenly on a log
         scale with the base provided.
+        Default: None
 
     sixth: optional:
         `style`
