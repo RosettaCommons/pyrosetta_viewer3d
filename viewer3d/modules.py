@@ -756,6 +756,7 @@ class setPerResidueRealMetric(ModuleBase):
 
         return _palette_value_dict
 
+    @requires_init
     def apply_py3Dmol(
         self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
     ) -> Generic[ViewerType]:
