@@ -4,15 +4,43 @@ Display `PackedPose` objects, `Pose` objects, or `.pdb` files within a Jupyter n
 # Description
 The `viewer3d` macromolecular viewer quickly renders `.pdb` files, dynamically instantiating `Pose` objects if required for certain visualization modules (matching the name `viewer3d.set*`). So when adding visualization modules to the viewer or using presets, passing `Pose` or `PackedPose` objects to the viewer is suggested for quicker rendering. If a `Pose` object or `list`, `tuple`, or `set` of `Pose` objects are provided to the viewer, the `Pose`(s) pointer location(s) in memory remain fixed, and so the viewer can dynamically update upon `Pose` conformational changes by calling the following methods:
 
-`update_viewer(index=None, model=None, add_objects=True, remove_objects=True)`
-`add_pose(pose, index=None, update_viewer=True)`
-`add_pdbstring(pdbstring, index=None, update_viewer=True)`
-`remove_pose(index=None, model=None, update_viewer=True)`
-`remove_pdbstring(index=None, model=None, update_viewer=True)`
-`update_pose(pose, index=None, model=None, update_viewer=True)`
-`update_pdbstring(pdbstring, index=None, model=None, update_viewer=True)`
-`update_poses(poses, index=None, update_viewer=True)`
-`update_pdbstrings(pdbstrings, index=None, update_viewer=True)`
+```
+update_viewer(index=None, model=None, add_objects=True, remove_objects=True)
+```
+
+```
+add_pose(pose, index=None, update_viewer=True)
+```
+
+```
+add_pdbstring(pdbstring, index=None, update_viewer=True)
+```
+
+```
+remove_pose(index=None, model=None, update_viewer=True)
+```
+
+```
+remove_pdbstring(index=None, model=None, update_viewer=True)
+```
+
+```
+update_pose(pose, index=None, model=None, update_viewer=True)
+```
+
+```
+update_pdbstring(pdbstring, index=None, model=None, update_viewer=True)
+```
+
+```
+update_poses(poses, index=None, update_viewer=True)
+```
+
+```
+update_pdbstrings(pdbstrings, index=None, update_viewer=True)
+```
+
+For adding/removing visualization modules in the widget update function, either initialize the viewer with `viewer3d.init(modules=[...])` or call the `set_modules()` method to overwrite the current list of modules. Otherwise, call the `clear()` method then add the new modules. After pose conformational changes and setting the viewer modules, call the `update_viewer()` method if the pose's pointer in memory remains the same, otherwise call the `update_pose(pose)` method to update the pose and viewer.
 
 See docstrings for more information. The viewer applies visualization modules in the same order they are added (from left to right), so layering different styles (and `ResidueSelector`s) on top of one another becomes possible. The user must have already initialized PyRosetta providing `.params` files for any ligands and non-canonical residues in the input molecule(s), otherwise `pyrosetta.distributed` automatically initializes PyRosetta with default command line options.
 
@@ -22,13 +50,15 @@ Please open a pull request with an updated unit test from a custom branch.
 # Unit Tests
 `python -m unittest`
 
+# Installation
+`conda env create -f environment.yml`
+
 # PyPI Releases
 1. Update version number in `setup.py`
 2. `pip install --user --upgrade setuptools wheel twine`
 3. `rm -rf dist/*`
 4. `python setup.py sdist bdist_wheel`
 5. `python -m twine upload dist/*`
-
 
 # Usage Examples:
 ```
