@@ -1,5 +1,4 @@
 import attr
-import bokeh.palettes
 import collections
 import copy
 import itertools
@@ -10,6 +9,7 @@ import pyrosetta.distributed.io as io
 import sys
 import uuid
 
+from bokeh.palettes import Greens256
 from functools import singledispatch
 from pyrosetta import Pose
 from pyrosetta.rosetta.core.id import AtomID
@@ -677,7 +677,7 @@ class setPerResidueRealMetric(ModuleBase):
             member_validator=attr.validators.instance_of((str, int)),
             iterable_validator=attr.validators.instance_of(collections.abc.Iterable),
         ),
-        converter=attr.converters.default_if_none(default=bokeh.palettes.Greens256),
+        converter=attr.converters.default_if_none(default=Greens256),
     )
     log = attr.ib(
         default=None,
