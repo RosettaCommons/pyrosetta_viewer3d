@@ -247,6 +247,8 @@ class TestViewer(unittest.TestCase):
             v.add_pose(_pose, index=h, update_viewer=False)
         v.show()
 
+        viewer = viewer3d.presets.perResidueEnergyMetric(pose)
+        viewer.show()
         viewer = viewer3d.presets.unsatSelector(pose)
         viewer.show()
 
