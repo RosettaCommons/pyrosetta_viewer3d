@@ -247,6 +247,9 @@ class TestViewer(unittest.TestCase):
             v.add_pose(_pose, index=h, update_viewer=False)
         v.show()
 
+        viewer = viewer3d.presets.unsatSelector(pose)
+        viewer.show()
+
         def myCustomPreset(packed_and_poses_and_pdbs=None, *args, **kwargs):
             """
             Add a description of the preset Viewer here
