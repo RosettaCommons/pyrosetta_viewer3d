@@ -90,7 +90,7 @@ def _to_poses_pdbstrings(
 
     if isinstance(
         packed_and_poses_and_pdbs, collections.abc.Iterable
-    ) and not isinstance(packed_and_poses_and_pdbs, (Pose, PackedPose)):
+    ) and not isinstance(packed_and_poses_and_pdbs, (Pose, PackedPose, str)):
         poses, pdbstrings = map(
             to_dict,
             map(
