@@ -22,15 +22,19 @@ from ipywidgets.widgets import (
 )
 from pyrosetta import Pose
 from pyrosetta.rosetta.core.chemical import ResidueProperty
+from pyrosetta.rosetta.core.scoring.sasa import SasaMethodHPMode
 from pyrosetta.rosetta.core.select.residue_selector import (
     AndResidueSelector,
     LayerSelector,
     NotResidueSelector,
     OrResidueSelector,
     ResiduePropertySelector,
+    TrueResidueSelector,
 )
 from pyrosetta.rosetta.core.simple_metrics.per_residue_metrics import (
+    PerResidueClashMetric,
     PerResidueEnergyMetric,
+    PerResidueSasaMetric,
 )
 from pyrosetta.rosetta.protocols.hbnet import UnsatSelector
 
@@ -331,12 +335,89 @@ def ligandsAndMetals(*args, **kwargs):
 
 
 @requires_init
+def perResidueClashMetric(
+    poses,
+    vmin=0,
+    vmax=10,
+    log=None,
+    palette=None,
+    backend=1,
+):
+    """
+    Score the input pose(s) with `PerResidueClashMetric` and color sidechains by
+    per-residue clash score, with cartoon backbone, polar hydrogens, hydrogen bonds,
+    and disulfide bonds also shown.
+
+    Args:
+        poses: a required `Pose` object or iterable of `Pose` objects to score and display.
+        vmin: a `float` or `int` object representing the minimum clash score value for color map.
+            If `None`, set 'vmin' to the minimum scoretype value.
+            Default: `0`
+        vmax: a `float` or `int` object representing the maximum clash score value for color map.
+            If `None`, set 'vmin' to the maximum scoretype value.
+            Default: `10`
+        log: `None` to map colors spaced evenly on a linear scale between 'vmin' to 'vmax'.
+            If an `int` or `float` object is provided, map colors spaced evenly on a log
+            scale with the base provided.
+            Default: `None`
+        palette: an iterable of `str` (or `int`) objects representing a color map.
+            Default: `list(reversed(bokeh.palettes.Reds256))`
+        backend: an optional `str` or `int` object representing the backend to use for
+            the visualization.
+            Default: `1` or `nglview`
+
+    Returns:
+        A `Py3DmolViewer` instance, a `NGLViewViewer` instance, or a `PyMOLViewer` instance.
+    """
+    __author__ = "Jason C. Klima"
+
+    c = PerResidueClashMetric()
+    c.set_output_as_pdb_nums(output_as_pdb_nums=True)
+    c.set_residue_selector(TrueResidueSelector())
+    c.set_secondary_residue_selector(TrueResidueSelector())
+    c.set_soft_dampening(dampening=0.33)
+    c.set_use_hydrogens(use_hydrogens=True)
+    c.set_use_soft_clash(soft_clash_check=True)
+    _msg = "The 'poses' argument parameter must be a `Pose` object or an iterable of `Pose` objects. "
+    if isinstance(poses, collections.abc.Iterable) and not isinstance(poses, Pose):
+        for pose in poses:
+            if isinstance(pose, Pose):
+                with out:
+                    c.apply(pose)
+            else:
+                raise ValueError(_msg + f"Received: {type(pose)}")
+    elif isinstance(poses, Pose):
+        with out:
+            c.apply(poses)
+    else:
+        raise ValueError(_msg + f"Received: {type(poses)}")
+    v = viewer3d.init(poses, backend=backend)
+    v += viewer3d.setStyle(radius=0)
+    if palette is None:
+        palette = list(reversed(bokeh.palettes.Reds256))
+    v += viewer3d.setPerResidueRealMetric(
+        scoretype="atomic_clashes",
+        vmin=vmin,
+        vmax=vmax,
+        radius=0.2,
+        log=log,
+        palette=palette,
+    )
+    v += viewer3d.setHydrogens(polar_only=True, color="lightgray")
+    v += viewer3d.setHydrogenBonds()
+    v += viewer3d.setDisulfides()
+
+    return v
+
+
+@requires_init
 def perResidueEnergyMetric(
     poses,
     scorefxn=None,
     vmin=(-5),
     vmax=5,
     log=None,
+    palette=None,
     backend=1,
 ):
     """
@@ -358,10 +439,11 @@ def perResidueEnergyMetric(
             If an `int` or `float` object is provided, map colors spaced evenly on a log
             scale with the base provided.
             Default: `None`
+        palette: an iterable of `str` (or `int`) objects representing a color map.
+            Default: `list(bokeh.palettes.Greens256) + list(reversed(bokeh.palettes.Reds256))`
         backend: an optional `str` or `int` object representing the backend to use for
             the visualization.
             Default: `1` or `nglview`
-
 
     Returns:
         A `Py3DmolViewer` instance, a `NGLViewViewer` instance, or a `PyMOLViewer` instance.
@@ -376,18 +458,112 @@ def perResidueEnergyMetric(
     if isinstance(poses, collections.abc.Iterable) and not isinstance(poses, Pose):
         for pose in poses:
             if isinstance(pose, Pose):
-                e.apply(pose)
+                with out:
+                    e.apply(pose)
             else:
                 raise ValueError(_msg + f"Received: {type(pose)}")
     elif isinstance(poses, Pose):
-        e.apply(poses)
+        with out:
+            e.apply(poses)
     else:
         raise ValueError(_msg + f"Received: {type(poses)}")
     v = viewer3d.init(poses, backend=backend)
     v += viewer3d.setStyle(radius=0)
-    palette = list(bokeh.palettes.Greens256) + list(reversed(bokeh.palettes.Reds256))
+    if palette is None:
+        palette = list(bokeh.palettes.Greens256) + list(
+            reversed(bokeh.palettes.Reds256)
+        )
     v += viewer3d.setPerResidueRealMetric(
         scoretype="res_energy",
+        vmin=vmin,
+        vmax=vmax,
+        radius=0.2,
+        log=log,
+        palette=palette,
+    )
+    v += viewer3d.setHydrogens(polar_only=True, color="lightgray")
+    v += viewer3d.setHydrogenBonds()
+    v += viewer3d.setDisulfides()
+
+    return v
+
+
+@requires_init
+def perResidueSasaMetric(
+    poses,
+    mode=0,
+    vmin=None,
+    vmax=None,
+    log=None,
+    palette=None,
+    backend=1,
+):
+    """
+    Score the input pose(s) with `PerResidueSasaMetric` and color sidechains by
+    per-residue SASA score, with cartoon backbone, polar hydrogens, hydrogen bonds,
+    and disulfide bonds also shown.
+
+    Args:
+        poses: a required `Pose` object or iterable of `Pose` objects to score and display.
+        mode: an optional `int` object to set the SASA mode:
+            `0`: all SASA.
+            `1`: hydrophobic only.
+            `2`: polar only.
+            Default: `0`
+        vmin: a `float` or `int` object representing the minimum SASA value for color map.
+            If `None`, set 'vmin' to the minimum scoretype value.
+            Default: `None`
+        vmax: a `float` or `int` object representing the maximum SASA value for color map.
+            If `None`, set 'vmin' to the maximum scoretype value.
+            Default: `None`
+        log: `None` to map colors spaced evenly on a linear scale between 'vmin' to 'vmax'.
+            If an `int` or `float` object is provided, map colors spaced evenly on a log
+            scale with the base provided.
+            Default: `None`
+        palette: an iterable of `str` (or `int`) objects representing a color map.
+            Default: `bokeh.palettes.Viridis256`
+        backend: an optional `str` or `int` object representing the backend to use for
+            the visualization.
+            Default: `1` or `nglview`
+
+    Returns:
+        A `Py3DmolViewer` instance, a `NGLViewViewer` instance, or a `PyMOLViewer` instance.
+    """
+    __author__ = "Jason C. Klima"
+
+    if mode == 0:
+        sasa_mode = SasaMethodHPMode.ALL_SASA
+    elif mode == 1:
+        sasa_mode = SasaMethodHPMode.HYDROPHOBIC_SASA
+    elif mode == 2:
+        sasa_mode = SasaMethodHPMode.POLAR_SASA
+    else:
+        raise ValueError(
+            f"The 'mode' argument must be an `int` object in {list(range(3))}."
+        )
+    s = PerResidueSasaMetric()
+    s.set_mode(sasa_mode)
+    s.set_output_as_pdb_nums(True)
+    s.set_residue_selector(TrueResidueSelector())
+    _msg = "The 'poses' argument parameter must be a `Pose` object or an iterable of `Pose` objects. "
+    if isinstance(poses, collections.abc.Iterable) and not isinstance(poses, Pose):
+        for pose in poses:
+            if isinstance(pose, Pose):
+                with out:
+                    s.apply(pose)
+            else:
+                raise ValueError(_msg + f"Received: {type(pose)}")
+    elif isinstance(poses, Pose):
+        with out:
+            s.apply(poses)
+    else:
+        raise ValueError(_msg + f"Received: {type(poses)}")
+    v = viewer3d.init(poses, backend=backend)
+    v += viewer3d.setStyle(radius=0)
+    if palette is None:
+        palette = list(bokeh.palettes.Viridis256)
+    v += viewer3d.setPerResidueRealMetric(
+        scoretype="res_sasa",
         vmin=vmin,
         vmax=vmax,
         radius=0.2,
