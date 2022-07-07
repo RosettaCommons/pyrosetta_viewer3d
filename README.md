@@ -254,6 +254,7 @@ for h in range(5):
 v.show()
 ```
 
+Overlay all poses or PDB strings:
 ```
 v.overlay()
 ```
