@@ -19,6 +19,8 @@ from ipywidgets.widgets import (
     ToggleButtons,
     VBox,
     Label,
+    interact,
+    interactive,
 )
 from pyrosetta import Pose
 from pyrosetta.rosetta.core.chemical import ResidueProperty
@@ -609,34 +611,33 @@ def unsatSelector(
     """
     __author__ = "Jason C. Klima"
 
-    with out:
-        if scorefxn is None:
-            # TODO check if '-beta' is initialized and score with beta
-            scorefxn = pyrosetta.create_score_function("ref2015")
+    if scorefxn is None:
+        # TODO check if '-beta' is initialized and score with beta
+        scorefxn = pyrosetta.create_score_function("ref2015")
 
-        unsat_amine_selector = UnsatSelector()
-        unsat_amine_selector.set_scorefxn(scorefxn)
-        unsat_amine_selector.set_consider_mainchain_only(False)
-        unsat_amine_selector.set_hbond_energy_cutoff(hbond_energy_cutoff)
-        unsat_amine_selector.set_legacy(False)
-        unsat_amine_selector.set_mode(False)
+    unsat_amine_selector = UnsatSelector()
+    unsat_amine_selector.set_scorefxn(scorefxn)
+    unsat_amine_selector.set_consider_mainchain_only(False)
+    unsat_amine_selector.set_hbond_energy_cutoff(hbond_energy_cutoff)
+    unsat_amine_selector.set_legacy(False)
+    unsat_amine_selector.set_mode(False)
+    with out:
         unsat_amine_selector.apply(pose)
 
-        unsat_carbonyl_selector = UnsatSelector()
-        unsat_carbonyl_selector.set_scorefxn(scorefxn)
-        unsat_carbonyl_selector.set_consider_mainchain_only(False)
-        unsat_carbonyl_selector.set_hbond_energy_cutoff(hbond_energy_cutoff)
-        unsat_carbonyl_selector.set_legacy(False)
-        unsat_carbonyl_selector.set_mode(True)
+    unsat_carbonyl_selector = UnsatSelector()
+    unsat_carbonyl_selector.set_scorefxn(scorefxn)
+    unsat_carbonyl_selector.set_consider_mainchain_only(False)
+    unsat_carbonyl_selector.set_hbond_energy_cutoff(hbond_energy_cutoff)
+    unsat_carbonyl_selector.set_legacy(False)
+    unsat_carbonyl_selector.set_mode(True)
+    with out:
         unsat_carbonyl_selector.apply(pose)
 
-        unsat_carbonyl_and_amine_selector = AndResidueSelector(
-            unsat_amine_selector, unsat_carbonyl_selector
-        )
-        unsat_selector = OrResidueSelector(
-            unsat_amine_selector, unsat_carbonyl_selector
-        )
-        not_unsat_selector = NotResidueSelector(unsat_selector)
+    unsat_carbonyl_and_amine_selector = AndResidueSelector(
+        unsat_amine_selector, unsat_carbonyl_selector
+    )
+    unsat_selector = OrResidueSelector(unsat_amine_selector, unsat_carbonyl_selector)
+    not_unsat_selector = NotResidueSelector(unsat_selector)
 
     view = (
         viewer3d.init(pose, backend=backend)
@@ -685,12 +686,6 @@ def unsatSelector(
         )
         + viewer3d.setZoomTo(residue_selector=unsat_selector)
     )
-    if view.backend == "py3Dmol":
-        view += viewer3d.setStyle(
-            cartoon=True,
-            radius=0.0,
-            label=False,
-        )
 
     return view
 
@@ -922,6 +917,87 @@ def makeBundle(
         ]
     )
     initialize_bundle()
+
+    return view
+
+
+@requires_init
+def rosettaViewer(
+    packed_and_poses_and_pdbs=None,
+    window_size=(1200, 800),
+    continuous_update=True,
+    backend=1,
+):
+    """
+    Interactively visualize the following `viewer3d` presets:
+        0: perResidueEnergyMetric
+        1: perResidueClashMetric
+        3: unsatSelector
+        4: ligandsAndMetals
+
+    TODO:
+        5: perResidueSasaMetric (visualization causes the viewer to not reproducibly show other presets).
+
+    Known Bugs:
+        - if using `pyrosetta.pose_from_sequence`, `py3Dmol` may not show `perResidueClashMetric` correctly.
+
+    Args:
+        packed_and_poses_and_pdbs: An optional `PackedPose`, `Pose`, or `str` of a valid path
+            to a .pdb file, or an iterable of these objects.
+            Default: `None`
+        window_size: an optional `list` or `tuple` of `int` or `float` values for the
+            (width, height) dimensions of the displayed window screen size.
+            Default: `(1200, 800)`
+        continuous_update: a `bool` object. When using the interactive slider widget,
+            `False` restricts rendering to mouse button release events.
+            Default: `True`
+        backend: an optional `str` or `int` object representing the backend to use for
+            the visualization. The currently supported backends are 'py3Dmol' and 'nglview'.
+            Default: `1` or `nglview`
+
+    Returns:
+        A `Py3DmolViewer` instance, a `NGLViewViewer` instance, or a `PyMOLViewer` instance.
+    """
+    __author__ = "Jason C. Klima"
+
+    presets = (
+        perResidueEnergyMetric,
+        perResidueClashMetric,
+        # perResidueSasaMetric,
+        unsatSelector,
+        ligandsAndMetals,
+    )  # Presets to display using an IntSlider widget
+    backend = _to_backend(backend)
+    view = viewer3d.init(
+        packed_and_poses_and_pdbs,
+        window_size=window_size,
+        continuous_update=continuous_update,
+        backend=backend,
+    )
+
+    def on_preset(i):
+        preset = presets[i]
+        v = preset(
+            packed_and_poses_and_pdbs,
+            backend=backend,
+        )
+        view.poses = v.poses
+        view.pdbstrings = v.pdbstrings
+        view.set_modules(v.get_modules())
+        print(preset.__name__)
+        view.update_viewer()
+
+    preset_widget = interactive(
+        on_preset,
+        i=IntSlider(
+            min=0,
+            max=len(presets) - 1,
+            value=0,
+            description="Preset",
+            continuous_update=False,
+        ),
+    )
+    view.set_widgets(preset_widget)
 
     return view
 
