@@ -249,7 +249,13 @@ class TestViewer(unittest.TestCase):
 
         viewer = viewer3d.presets.perResidueEnergyMetric(pose)
         viewer.show()
+        viewer = viewer3d.presets.perResidueClashMetric(poses, backend=0)
+        viewer.show()
+        viewer = viewer3d.presets.perResidueSasaMetric(pose, backend=1)
+        viewer.show()
         viewer = viewer3d.presets.unsatSelector(pose)
+        viewer.show()
+        viewer = viewer3d.presets.rosettaViewer(poses, backend=0)
         viewer.show()
 
         def myCustomPreset(packed_and_poses_and_pdbs=None, *args, **kwargs):
