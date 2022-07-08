@@ -456,6 +456,7 @@ def perResidueEnergyMetric(
         scorefxn = pyrosetta.create_score_function("ref2015")
     e = PerResidueEnergyMetric()
     e.set_scorefunction(scorefxn)
+    e.set_output_as_pdb_nums(output_as_pdb_nums=True)
     _msg = "The 'poses' argument parameter must be a `Pose` object or an iterable of `Pose` objects. "
     if isinstance(poses, collections.abc.Iterable) and not isinstance(poses, Pose):
         for pose in poses:
