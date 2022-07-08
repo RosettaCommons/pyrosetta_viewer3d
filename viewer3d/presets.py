@@ -39,6 +39,7 @@ from pyrosetta.rosetta.core.simple_metrics.per_residue_metrics import (
     PerResidueSasaMetric,
 )
 from pyrosetta.rosetta.protocols.hbnet import UnsatSelector
+from typing import Iterable, Union
 
 from viewer3d.converters import _to_backend
 from viewer3d.tracer import requires_init
@@ -336,6 +337,24 @@ def ligandsAndMetals(*args, **kwargs):
     return view
 
 
+def apply_metric_to_poses(
+    metric: "PerResidueRealMetric", poses: Union[Iterable[Pose], Pose]
+) -> None:
+    _msg = "The 'poses' argument parameter must be a `Pose` object or an iterable of `Pose` objects. "
+    if isinstance(poses, collections.abc.Iterable) and not isinstance(poses, Pose):
+        for pose in poses:
+            if isinstance(pose, Pose):
+                with out:
+                    metric.apply(pose)
+            else:
+                raise ValueError(_msg + f"Received: {type(pose)}")
+    elif isinstance(poses, Pose):
+        with out:
+            metric.apply(poses)
+    else:
+        raise ValueError(_msg + f"Received: {type(poses)}")
+
+
 @requires_init
 def perResidueClashMetric(
     poses,
@@ -380,19 +399,20 @@ def perResidueClashMetric(
     c.set_soft_dampening(dampening=0.33)
     c.set_use_hydrogens(use_hydrogens=True)
     c.set_use_soft_clash(soft_clash_check=True)
-    _msg = "The 'poses' argument parameter must be a `Pose` object or an iterable of `Pose` objects. "
-    if isinstance(poses, collections.abc.Iterable) and not isinstance(poses, Pose):
-        for pose in poses:
-            if isinstance(pose, Pose):
-                with out:
-                    c.apply(pose)
-            else:
-                raise ValueError(_msg + f"Received: {type(pose)}")
-    elif isinstance(poses, Pose):
-        with out:
-            c.apply(poses)
-    else:
-        raise ValueError(_msg + f"Received: {type(poses)}")
+    apply_metric_to_poses(c, poses)
+    # _msg = "The 'poses' argument parameter must be a `Pose` object or an iterable of `Pose` objects. "
+    # if isinstance(poses, collections.abc.Iterable) and not isinstance(poses, Pose):
+    #     for pose in poses:
+    #         if isinstance(pose, Pose):
+    #             with out:
+    #                 c.apply(pose)
+    #         else:
+    #             raise ValueError(_msg + f"Received: {type(pose)}")
+    # elif isinstance(poses, Pose):
+    #     with out:
+    #         c.apply(poses)
+    # else:
+    #     raise ValueError(_msg + f"Received: {type(poses)}")
     v = viewer3d.init(poses, backend=backend)
     v += viewer3d.setStyle(radius=0)
     if palette is None:
@@ -936,8 +956,10 @@ def rosettaViewer(
         2: unsatSelector
         3: ligandsAndMetals
     TODO:
-        4: perResidueSasaMetric (visualization causes the viewer to not reproducibly show
-            `perResidueEnergyMetric` and `perResidueClashMetric` presets correctly)
+        4: perResidueSasaMetric (visualization causes the viewer to not show the
+            `perResidueEnergyMetric` and `perResidueClashMetric` presets correctly
+            when scrolling back to them a second time. Thus, the kernel must
+            be restarted after scrolling to the `perResidueSasaMetric` preset.
 
     TODO:
         - If using `pyrosetta.pose_from_sequence`, `py3Dmol` may not show `perResidueClashMetric` correctly.
@@ -966,7 +988,7 @@ def rosettaViewer(
         perResidueClashMetric,
         unsatSelector,
         ligandsAndMetals,
-        perResidueSasaMetric,
+        # perResidueSasaMetric,
     )  # Presets to display using an IntSlider widget
     backend = _to_backend(backend)
     view = viewer3d.init(
