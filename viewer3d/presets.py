@@ -933,14 +933,14 @@ def rosettaViewer(
     Interactively visualize the following `viewer3d` presets:
         0: perResidueEnergyMetric
         1: perResidueClashMetric
-        3: unsatSelector
-        4: ligandsAndMetals
-
+        2: unsatSelector
+        3: ligandsAndMetals
     TODO:
-        5: perResidueSasaMetric (visualization causes the viewer to not reproducibly show other presets).
+        4: perResidueSasaMetric (visualization causes the viewer to not reproducibly show
+            `perResidueEnergyMetric` and `perResidueClashMetric` presets correctly)
 
-    Known Bugs:
-        - if using `pyrosetta.pose_from_sequence`, `py3Dmol` may not show `perResidueClashMetric` correctly.
+    Bugs:
+        - If using `pyrosetta.pose_from_sequence`, `py3Dmol` may not show `perResidueClashMetric` correctly.
 
     Args:
         packed_and_poses_and_pdbs: An optional `PackedPose`, `Pose`, or `str` of a valid path
