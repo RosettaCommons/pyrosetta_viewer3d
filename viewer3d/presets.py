@@ -939,7 +939,7 @@ def rosettaViewer(
         4: perResidueSasaMetric (visualization causes the viewer to not reproducibly show
             `perResidueEnergyMetric` and `perResidueClashMetric` presets correctly)
 
-    Bugs:
+    TODO:
         - If using `pyrosetta.pose_from_sequence`, `py3Dmol` may not show `perResidueClashMetric` correctly.
 
     Args:
@@ -964,9 +964,9 @@ def rosettaViewer(
     presets = (
         perResidueEnergyMetric,
         perResidueClashMetric,
-        # perResidueSasaMetric,
         unsatSelector,
         ligandsAndMetals,
+        perResidueSasaMetric,
     )  # Presets to display using an IntSlider widget
     backend = _to_backend(backend)
     view = viewer3d.init(
