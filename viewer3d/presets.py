@@ -41,7 +41,7 @@ from pyrosetta.rosetta.core.simple_metrics.per_residue_metrics import (
 from pyrosetta.rosetta.protocols.hbnet import UnsatSelector
 from typing import Iterable, Union
 
-from viewer3d.converters import _to_backend
+from viewer3d.converters import _to_backend, _to_poses_pdbstrings
 from viewer3d.tracer import requires_init
 
 
@@ -990,6 +990,7 @@ def rosettaViewer(
         ligandsAndMetals,
         # perResidueSasaMetric,
     )  # Presets to display using an IntSlider widget
+    _preset_scoretypes = ("res_energy", "atomic_clashes", "res_sasa")
     backend = _to_backend(backend)
     view = viewer3d.init(
         packed_and_poses_and_pdbs,
@@ -1000,8 +1001,20 @@ def rosettaViewer(
 
     def on_preset(i):
         preset = presets[i]
+        _poses, _pdbstrings = _to_poses_pdbstrings(packed_and_poses_and_pdbs)
+        poses = [p for (i, p) in _poses.items()]
+        for pose in poses:
+            for scoretype in list(pose.scores.keys()):
+                for preset_scoretype in _preset_scoretypes:
+                    if preset_scoretype in scoretype:
+                        try:
+                            pose.scores.pop(scoretype)
+                        except KeyError:
+                            pass
+                        finally:
+                            break
         v = preset(
-            packed_and_poses_and_pdbs,
+            poses,
             backend=backend,
         )
         view.poses = v.poses
