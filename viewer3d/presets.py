@@ -1002,7 +1002,9 @@ def rosettaViewer(
     def on_preset(i):
         preset = presets[i]
         _poses, _pdbstrings = _to_poses_pdbstrings(packed_and_poses_and_pdbs)
-        poses = [p for (i, p) in _poses.items()]
+        poses = []
+        for (i, p) in _poses.items():
+            poses.extend(p)
         for pose in poses:
             for scoretype in list(pose.scores.keys()):
                 for preset_scoretype in _preset_scoretypes:
