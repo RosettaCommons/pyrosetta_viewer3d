@@ -750,27 +750,27 @@ class setPerResidueRealMetric(ModuleBase):
 
         self.set_vmin_vmax(pose)
         _palette_value_dict = self.get_palette_value_dict()
-        _selection_scheme = []
         for scoretype, value in pose.scores.items():
-            _r = scoretype.split("_")[-1]
-            if _r.isdigit():
-                resi, chain = _get_residue_chain_tuple(pose, int(_r))
-            else:
-                resi, chain = _r[:-1], _r[-1]
-            _nearest_value = self.get_nearest_value_from_keys(
-                _palette_value_dict, value
-            )
-            _C_color = _palette_value_dict[_nearest_value]
-            # TODO Set element-based color scheme
-            viewer.setStyle(
-                {"model": model, "resi": resi, "chain": chain},
-                {
-                    self.style: {
-                        "color": _C_color,
-                        "radius": self.radius,
-                    }
-                },
-            )
+            if self.scoretype in scoretype:
+                _r = scoretype.split("_")[-1]
+                if _r.isdigit():
+                    resi, chain = _get_residue_chain_tuple(pose, int(_r))
+                else:
+                    resi, chain = _r[:-1], _r[-1]
+                _nearest_value = self.get_nearest_value_from_keys(
+                    _palette_value_dict, value
+                )
+                _C_color = _palette_value_dict[_nearest_value]
+                # TODO Set element-based color scheme
+                viewer.setStyle(
+                    {"model": model, "resi": resi, "chain": chain},
+                    {
+                        self.style: {
+                            "color": _C_color,
+                            "radius": self.radius,
+                        }
+                    },
+                )
 
         return viewer
 

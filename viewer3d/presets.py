@@ -400,19 +400,6 @@ def perResidueClashMetric(
     c.set_use_hydrogens(use_hydrogens=True)
     c.set_use_soft_clash(soft_clash_check=True)
     apply_metric_to_poses(c, poses)
-    # _msg = "The 'poses' argument parameter must be a `Pose` object or an iterable of `Pose` objects. "
-    # if isinstance(poses, collections.abc.Iterable) and not isinstance(poses, Pose):
-    #     for pose in poses:
-    #         if isinstance(pose, Pose):
-    #             with out:
-    #                 c.apply(pose)
-    #         else:
-    #             raise ValueError(_msg + f"Received: {type(pose)}")
-    # elif isinstance(poses, Pose):
-    #     with out:
-    #         c.apply(poses)
-    # else:
-    #     raise ValueError(_msg + f"Received: {type(poses)}")
     v = viewer3d.init(poses, backend=backend)
     v += viewer3d.setStyle(radius=0)
     if palette is None:
@@ -477,19 +464,7 @@ def perResidueEnergyMetric(
     e = PerResidueEnergyMetric()
     e.set_scorefunction(scorefxn)
     e.set_output_as_pdb_nums(output_as_pdb_nums=True)
-    _msg = "The 'poses' argument parameter must be a `Pose` object or an iterable of `Pose` objects. "
-    if isinstance(poses, collections.abc.Iterable) and not isinstance(poses, Pose):
-        for pose in poses:
-            if isinstance(pose, Pose):
-                with out:
-                    e.apply(pose)
-            else:
-                raise ValueError(_msg + f"Received: {type(pose)}")
-    elif isinstance(poses, Pose):
-        with out:
-            e.apply(poses)
-    else:
-        raise ValueError(_msg + f"Received: {type(poses)}")
+    apply_metric_to_poses(e, poses)
     v = viewer3d.init(poses, backend=backend)
     v += viewer3d.setStyle(radius=0)
     if palette is None:
@@ -568,19 +543,7 @@ def perResidueSasaMetric(
     s.set_mode(sasa_mode)
     s.set_output_as_pdb_nums(True)
     s.set_residue_selector(TrueResidueSelector())
-    _msg = "The 'poses' argument parameter must be a `Pose` object or an iterable of `Pose` objects. "
-    if isinstance(poses, collections.abc.Iterable) and not isinstance(poses, Pose):
-        for pose in poses:
-            if isinstance(pose, Pose):
-                with out:
-                    s.apply(pose)
-            else:
-                raise ValueError(_msg + f"Received: {type(pose)}")
-    elif isinstance(poses, Pose):
-        with out:
-            s.apply(poses)
-    else:
-        raise ValueError(_msg + f"Received: {type(poses)}")
+    apply_metric_to_poses(s, poses)
     v = viewer3d.init(poses, backend=backend)
     v += viewer3d.setStyle(radius=0)
     if palette is None:
@@ -953,13 +916,9 @@ def rosettaViewer(
     Interactively visualize the following `viewer3d` presets:
         0: perResidueEnergyMetric
         1: perResidueClashMetric
-        2: unsatSelector
-        3: ligandsAndMetals
-    TODO:
-        4: perResidueSasaMetric (visualization causes the viewer to not show the
-            `perResidueEnergyMetric` and `perResidueClashMetric` presets correctly
-            when scrolling back to them a second time. Thus, the kernel must
-            be restarted after scrolling to the `perResidueSasaMetric` preset.
+        2: perResidueSasaMetric
+        3: unsatSelector
+        4: ligandsAndMetals
 
     TODO:
         - If using `pyrosetta.pose_from_sequence`, `py3Dmol` may not show `perResidueClashMetric` correctly.
@@ -986,9 +945,9 @@ def rosettaViewer(
     presets = (
         perResidueEnergyMetric,
         perResidueClashMetric,
+        perResidueSasaMetric,
         unsatSelector,
         ligandsAndMetals,
-        # perResidueSasaMetric,
     )  # Presets to display using an IntSlider widget
     _preset_scoretypes = ("res_energy", "atomic_clashes", "res_sasa")
     backend = _to_backend(backend)
@@ -1002,9 +961,11 @@ def rosettaViewer(
     def on_preset(i):
         preset = presets[i]
         _poses, _pdbstrings = _to_poses_pdbstrings(packed_and_poses_and_pdbs)
+        # Set up poses
         poses = []
         for (i, p) in _poses.items():
             poses.extend(p)
+        # Clear scores
         for pose in poses:
             for scoretype in list(pose.scores.keys()):
                 for preset_scoretype in _preset_scoretypes:
@@ -1015,6 +976,7 @@ def rosettaViewer(
                             pass
                         finally:
                             break
+        # Score
         v = preset(
             poses,
             backend=backend,
