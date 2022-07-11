@@ -258,3 +258,62 @@ Overlay all poses or PDB strings:
 ```
 v.overlay()
 ```
+
+Color residues by `PerResidueRealMetric`s:
+```
+scorefxn = pyrosetta.create_score_function("ref2015")
+minimize = pyrosetta.rosetta.protocols.minimization_packing.MinMover()
+e = (
+    pyrosetta.rosetta.core.simple_metrics.per_residue_metrics.PerResidueEnergyMetric()
+)
+e.set_scorefunction(scorefxn)
+v = viewer3d.init(backend=backend, gui=True)
+palette = list(bokeh.palettes.Greens256) + list(
+    reversed(bokeh.palettes.Reds256)
+)
+v += viewer3d.setStyle(radius=0)
+v += viewer3d.setPerResidueRealMetric(
+    scoretype="res_energy", vmin=-10, vmax=10, radius=0.2, log=10, palette=palette
+)
+v += viewer3d.setHydrogens(polar_only=True, color="lightgray")
+v += viewer3d.setHydrogenBonds()
+v += viewer3d.setDisulfides()
+for h in range(10):
+    _pose = pose.clone()
+    _pose.scores.clear()
+    for i in range(20):
+        minimize.apply(_pose)
+    e.apply(_pose)
+    v.add_pose(_pose, index=h, update_viewer=False)
+v.show()
+```
+
+Color residues by per-residue total score:
+```
+v = viewer3d.presets.perResidueEnergyMetric(pose)
+v.show()
+```
+
+Color residues by per-residue clash score:
+```
+v = viewer3d.presets.perResidueClashMetric(poses, backend=0)
+v.show()
+```
+
+Color residues by per-residue SASA score:
+```
+v = viewer3d.presets.perResidueSasaMetric(pose, backend=1)
+v.show()
+```
+
+Color residues by per-residue satisfied backbone hydrogen bonds:
+```
+v = viewer3d.presets.unsatSelector(pose)
+v.show()
+```
+
+Visualize multiple Rosetta analyses:
+```
+v = viewer3d.presets.rosettaViewer(poses, backend=1)
+v.show()
+```
