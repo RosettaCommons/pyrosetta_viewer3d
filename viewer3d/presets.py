@@ -11,6 +11,7 @@ import viewer3d
 from ipywidgets.widgets import (
     Button,
     Checkbox,
+    Dropdown,
     FloatSlider,
     IntSlider,
     HBox,
@@ -963,18 +964,19 @@ def rosettaViewer(
         view.poses = v.poses
         view.pdbstrings = v.pdbstrings
         view.set_modules(v.get_modules())
-        print(preset.__name__)
         view.update_viewer()
 
+    dropdown_options = [
+        (preset.__name__, i) for (i, preset) in enumerate(presets, start=0)
+    ]
+    dropdown = Dropdown(
+        options=dropdown_options,
+        value=0,
+        description="Preset",
+    )
     preset_widget = interactive(
         on_preset,
-        i=IntSlider(
-            min=0,
-            max=len(presets) - 1,
-            value=0,
-            description="Preset",
-            continuous_update=False,
-        ),
+        i=dropdown,
     )
     view.set_widgets(preset_widget)
 
