@@ -1,13 +1,16 @@
 import attr
+import collections
 import logging
 
+from ipywidgets.widgets import Output
 from pyrosetta import Pose
-from typing import List, NoReturn, Optional
+from typing import Iterable, List, NoReturn, Optional, Union
 
 from viewer3d.validators import requires_show
 
 
 _logger: logging.Logger = logging.getLogger("viewer3d.pose")
+out = Output()
 
 
 @attr.s(kw_only=False, slots=False)
@@ -383,3 +386,21 @@ class PoseBase:
                 self.pdbstrings.pop(index)
         if update_viewer:
             self.update_viewer(index=0)
+
+
+def apply_metric_to_poses(
+    metric: "PerResidueRealMetric", poses: Union[Iterable[Pose], Pose]
+) -> None:
+    _msg = "The 'poses' argument parameter must be a `Pose` object or an iterable of `Pose` objects. "
+    if isinstance(poses, collections.abc.Iterable) and not isinstance(poses, Pose):
+        for pose in poses:
+            if isinstance(pose, Pose):
+                with out:
+                    metric.apply(pose)
+            else:
+                raise ValueError(_msg + f"Received: {type(pose)}")
+    elif isinstance(poses, Pose):
+        with out:
+            metric.apply(poses)
+    else:
+        raise ValueError(_msg + f"Received: {type(poses)}")

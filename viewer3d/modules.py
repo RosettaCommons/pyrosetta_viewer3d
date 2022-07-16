@@ -636,6 +636,30 @@ class setPerResidueRealMetric(ModuleBase):
         Available options are: "off", "symmetric", or "offset"
         Defualt: "symmetric"
 
+    tenth : optional
+        `cartoon`
+
+        `True` or `False` to show cartoon representation.
+        Default: True
+
+    eleventh : optional
+        `cartoon_color`
+
+        Hexcode literal (e.g. 0xAF10AB) or `str` indicating a standard color (e.g. "grey") for the cartoon representation.
+        If "spectrum", apply reversed color gradient based on residue numbers. The option `cartoon` must also be set to `True`.
+        Default: "spectrum"
+        Reference: https://3dmol.csb.pitt.edu/doc/types.html#ColorSpec
+
+    twelfth : optional
+        `cartoon_radius`
+
+        Set the cartoon radius for the `nglview` backend.
+
+    thirteenth : optional
+        `cartoon_opacity`
+
+        Set the cartoon opacity for the `nglview` backend.
+
     Returns
     -------
     A Viewer instance.
@@ -699,6 +723,30 @@ class setPerResidueRealMetric(ModuleBase):
         ],
         converter=attr.converters.default_if_none(default="symmetric"),
     )
+    cartoon = attr.ib(
+        default=True,
+        type=bool,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
+    cartoon_color = attr.ib(
+        default=None,
+        type=Optional[Union[str, int]],
+        validator=attr.validators.optional(attr.validators.instance_of((str, int))),
+        converter=_to_hex,
+    )
+    cartoon_radius = attr.ib(
+        default=None,
+        type=Optional[Union[float, int]],
+        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
+        converter=attr.converters.default_if_none(default=0.1),
+    )
+    cartoon_opacity = attr.ib(
+        default=1,
+        type=Union[float, int],
+        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
+        converter=[_to_0_if_le_0, _to_1_if_gt_1],
+    )
 
     def set_vmin_vmax(self, pose: Pose) -> None:
         values = [
@@ -745,6 +793,8 @@ class setPerResidueRealMetric(ModuleBase):
     def apply_py3Dmol(
         self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
     ) -> Generic[ViewerType]:
+        if self.cartoon_color is None:
+            self.cartoon_color = "spectrum"
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
@@ -762,15 +812,27 @@ class setPerResidueRealMetric(ModuleBase):
                 )
                 _C_color = _palette_value_dict[_nearest_value]
                 # TODO Set element-based color scheme
-                viewer.setStyle(
-                    {"model": model, "resi": resi, "chain": chain},
-                    {
-                        self.style: {
-                            "color": _C_color,
-                            "radius": self.radius,
-                        }
-                    },
-                )
+                if self.cartoon:
+                    viewer.setStyle(
+                        {"model": model, "resi": resi, "chain": chain},
+                        {
+                            "cartoon": {"color": self.cartoon_color},
+                            self.style: {
+                                "color": _C_color,
+                                "radius": self.radius,
+                            },
+                        },
+                    )
+                else:
+                    viewer.setStyle(
+                        {"model": model, "resi": resi, "chain": chain},
+                        {
+                            self.style: {
+                                "color": _C_color,
+                                "radius": self.radius,
+                            }
+                        },
+                    )
 
         return viewer
 
@@ -779,10 +841,22 @@ class setPerResidueRealMetric(ModuleBase):
         self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
     ) -> Generic[ViewerType]:
         self.style = _py3Dmol_to_nglview_style(self.style)
+        if self.cartoon_color is None:
+            self.cartoon_color = "atomindex"
 
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
+        if self.cartoon:
+            viewer.remove_cartoon(component=model)
+            viewer.add_representation(
+                repr_type="cartoon",
+                selection="*",
+                color=self.cartoon_color,
+                radius=self.cartoon_radius,
+                opacity=self.cartoon_opacity,
+                component=model,
+            )
         self.set_vmin_vmax(pose)
         _palette_value_dict = self.get_palette_value_dict()
         _default_element_colors = copy.deepcopy(default_element_colors)

@@ -39,9 +39,9 @@ from pyrosetta.rosetta.core.simple_metrics.per_residue_metrics import (
     PerResidueSasaMetric,
 )
 from pyrosetta.rosetta.protocols.hbnet import UnsatSelector
-from typing import Iterable, Union
 
 from viewer3d.converters import _to_backend, _to_poses_pdbstrings
+from viewer3d.pose import apply_metric_to_poses
 from viewer3d.tracer import requires_init
 
 
@@ -337,24 +337,6 @@ def ligandsAndMetals(*args, **kwargs):
     return view
 
 
-def apply_metric_to_poses(
-    metric: "PerResidueRealMetric", poses: Union[Iterable[Pose], Pose]
-) -> None:
-    _msg = "The 'poses' argument parameter must be a `Pose` object or an iterable of `Pose` objects. "
-    if isinstance(poses, collections.abc.Iterable) and not isinstance(poses, Pose):
-        for pose in poses:
-            if isinstance(pose, Pose):
-                with out:
-                    metric.apply(pose)
-            else:
-                raise ValueError(_msg + f"Received: {type(pose)}")
-    elif isinstance(poses, Pose):
-        with out:
-            metric.apply(poses)
-    else:
-        raise ValueError(_msg + f"Received: {type(poses)}")
-
-
 @requires_init
 def perResidueClashMetric(
     poses,
@@ -401,7 +383,6 @@ def perResidueClashMetric(
     c.set_use_soft_clash(soft_clash_check=True)
     apply_metric_to_poses(c, poses)
     v = viewer3d.init(poses, backend=backend)
-    v += viewer3d.setStyle(radius=0)
     if palette is None:
         palette = list(reversed(bokeh.palettes.Reds256))
     v += viewer3d.setPerResidueRealMetric(
@@ -466,7 +447,6 @@ def perResidueEnergyMetric(
     e.set_output_as_pdb_nums(output_as_pdb_nums=True)
     apply_metric_to_poses(e, poses)
     v = viewer3d.init(poses, backend=backend)
-    v += viewer3d.setStyle(radius=0)
     if palette is None:
         palette = list(bokeh.palettes.Greens256) + list(
             reversed(bokeh.palettes.Reds256)
@@ -545,7 +525,6 @@ def perResidueSasaMetric(
     s.set_residue_selector(TrueResidueSelector())
     apply_metric_to_poses(s, poses)
     v = viewer3d.init(poses, backend=backend)
-    v += viewer3d.setStyle(radius=0)
     if palette is None:
         palette = list(bokeh.palettes.Viridis256)
     v += viewer3d.setPerResidueRealMetric(
