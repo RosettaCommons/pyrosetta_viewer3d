@@ -664,6 +664,22 @@ class setPerResidueRealMetric(ModuleBase):
 
         Set the cartoon opacity for the `nglview` backend.
 
+    fourteenth: optional
+        `colorbar`
+
+        `True` or `False` to show the colorbar axis.
+
+    fifteenth: optional
+        `colorbar_label`
+
+        A `str` object to label the colorbar axis.
+
+    sixteenth: optional
+        `colorbar_nticks`
+
+        An `int` object representing the number of tickmarks to show on the colorbar axis,
+        automatically interpolated between the 'vmin' and 'vmax' attributes.
+
     Returns
     -------
     A Viewer instance.
