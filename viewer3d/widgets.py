@@ -2,7 +2,7 @@ import attr
 import logging
 import sys
 
-from ipywidgets import interactive, IntSlider, Widget
+from ipywidgets import interactive, Image, IntSlider, Widget
 from IPython.display import display
 from typing import Any, Dict, List, NoReturn, Union
 
@@ -32,6 +32,8 @@ class WidgetsBase:
         _widgets = self.widgets.copy()
         if self.get_n_decoys() > 1:
             _widgets.insert(0, self.decoy_widget)
+        if hasattr(self, "colorbar"):
+            _widgets.append(Image(value=self.colorbar))
         return _widgets
 
     def get_n_decoys(self) -> Union[int, NoReturn]:

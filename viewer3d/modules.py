@@ -3,6 +3,8 @@ import collections
 import copy
 import itertools
 import logging
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy
 import pyrosetta
 import pyrosetta.distributed.io as io
@@ -11,6 +13,7 @@ import uuid
 
 from bokeh.palettes import Greens256
 from functools import singledispatch
+from io import BytesIO
 from pyrosetta import Pose
 from pyrosetta.rosetta.core.id import AtomID
 from pyrosetta.rosetta.core.conformation import Residue, is_disulfide_bond
@@ -747,6 +750,18 @@ class setPerResidueRealMetric(ModuleBase):
         validator=attr.validators.optional(attr.validators.instance_of((float, int))),
         converter=[_to_0_if_le_0, _to_1_if_gt_1],
     )
+    colorbar = attr.ib(
+        default=True,
+        type=bool,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
+    nticks = attr.ib(
+        default=None,
+        type=int,
+        validator=attr.validators.instance_of(int),
+        converter=attr.converters.default_if_none(default=7),
+    )
 
     def set_vmin_vmax(self, pose: Pose) -> None:
         values = [
@@ -788,6 +803,37 @@ class setPerResidueRealMetric(ModuleBase):
         _palette_value_dict = collections.OrderedDict(zip(_space, self.palette))
 
         return _palette_value_dict
+
+    def get_colorbar(self, space: numpy.ndarray) -> bytes:
+        fig, ax = plt.subplots(figsize=(6, 1))
+        fig.subplots_adjust(bottom=0.5)
+        cmap = matplotlib.colors.ListedColormap(self.palette)
+        idx = numpy.round(numpy.linspace(0, len(space) - 1, self.nticks)).astype(int)
+        bounds = [round(i, 3) for i in space[idx]]
+        norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
+        fig.colorbar(
+            matplotlib.cm.ScalarMappable(cmap=cmap, norm=norm),
+            cax=ax,
+            ticks=bounds,
+            spacing="uniform",
+            orientation="horizontal",
+            label=self.scoretype,
+        )
+        buffer = BytesIO()
+        plt.savefig(buffer, format="png", bbox_inches="tight")
+        buffer.seek(0)
+        colorbar = buffer.read()
+
+        return colorbar
+
+    def viewer_setattr_colorbar(
+        self, viewer: Generic[ViewerType], _palette_value_dict: OrderedDict[float, str]
+    ) -> Generic[ViewerType]:
+        space = numpy.array(list(_palette_value_dict.keys()))
+        colorbar = self.get_colorbar(space)
+        setattr(viewer, "colorbar", colorbar)
+
+        return viewer
 
     @requires_init
     def apply_py3Dmol(
@@ -833,6 +879,8 @@ class setPerResidueRealMetric(ModuleBase):
                             }
                         },
                     )
+
+        viewer = self.viewer_setattr_colorbar(viewer, _palette_value_dict)
 
         return viewer
 
@@ -896,6 +944,8 @@ class setPerResidueRealMetric(ModuleBase):
             multipleBond=self.bonds,
             component=model,
         )
+
+        viewer = self.viewer_setattr_colorbar(viewer, _palette_value_dict)
 
         return viewer
 
