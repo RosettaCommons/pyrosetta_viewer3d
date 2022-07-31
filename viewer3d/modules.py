@@ -3,6 +3,7 @@ import collections
 import copy
 import itertools
 import logging
+import math
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy
@@ -756,7 +757,12 @@ class setPerResidueRealMetric(ModuleBase):
         validator=attr.validators.instance_of(bool),
         converter=attr.converters.default_if_none(default=False),
     )
-    nticks = attr.ib(
+    colorbar_label = attr.ib(
+        default=None,
+        type=Optional[str],
+        validator=attr.validators.optional(attr.validators.instance_of(str)),
+    )
+    colorbar_nticks = attr.ib(
         default=None,
         type=int,
         validator=attr.validators.instance_of(int),
@@ -793,13 +799,24 @@ class setPerResidueRealMetric(ModuleBase):
 
         return value
 
-    def get_palette_value_dict(self) -> OrderedDict[float, str]:
+    def get_palette_value_dict(self) -> Union[OrderedDict[float, str], NoReturn]:
         if self.log is not None:
+            if any(v <= 0 for v in (self.vmin, self.vmax)):
+                raise ValueError(
+                    "The 'vmin' and 'vmax' attributes must be >0 for logarithmic color mapping."
+                )
             _space = numpy.logspace(
-                self.vmin, self.vmax, len(self.palette), base=self.log
+                math.log(self.vmin, self.log),
+                math.log(self.vmax, self.log),
+                num=len(self.palette),
+                base=self.log,
             )
         else:
-            _space = numpy.linspace(self.vmin, self.vmax, len(self.palette))
+            _space = numpy.linspace(
+                self.vmin,
+                self.vmax,
+                num=len(self.palette),
+            )
         _palette_value_dict = collections.OrderedDict(zip(_space, self.palette))
 
         return _palette_value_dict
@@ -808,16 +825,22 @@ class setPerResidueRealMetric(ModuleBase):
         fig, ax = plt.subplots(figsize=(20, 1))
         fig.subplots_adjust(bottom=0.5)
         cmap = matplotlib.colors.ListedColormap(self.palette)
-        idx = numpy.round(numpy.linspace(0, len(space) - 1, self.nticks)).astype(int)
-        bounds = [round(i, 3) for i in space[idx]]
-        norm = matplotlib.colors.BoundaryNorm(bounds, cmap.N)
+        indexes = numpy.round(
+            numpy.linspace(0, len(space) - 1, self.colorbar_nticks)
+        ).astype(int)
+        ticks = list(space[indexes])
+        norm = matplotlib.colors.BoundaryNorm(ticks, cmap.N)
+        if self.colorbar_label is None:
+            label = self.scoretype
+        else:
+            label = self.colorbar_label
         fig.colorbar(
             matplotlib.cm.ScalarMappable(cmap=cmap, norm=norm),
             cax=ax,
-            ticks=bounds,
+            ticks=ticks,
             spacing="uniform",
             orientation="horizontal",
-            label=self.scoretype,
+            label=label,
         )
         buffer = BytesIO()
         plt.savefig(buffer, format="png", bbox_inches="tight")
