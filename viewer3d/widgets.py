@@ -30,10 +30,12 @@ class WidgetsBase:
     def get_widgets(self) -> List[Widget]:
         self.decoy_widget = self.get_decoy_widget()
         _widgets = self.widgets.copy()
+        if hasattr(self.viewer, "colorbar"):
+            image = Image(value=self.viewer.colorbar)
+            _widgets.insert(0, image)
         if self.get_n_decoys() > 1:
             _widgets.insert(0, self.decoy_widget)
-        if hasattr(self, "colorbar"):
-            _widgets.append(Image(value=self.colorbar))
+
         return _widgets
 
     def get_n_decoys(self) -> Union[int, NoReturn]:

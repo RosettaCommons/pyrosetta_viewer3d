@@ -760,7 +760,7 @@ class setPerResidueRealMetric(ModuleBase):
         default=None,
         type=int,
         validator=attr.validators.instance_of(int),
-        converter=attr.converters.default_if_none(default=7),
+        converter=attr.converters.default_if_none(default=11),
     )
 
     def set_vmin_vmax(self, pose: Pose) -> None:
@@ -805,7 +805,7 @@ class setPerResidueRealMetric(ModuleBase):
         return _palette_value_dict
 
     def get_colorbar(self, space: numpy.ndarray) -> bytes:
-        fig, ax = plt.subplots(figsize=(6, 1))
+        fig, ax = plt.subplots(figsize=(20, 1))
         fig.subplots_adjust(bottom=0.5)
         cmap = matplotlib.colors.ListedColormap(self.palette)
         idx = numpy.round(numpy.linspace(0, len(space) - 1, self.nticks)).astype(int)
@@ -823,6 +823,7 @@ class setPerResidueRealMetric(ModuleBase):
         plt.savefig(buffer, format="png", bbox_inches="tight")
         buffer.seek(0)
         colorbar = buffer.read()
+        plt.close()
 
         return colorbar
 
@@ -880,7 +881,8 @@ class setPerResidueRealMetric(ModuleBase):
                         },
                     )
 
-        viewer = self.viewer_setattr_colorbar(viewer, _palette_value_dict)
+        if self.colorbar:
+            viewer = self.viewer_setattr_colorbar(viewer, _palette_value_dict)
 
         return viewer
 
@@ -945,7 +947,8 @@ class setPerResidueRealMetric(ModuleBase):
             component=model,
         )
 
-        viewer = self.viewer_setattr_colorbar(viewer, _palette_value_dict)
+        if self.colorbar:
+            viewer = self.viewer_setattr_colorbar(viewer, _palette_value_dict)
 
         return viewer
 
