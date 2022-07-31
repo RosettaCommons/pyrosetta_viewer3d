@@ -8,18 +8,20 @@ import pyrosetta
 import pyrosetta.distributed.io as io
 import viewer3d
 
+from IPython.display import display
 from ipywidgets.widgets import (
     Button,
     Checkbox,
     Dropdown,
     FloatSlider,
-    IntSlider,
     HBox,
+    Image,
+    IntSlider,
+    Label,
     Output,
     Text,
     ToggleButtons,
     VBox,
-    Label,
     interact,
     interactive,
 )
@@ -965,6 +967,12 @@ def rosettaViewer(
         view.pdbstrings = v.pdbstrings
         view.set_modules(v.get_modules())
         view.update_viewer()
+        if preset.__name__.startswith("perResidue") and hasattr(
+            view.viewer, "colorbar"
+        ):
+            display(Image(value=view.viewer.colorbar))
+        else:
+            display(Label(value=""))
 
     dropdown_options = [
         (preset.__name__, i) for (i, preset) in enumerate(presets, start=0)
