@@ -670,11 +670,17 @@ class setPerResidueRealMetric(ModuleBase):
         `True` or `False` to show the colorbar axis.
 
     fifteenth: optional
+        `colorbar_extremes`
+
+        An interable of two booleans representing whether to plot colorbar extremes
+        for vmin and vmax.
+
+    sixteenth: optional
         `colorbar_label`
 
         A `str` object to label the colorbar axis.
 
-    sixteenth: optional
+    seventeenth: optional
         `colorbar_nticks`
 
         An `int` object representing the number of tickmarks to show on the colorbar axis,
@@ -773,6 +779,15 @@ class setPerResidueRealMetric(ModuleBase):
         validator=attr.validators.instance_of(bool),
         converter=attr.converters.default_if_none(default=False),
     )
+    colorbar_extremes = attr.ib(
+        default=None,
+        type=Tuple[bool, bool],
+        validator=attr.validators.deep_iterable(
+            member_validator=attr.validators.instance_of(bool),
+            iterable_validator=attr.validators.instance_of(collections.abc.Iterable),
+        ),
+        converter=attr.converters.default_if_none(default=(False, False)),
+    )
     colorbar_label = attr.ib(
         default=None,
         type=Optional[str],
@@ -784,6 +799,13 @@ class setPerResidueRealMetric(ModuleBase):
         validator=attr.validators.instance_of(int),
         converter=attr.converters.default_if_none(default=11),
     )
+
+    @colorbar_extremes.validator
+    def _len_2(self, attribute, value):
+        if len(value) != 2:
+            raise ValueError(
+                "The 'colorbar_extremes' attribute must be an interable of length 2."
+            )
 
     def set_vmin_vmax(self, pose: Pose) -> None:
         values = [
@@ -840,7 +862,9 @@ class setPerResidueRealMetric(ModuleBase):
     def get_colorbar(self, space: numpy.ndarray) -> bytes:
         fig, ax = plt.subplots(figsize=(20, 1))
         fig.subplots_adjust(bottom=0.5)
-        cmap = matplotlib.colors.ListedColormap(self.palette)
+        cmap = (matplotlib.colors.ListedColormap(self.palette)).with_extremes(
+            over=self.palette[-1], under=self.palette[0]
+        )
         indexes = numpy.round(
             numpy.linspace(0, len(space) - 1, self.colorbar_nticks)
         ).astype(int)
@@ -850,10 +874,19 @@ class setPerResidueRealMetric(ModuleBase):
             label = self.scoretype
         else:
             label = self.colorbar_label
+        if self.colorbar_extremes[0] and self.colorbar_extremes[-1]:
+            extend = "both"
+        elif self.colorbar_extremes[0] and not self.colorbar_extremes[-1]:
+            extend = "min"
+        elif not self.colorbar_extremes[0] and self.colorbar_extremes[-1]:
+            extend = "max"
+        else:
+            extend = "neither"
         fig.colorbar(
             matplotlib.cm.ScalarMappable(cmap=cmap, norm=norm),
             cax=ax,
             ticks=ticks,
+            extend=extend,
             spacing="uniform",
             orientation="horizontal",
             label=label,

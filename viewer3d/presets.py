@@ -43,6 +43,7 @@ from pyrosetta.rosetta.core.simple_metrics.per_residue_metrics import (
 )
 from pyrosetta.rosetta.protocols.hbnet import UnsatSelector
 
+from viewer3d.config import COLORBAR_ATTR
 from viewer3d.converters import _to_backend, _to_poses_pdbstrings
 from viewer3d.pose import apply_metric_to_poses
 from viewer3d.tracer import requires_init
@@ -395,6 +396,7 @@ def perResidueClashMetric(
         radius=0.2,
         log=log,
         palette=palette,
+        colorbar_extremes=(False, True),
     )
     v += viewer3d.setHydrogens(polar_only=True, color="lightgray")
     v += viewer3d.setHydrogenBonds()
@@ -461,6 +463,7 @@ def perResidueEnergyMetric(
         radius=0.2,
         log=log,
         palette=palette,
+        colorbar_extremes=(True, True),
     )
     v += viewer3d.setHydrogens(polar_only=True, color="lightgray")
     v += viewer3d.setHydrogenBonds()
@@ -537,6 +540,7 @@ def perResidueSasaMetric(
         radius=0.2,
         log=log,
         palette=palette,
+        colorbar_extremes=(False, True),
     )
     v += viewer3d.setHydrogens(polar_only=True, color="lightgray")
     v += viewer3d.setHydrogenBonds()
@@ -968,9 +972,10 @@ def rosettaViewer(
         view.set_modules(v.get_modules())
         view.update_viewer()
         if preset.__name__.startswith("perResidue") and hasattr(
-            view.viewer, "colorbar"
+            view.viewer, COLORBAR_ATTR
         ):
-            display(Image(value=view.viewer.colorbar))
+            _value = getattr(view.viewer, COLORBAR_ATTR)
+            display(Image(value=_value))
         else:
             display(Label(value=""))
 
