@@ -37,7 +37,7 @@ from typing import (
 )
 
 from viewer3d.colors import default_element_colors
-from viewer3d.config import BACKENDS
+from viewer3d.config import BACKENDS, COLORBAR_ATTR
 from viewer3d.converters import (
     _get_nglview_selection,
     _get_residue_chain_tuple,
@@ -871,7 +871,7 @@ class setPerResidueRealMetric(ModuleBase):
     ) -> Generic[ViewerType]:
         space = numpy.array(list(_palette_value_dict.keys()))
         colorbar = self.get_colorbar(space)
-        setattr(viewer, "colorbar", colorbar)
+        setattr(viewer, COLORBAR_ATTR, colorbar)
 
         return viewer
 

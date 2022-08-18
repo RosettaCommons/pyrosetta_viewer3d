@@ -6,6 +6,7 @@ URLS: Tuple[str, str, str] = (
     "https://pypi.org/project/nglview/",
     "https://anaconda.org/schrodinger/pymol/",
 )
+COLORBAR_ATTR = "__viewer3d_colorbar__"
 
 
 def _import_backend(backend: str) -> None:
