@@ -681,6 +681,11 @@ class setPerResidueRealMetric(ModuleBase):
         A `str` object to label the colorbar axis.
 
     seventeenth: optional
+        `colorbar_fontsize`
+
+        A positive `int` object representing the colorbar label and tickmark label fontsize.
+
+    eighteenth: optional
         `colorbar_nticks`
 
         An `int` object representing the number of tickmarks to show on the colorbar axis,
@@ -793,6 +798,12 @@ class setPerResidueRealMetric(ModuleBase):
         type=Optional[str],
         validator=attr.validators.optional(attr.validators.instance_of(str)),
     )
+    colorbar_fontsize = attr.ib(
+        default=None,
+        type=Optional[str],
+        validator=attr.validators.instance_of(int),
+        converter=attr.converters.default_if_none(default=20),
+    )
     colorbar_nticks = attr.ib(
         default=None,
         type=int,
@@ -882,15 +893,16 @@ class setPerResidueRealMetric(ModuleBase):
             extend = "max"
         else:
             extend = "neither"
-        fig.colorbar(
+        cbar = fig.colorbar(
             matplotlib.cm.ScalarMappable(cmap=cmap, norm=norm),
             cax=ax,
             ticks=ticks,
             extend=extend,
             spacing="uniform",
             orientation="horizontal",
-            label=label,
         )
+        cbar.ax.tick_params(labelsize=self.colorbar_fontsize)
+        cbar.set_label(label=label, size=self.colorbar_fontsize)
         buffer = BytesIO()
         plt.savefig(buffer, format="png", bbox_inches="tight")
         buffer.seek(0)
