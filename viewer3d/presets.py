@@ -769,8 +769,8 @@ def makeBundle(
     mb.set_reset_pose(True)
     mb.set_use_degrees(True)
     # TODO set crick parameters file
-    #mb.set
-    # TODO this is a bug in make bundle, because it does not expose the setters for residue name 
+    # mb.set
+    # TODO this is a bug in make bundle, because it does not expose the setters for residue name
     # mb.residue_name(aa)
     add_pdb_info_mover = AddPDBInfoMover()
 
@@ -871,23 +871,23 @@ def makeBundle(
     )
 
     z0_offset = FloatSlider(
-      min=-3,
-      max=3,
-      value=0,
-      step=0.1,
-      description="z0_offset",
-      style={"description_width": "initial"},
-      continuous_update=continuous_update,
+        min=-3,
+        max=3,
+        value=0,
+        step=0.1,
+        description="z0_offset",
+        style={"description_width": "initial"},
+        continuous_update=continuous_update,
     )
 
     z1_offset = FloatSlider(
-      min=-3,
-      max=3,
-      value=0,
-      step=0.1,
-      description="z1_offset",
-      style={"description_width": "initial"},
-      continuous_update=continuous_update,
+        min=-3,
+        max=3,
+        value=0,
+        step=0.1,
+        description="z1_offset",
+        style={"description_width": "initial"},
+        continuous_update=continuous_update,
     )
 
     invert = Checkbox(value=False, description="invert")
