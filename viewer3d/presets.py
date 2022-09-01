@@ -390,7 +390,8 @@ def perResidueClashMetric(
     if palette is None:
         palette = list(reversed(bokeh.palettes.Reds256))
     v += viewer3d.setPerResidueRealMetric(
-        scoretype="atomic_clashes",
+        scoretype="Per-Residue Clashes",
+        colorbar_label=c.name(),
         vmin=vmin,
         vmax=vmax,
         radius=0.2,
@@ -458,6 +459,7 @@ def perResidueEnergyMetric(
         )
     v += viewer3d.setPerResidueRealMetric(
         scoretype="res_energy",
+        colorbar_label=f"Per-Residue Energy ({scorefxn.get_name()})",
         vmin=vmin,
         vmax=vmax,
         radius=0.2,
@@ -534,7 +536,8 @@ def perResidueSasaMetric(
     if palette is None:
         palette = list(bokeh.palettes.Viridis256)
     v += viewer3d.setPerResidueRealMetric(
-        scoretype="res_sasa",
+        scoretype="Per-Residue SASA (Å$^{2}$)",
+        colorbar_label="",
         vmin=vmin,
         vmax=vmax,
         radius=0.2,
@@ -971,9 +974,7 @@ def rosettaViewer(
         view.pdbstrings = v.pdbstrings
         view.set_modules(v.get_modules())
         view.update_viewer()
-        if preset.__name__.startswith("perResidue") and hasattr(
-            view.viewer, COLORBAR_ATTR
-        ):
+        if hasattr(view.viewer, COLORBAR_ATTR):
             _value = getattr(view.viewer, COLORBAR_ATTR)
             display(Image(value=_value))
         else:
