@@ -390,8 +390,8 @@ def perResidueClashMetric(
     if palette is None:
         palette = list(reversed(bokeh.palettes.Reds256))
     v += viewer3d.setPerResidueRealMetric(
-        scoretype="Per-Residue Clashes",
-        colorbar_label=c.name(),
+        scoretype="atomic_clashes",
+        colorbar_label="Per-Residue Clashes",
         vmin=vmin,
         vmax=vmax,
         radius=0.2,
@@ -536,8 +536,8 @@ def perResidueSasaMetric(
     if palette is None:
         palette = list(bokeh.palettes.Viridis256)
     v += viewer3d.setPerResidueRealMetric(
-        scoretype="Per-Residue SASA (Å$^{2}$)",
-        colorbar_label="",
+        scoretype="res_sasa",
+        colorbar_label="Per-Residue SASA (Å$^{2}$)",
         vmin=vmin,
         vmax=vmax,
         radius=0.2,
