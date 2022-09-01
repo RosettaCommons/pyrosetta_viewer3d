@@ -263,12 +263,12 @@ def coreBoundarySurface(
     surface_cutoff.observe(set_surface_cutoff, names="value")
 
     advanced_labels = map(
-        lambda l: Label(value=l),
-        [
+        Label,
+        (
             "Advanced parameters:",
             "distance factor = 1 / (1 + exp( n*(d - m) ) ), where d is the distance of the neighbor from the residue CA, m is the midpoint of the distance falloff, and n is a falloff exponent factor that determines the sharpness of the distance falloff (with higher values giving sharper falloff near the midpoint distance).",
             "angle factor = ( (cos(theta)+a)/(1+a) )^b, where theta is the angle between the CA-CB vector and the CA-neighbor vector, a is an offset factor that widens the cone somewhat, and b is an exponent that determines the sharpness of the angular falloff (with lower values resulting in a broader cone with a sharper edge falloff).",
-        ],
+        ),
     )
 
     view.set_widgets(
@@ -456,9 +456,13 @@ def perResidueEnergyMetric(
         palette = list(bokeh.palettes.Greens256) + list(
             reversed(bokeh.palettes.Reds256)
         )
+    scorefxn_name = scorefxn.get_name()
+    weights_ext = ".wts"
+    if scorefxn_name.endswith(weights_ext):
+        scorefxn_name = scorefxn_name[: -len(weights_ext)]
     v += viewer3d.setPerResidueRealMetric(
         scoretype="res_energy",
-        colorbar_label=f"Per-Residue Energy ({scorefxn.get_name()})",
+        colorbar_label=f"Per-Residue Energy ({scorefxn_name})",
         vmin=vmin,
         vmax=vmax,
         radius=0.2,
@@ -584,8 +588,7 @@ def unsatSelector(
     __author__ = "Jason C. Klima"
 
     if scorefxn is None:
-        # TODO check if '-beta' is initialized and score with beta
-        scorefxn = pyrosetta.create_score_function("ref2015")
+        scorefxn = pyrosetta.get_fa_scorefxn()
 
     unsat_amine_selector = UnsatSelector()
     unsat_amine_selector.set_scorefxn(scorefxn)
