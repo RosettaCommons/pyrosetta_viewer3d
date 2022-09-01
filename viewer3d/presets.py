@@ -262,21 +262,20 @@ def coreBoundarySurface(
     core_cutoff.observe(set_core_cutoff, names="value")
     surface_cutoff.observe(set_surface_cutoff, names="value")
 
-    # TODO description is currently not shown -- move it to dropdown in the future?
-    advanced_label = Label(
-        "Advanced parameters:",
-        description="""
-distance factor = 1 / (1 + exp( n*(d - m) ) ), where d is the distance of the neighbor from the residue CA, m is the midpoint of the distance falloff, and n is a falloff exponent factor that determines the sharpness of the distance falloff (with higher values giving sharper falloff near the midpoint distance).
-
-angle factor = ( (cos(theta)+a)/(1+a) )^b, where theta is the angle between the CA-CB vector and the CA-neighbor vector, a is an offset factor that widens the cone somewhat, and b is an exponent that determines the sharpness of the angular falloff (with lower values resulting in a broader cone with a sharper edge falloff).
-    """,
+    advanced_labels = map(
+        lambda l: Label(value=l),
+        [
+            "Advanced parameters:",
+            "distance factor = 1 / (1 + exp( n*(d - m) ) ), where d is the distance of the neighbor from the residue CA, m is the midpoint of the distance falloff, and n is a falloff exponent factor that determines the sharpness of the distance falloff (with higher values giving sharper falloff near the midpoint distance).",
+            "angle factor = ( (cos(theta)+a)/(1+a) )^b, where theta is the angle between the CA-CB vector and the CA-neighbor vector, a is an offset factor that widens the cone somewhat, and b is an exponent that determines the sharpness of the angular falloff (with lower values resulting in a broader cone with a sharper edge falloff).",
+        ],
     )
 
     view.set_widgets(
         [
             core_cutoff,
             surface_cutoff,
-            advanced_label,
+            *advanced_labels,
             dist_exponent,
             dist_midpoint,
             angle_exponent,
