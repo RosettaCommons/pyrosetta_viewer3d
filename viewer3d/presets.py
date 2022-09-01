@@ -911,9 +911,6 @@ def rosettaViewer(
         3: unsatSelector
         4: ligandsAndMetals
 
-    TODO:
-        - If using `pyrosetta.pose_from_sequence`, `py3Dmol` may not show `perResidueClashMetric` correctly.
-
     Args:
         packed_and_poses_and_pdbs: An optional `PackedPose`, `Pose`, or `str` of a valid path
             to a .pdb file, or an iterable of these objects.
