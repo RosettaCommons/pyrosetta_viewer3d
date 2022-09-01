@@ -2,12 +2,12 @@ import attr
 import logging
 import sys
 
-from ipywidgets import interactive, IntSlider, Widget
+from ipywidgets import interactive, Image, IntSlider, Widget
 from IPython.display import display
 from typing import Any, Dict, List, NoReturn, Union
 
 from viewer3d.converters import _to_widgets
-
+from viewer3d.config import COLORBAR_ATTR
 
 _logger: logging.Logger = logging.getLogger("viewer3d.widgets")
 
@@ -30,8 +30,13 @@ class WidgetsBase:
     def get_widgets(self) -> List[Widget]:
         self.decoy_widget = self.get_decoy_widget()
         _widgets = self.widgets.copy()
+        if hasattr(self.viewer, COLORBAR_ATTR):
+            _value = getattr(self.viewer, COLORBAR_ATTR)
+            _image = Image(value=_value)
+            _widgets.insert(0, _image)
         if self.get_n_decoys() > 1:
             _widgets.insert(0, self.decoy_widget)
+
         return _widgets
 
     def get_n_decoys(self) -> Union[int, NoReturn]:

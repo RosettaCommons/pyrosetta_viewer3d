@@ -1,27 +1,50 @@
 import attr
 import collections
+import copy
 import itertools
 import logging
+import math
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy
 import pyrosetta
 import pyrosetta.distributed.io as io
 import sys
+import uuid
 
+from bokeh.palettes import Greens256
 from functools import singledispatch
+from io import BytesIO
 from pyrosetta import Pose
-from pyrosetta.rosetta.core.conformation import is_disulfide_bond
+from pyrosetta.rosetta.core.id import AtomID
+from pyrosetta.rosetta.core.conformation import Residue, is_disulfide_bond
 from pyrosetta.rosetta.core.select.residue_selector import (
     ResidueSelector,
     TrueResidueSelector,
 )
-from pyrosetta.rosetta.core.id import AtomID
-from typing import Dict, Generic, List, NoReturn, Optional, Tuple, TypeVar, Union
 
-from viewer3d.config import BACKENDS
+from typing import (
+    Dict,
+    Generic,
+    Iterable,
+    List,
+    NoReturn,
+    Optional,
+    OrderedDict,
+    Tuple,
+    TypeVar,
+    Union,
+)
+
+from viewer3d.colors import default_element_colors
+from viewer3d.config import BACKENDS, COLORBAR_ATTR
 from viewer3d.converters import (
     _get_nglview_selection,
     _get_residue_chain_tuple,
+    _int_to_str,
     _pdbstring_to_pose,
     _pose_to_residue_chain_tuples,
+    _py3Dmol_to_nglview_style,
     _to_hex,
     _to_0_if_le_0,
     _to_1_if_gt_1,
@@ -55,6 +78,28 @@ class ModuleBase:
             _modules = [_to_module(objs)]
 
         return _modules
+
+    def add_selection_scheme(
+        self, name: str, selection_scheme: List[List[Union[str, int]]]
+    ) -> None:
+        cm = sys.modules["nglview"].color.ColormakerRegistry
+        cm.add_selection_scheme(name, selection_scheme)
+
+    def add_element_selection_scheme(self, name: str) -> None:
+        """
+        Add element-based selection scheme to NGLView ColormakerRegistry
+        based on '<color>Carbon' naming system or an arbitrary `str` object.
+        """
+        _default_element_colors = copy.deepcopy(default_element_colors)
+        if name.endswith("Carbon"):
+            _default_element_colors["C"] = name.replace("Carbon", "")
+        else:
+            _default_element_colors["C"] = name
+        _selection_scheme = [
+            [_int_to_str(color), f"_{element}"]
+            for (element, color) in _default_element_colors.items()
+        ]
+        self.add_selection_scheme(name, _selection_scheme)
 
 
 @attr.s(kw_only=False, slots=True)
@@ -526,6 +571,476 @@ class setHydrogens(ModuleBase):
 
 
 @attr.s(kw_only=True, slots=True)
+class setPerResidueRealMetric(ModuleBase):
+    """
+    Show and color residues by a per-residue real metric in the `pose.scores` dictionary.
+
+    first: required
+        `scoretype`
+
+        `str` object matching a scoretype name. The scoretype name must contain a
+        trailing underscore followed by either a residue number (rosetta numbering) or
+        pdb number (pdb numbering), per the default output of `PerResidueRealMetrics`.
+        Examples:
+            Scoretype "res_energy_18A" would be selected by `scoretype='res_energy'`
+            Scoretype "custom_type_atomic_clashes_4" would be selected by `scoretype='atomic_clashes'`
+
+    second: optional
+        `vmin`
+
+        `float` or `int` object representing the minimum scoretype value for the palette.
+        If `None`, set 'vmin' to the minimum scoretype value.
+        Default: None
+
+    third: optional
+        `vmax`
+
+        `float` or `int` object representing the maximum scoretype value for the palette.
+        If `None`, set 'vmin' to the maximum scoretype value.
+        Default: None
+
+    fourth: optional
+        `palette`
+
+        An iterable of `str` (or `int`) objects representing a color map.
+        Default: `bokeh.palettes.Greens256`
+
+    fifth: optional
+        `log`
+
+        `None` to map colors spaced evenly on a linear scale between 'vmin' to 'vmax'.
+        If an `int` or `float` object is provided, map colors spaced evenly on a log
+        scale with the base provided.
+        Default: None
+
+    sixth: optional:
+        `style`
+
+        `str` indicating a representation style of heavy atoms, choosing from
+        either "line", "cross", "stick", or "sphere".
+        Default: "stick"
+
+    seventh : optional
+        `radius`
+
+        `float` or `int` indicating the radius of the heavy atoms represented by
+        the `style` option.
+        Default: 0.1
+
+    eighth : optional
+        `show_hydrogens`
+
+        `bool` object for the `nglview` backend to show all hydrogens.
+        Defualt: False
+
+    ninth : optional
+        `bonds`
+
+        `str` object for the `nglview` backend to show double bonds.
+        Available options are: "off", "symmetric", or "offset"
+        Defualt: "symmetric"
+
+    tenth : optional
+        `cartoon`
+
+        `True` or `False` to show cartoon representation.
+        Default: True
+
+    eleventh : optional
+        `cartoon_color`
+
+        Hexcode literal (e.g. 0xAF10AB) or `str` indicating a standard color (e.g. "grey") for the cartoon representation.
+        If "spectrum", apply reversed color gradient based on residue numbers. The option `cartoon` must also be set to `True`.
+        Default: "spectrum"
+        Reference: https://3dmol.csb.pitt.edu/doc/types.html#ColorSpec
+
+    twelfth : optional
+        `cartoon_radius`
+
+        Set the cartoon radius for the `nglview` backend.
+
+    thirteenth : optional
+        `cartoon_opacity`
+
+        Set the cartoon opacity for the `nglview` backend.
+
+    fourteenth: optional
+        `colorbar`
+
+        `True` or `False` to show the colorbar axis.
+
+    fifteenth: optional
+        `colorbar_extremes`
+
+        An interable of two booleans representing whether to plot colorbar extremes
+        for vmin and vmax.
+
+    sixteenth: optional
+        `colorbar_label`
+
+        A `str` object to label the colorbar axis.
+
+    seventeenth: optional
+        `colorbar_fontsize`
+
+        A positive `int` object representing the colorbar label and tickmark label fontsize.
+
+    eighteenth: optional
+        `colorbar_nticks`
+
+        An `int` object representing the number of tickmarks to show on the colorbar axis,
+        automatically interpolated between the 'vmin' and 'vmax' attributes.
+
+    Returns
+    -------
+    A Viewer instance.
+    """
+
+    scoretype = attr.ib(
+        type=str,
+        validator=attr.validators.instance_of(str),
+    )
+    vmin = attr.ib(
+        default=None,
+        type=Union[float, int],
+        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
+    )
+    vmax = attr.ib(
+        default=None,
+        type=Union[float, int],
+        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
+    )
+    palette = attr.ib(
+        default=None,
+        type=Iterable[Union[str, int]],
+        validator=attr.validators.deep_iterable(
+            member_validator=attr.validators.instance_of((str, int)),
+            iterable_validator=attr.validators.instance_of(collections.abc.Iterable),
+        ),
+        converter=attr.converters.default_if_none(default=Greens256),
+    )
+    log = attr.ib(
+        default=None,
+        type=Optional[Union[float, int]],
+        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
+        converter=_to_0_if_le_0,
+    )
+    style = attr.ib(
+        default="stick",
+        type=str,
+        validator=[
+            attr.validators.instance_of(str),
+            attr.validators.in_(("line", "cross", "stick", "sphere", "ball+stick")),
+        ],
+    )
+    radius = attr.ib(
+        default=0.1,
+        type=Union[float, int],
+        validator=attr.validators.instance_of((float, int)),
+        converter=_to_0_if_le_0,
+    )
+    show_hydrogens = attr.ib(
+        default=None,
+        type=bool,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
+    bonds = attr.ib(
+        default=None,
+        type=bool,
+        validator=[
+            attr.validators.instance_of(str),
+            attr.validators.in_(("off", "symmetric", "offset")),
+        ],
+        converter=attr.converters.default_if_none(default="symmetric"),
+    )
+    cartoon = attr.ib(
+        default=True,
+        type=bool,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
+    cartoon_color = attr.ib(
+        default=None,
+        type=Optional[Union[str, int]],
+        validator=attr.validators.optional(attr.validators.instance_of((str, int))),
+        converter=_to_hex,
+    )
+    cartoon_radius = attr.ib(
+        default=None,
+        type=Optional[Union[float, int]],
+        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
+        converter=attr.converters.default_if_none(default=0.1),
+    )
+    cartoon_opacity = attr.ib(
+        default=1,
+        type=Union[float, int],
+        validator=attr.validators.optional(attr.validators.instance_of((float, int))),
+        converter=[_to_0_if_le_0, _to_1_if_gt_1],
+    )
+    colorbar = attr.ib(
+        default=True,
+        type=bool,
+        validator=attr.validators.instance_of(bool),
+        converter=attr.converters.default_if_none(default=False),
+    )
+    colorbar_extremes = attr.ib(
+        default=None,
+        type=Tuple[bool, bool],
+        validator=attr.validators.deep_iterable(
+            member_validator=attr.validators.instance_of(bool),
+            iterable_validator=attr.validators.instance_of(collections.abc.Iterable),
+        ),
+        converter=attr.converters.default_if_none(default=(False, False)),
+    )
+    colorbar_label = attr.ib(
+        default=None,
+        type=Optional[str],
+        validator=attr.validators.optional(attr.validators.instance_of(str)),
+    )
+    colorbar_fontsize = attr.ib(
+        default=None,
+        type=Optional[str],
+        validator=attr.validators.instance_of(int),
+        converter=attr.converters.default_if_none(default=20),
+    )
+    colorbar_nticks = attr.ib(
+        default=None,
+        type=int,
+        validator=attr.validators.instance_of(int),
+        converter=attr.converters.default_if_none(default=11),
+    )
+
+    @colorbar_extremes.validator
+    def _len_2(self, attribute, value):
+        if len(value) != 2:
+            raise ValueError(
+                "The 'colorbar_extremes' attribute must be an interable of length 2."
+            )
+
+    def set_vmin_vmax(self, pose: Pose) -> None:
+        values = [
+            value
+            for (scoretype, value) in pose.scores.items()
+            if self.scoretype in scoretype
+        ]
+        if not values:
+            raise ValueError(
+                f"Scoretype matching '{self.scoretype}' not found in `pose.scores` keys."
+            )
+        if self.vmin is None:
+            self.vmin = min(values)
+        if self.vmax is None:
+            self.vmax = max(values)
+
+    def get_elements_from_residue(self, residue: Residue) -> List[str]:
+        residue_type = residue.type()
+        elements = [
+            residue_type.element(atom).name.upper()
+            for atom in range(1, residue.natoms() + 1)
+        ]
+        return elements
+
+    def get_nearest_value_from_keys(
+        self, _dict: Dict[float, str], _value: float
+    ) -> float:
+        index, value = min(enumerate(_dict.keys()), key=lambda x: abs(x[1] - _value))
+
+        return value
+
+    def get_palette_value_dict(self) -> Union[OrderedDict[float, str], NoReturn]:
+        if self.log is not None:
+            if any(v <= 0 for v in (self.vmin, self.vmax)):
+                raise ValueError(
+                    "The 'vmin' and 'vmax' attributes must be >0 for logarithmic color mapping."
+                )
+            _space = numpy.logspace(
+                math.log(self.vmin, self.log),
+                math.log(self.vmax, self.log),
+                num=len(self.palette),
+                base=self.log,
+            )
+        else:
+            _space = numpy.linspace(
+                self.vmin,
+                self.vmax,
+                num=len(self.palette),
+            )
+        _palette_value_dict = collections.OrderedDict(zip(_space, self.palette))
+
+        return _palette_value_dict
+
+    def get_colorbar(self, space: numpy.ndarray) -> bytes:
+        fig, ax = plt.subplots(figsize=(20, 1))
+        fig.subplots_adjust(bottom=0.5)
+        cmap = (matplotlib.colors.ListedColormap(self.palette)).with_extremes(
+            over=self.palette[-1], under=self.palette[0]
+        )
+        indexes = numpy.round(
+            numpy.linspace(0, len(space) - 1, self.colorbar_nticks)
+        ).astype(int)
+        ticks = list(space[indexes])
+        norm = matplotlib.colors.BoundaryNorm(ticks, cmap.N)
+        if self.colorbar_label is None:
+            label = self.scoretype
+        else:
+            label = self.colorbar_label
+        if self.colorbar_extremes[0] and self.colorbar_extremes[-1]:
+            extend = "both"
+        elif self.colorbar_extremes[0] and not self.colorbar_extremes[-1]:
+            extend = "min"
+        elif not self.colorbar_extremes[0] and self.colorbar_extremes[-1]:
+            extend = "max"
+        else:
+            extend = "neither"
+        cbar = fig.colorbar(
+            matplotlib.cm.ScalarMappable(cmap=cmap, norm=norm),
+            cax=ax,
+            ticks=ticks,
+            extend=extend,
+            spacing="uniform",
+            orientation="horizontal",
+        )
+        cbar.ax.tick_params(labelsize=self.colorbar_fontsize)
+        cbar.set_label(label=label, size=self.colorbar_fontsize)
+        buffer = BytesIO()
+        plt.savefig(buffer, format="png", bbox_inches="tight")
+        buffer.seek(0)
+        colorbar = buffer.read()
+        plt.close()
+
+        return colorbar
+
+    def viewer_setattr_colorbar(
+        self, viewer: Generic[ViewerType], _palette_value_dict: OrderedDict[float, str]
+    ) -> Generic[ViewerType]:
+        space = numpy.array(list(_palette_value_dict.keys()))
+        colorbar = self.get_colorbar(space)
+        setattr(viewer, COLORBAR_ATTR, colorbar)
+
+        return viewer
+
+    @requires_init
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        if self.cartoon_color is None:
+            self.cartoon_color = "spectrum"
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        self.set_vmin_vmax(pose)
+        _palette_value_dict = self.get_palette_value_dict()
+        for scoretype, value in pose.scores.items():
+            if self.scoretype in scoretype:
+                _r = scoretype.split("_")[-1]
+                if _r.isdigit():
+                    resi, chain = _get_residue_chain_tuple(pose, int(_r))
+                else:
+                    resi, chain = _r[:-1], _r[-1]
+                _nearest_value = self.get_nearest_value_from_keys(
+                    _palette_value_dict, value
+                )
+                _C_color = _palette_value_dict[_nearest_value]
+                # TODO Set element-based color scheme
+                if self.cartoon:
+                    viewer.setStyle(
+                        {"model": model, "resi": resi, "chain": chain},
+                        {
+                            "cartoon": {"color": self.cartoon_color},
+                            self.style: {
+                                "color": _C_color,
+                                "radius": self.radius,
+                            },
+                        },
+                    )
+                else:
+                    viewer.setStyle(
+                        {"model": model, "resi": resi, "chain": chain},
+                        {
+                            self.style: {
+                                "color": _C_color,
+                                "radius": self.radius,
+                            }
+                        },
+                    )
+
+        if self.colorbar:
+            viewer = self.viewer_setattr_colorbar(viewer, _palette_value_dict)
+
+        return viewer
+
+    @requires_init
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        self.style = _py3Dmol_to_nglview_style(self.style)
+        if self.cartoon_color is None:
+            self.cartoon_color = "atomindex"
+
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        if self.cartoon:
+            viewer.remove_cartoon(component=model)
+            viewer.add_representation(
+                repr_type="cartoon",
+                selection="*",
+                color=self.cartoon_color,
+                radius=self.cartoon_radius,
+                opacity=self.cartoon_opacity,
+                component=model,
+            )
+        self.set_vmin_vmax(pose)
+        _palette_value_dict = self.get_palette_value_dict()
+        _default_element_colors = copy.deepcopy(default_element_colors)
+        _selection_scheme = []
+        for scoretype, value in pose.scores.items():
+            if self.scoretype in scoretype:
+                _r = scoretype.split("_")[-1]
+                if _r.isdigit():
+                    _residue, _chain = _get_residue_chain_tuple(pose, int(_r))
+                else:
+                    _residue, _chain = _r[:-1], _r[-1]
+                _resnum = pose.pdb_info().pdb2pose(_chain, int(_residue))
+                _elements_from_residue = self.get_elements_from_residue(
+                    pose.residue(_resnum)
+                )
+                _nearest_value = self.get_nearest_value_from_keys(
+                    _palette_value_dict, value
+                )
+                _C_color = _palette_value_dict[_nearest_value]
+                _default_element_colors["C"] = _C_color
+                for (_element, _element_color) in _default_element_colors.items():
+                    if _element in _elements_from_residue:
+                        _selection_scheme.append(
+                            [
+                                _int_to_str(_element_color),
+                                f"{_residue}:{_chain} and _{_element}",
+                            ]
+                        )
+        _selection_name = f"{self.scoretype}_{uuid.uuid4().hex}"
+        self.add_selection_scheme(_selection_name, _selection_scheme)
+        _default_selection = "*" if self.show_hydrogens else "not hydrogen"
+        viewer.add_representation(
+            repr_type=self.style,
+            selection=_default_selection,
+            color=_selection_name,
+            radius=self.radius,
+            multipleBond=self.bonds,
+            component=model,
+        )
+
+        if self.colorbar:
+            viewer = self.viewer_setattr_colorbar(viewer, _palette_value_dict)
+
+        return viewer
+
+    def apply_pymol(self) -> NoReturn:
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
+
+
+@attr.s(kw_only=True, slots=True)
 class setStyle(ModuleBase):
     """
     Show and color cartoon, and/or show heavy atoms with provided style, color and radius for each initialized
@@ -668,6 +1183,13 @@ class setStyle(ModuleBase):
         `bool` object for the `nglview` backend to show all hydrogens.
         Defualt: False
 
+    fifteenth : optional
+        `bonds`
+
+        `str` object for the `nglview` backend to show double bonds.
+        Options are: "off", "symmetric", "offset"
+        Defualt: "symmetric"
+
     Returns
     -------
     A Viewer instance.
@@ -758,6 +1280,15 @@ class setStyle(ModuleBase):
         type=bool,
         validator=attr.validators.instance_of(bool),
         converter=attr.converters.default_if_none(default=False),
+    )
+    bonds = attr.ib(
+        default=None,
+        type=bool,
+        validator=[
+            attr.validators.instance_of(str),
+            attr.validators.in_(("off", "symmetric", "offset")),
+        ],
+        converter=attr.converters.default_if_none(default="symmetric"),
     )
 
     @requires_init
@@ -851,18 +1382,8 @@ class setStyle(ModuleBase):
         if self.cartoon_color is None:
             self.cartoon_color = "atomindex"
         if isinstance(self.colorscheme, str) and self.colorscheme.endswith("Carbon"):
-            if self.colorscheme == "blackCarbon":
-                self.colorscheme = "element"
-            else:
-                self.colorscheme = self.colorscheme.replace("Carbon", "")
-        if self.style == "stick":
-            self.style = "licorice"
-        elif self.style == "sphere":
-            self.style = "spacefill"
-        elif self.style == "cross":
-            self.style = "point"
-        elif self.style == "line":
-            self.style = "line"
+            self.add_element_selection_scheme(self.colorscheme)
+        self.style = _py3Dmol_to_nglview_style(self.style)
         default_selection = "*" if self.show_hydrogens else "not hydrogen"
 
         if self.command:
@@ -874,10 +1395,10 @@ class setStyle(ModuleBase):
                 pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
             selection = _get_nglview_selection(
-                pose, self.residue_selector, logger=_logger
-            )
-            selection_hydrogens = (
-                f"({selection}) and not hydrogen" if self.show_hydrogens else selection
+                pose,
+                self.residue_selector,
+                show_hydrogens=self.show_hydrogens,
+                logger=_logger,
             )
 
             if not selection:
@@ -886,9 +1407,10 @@ class setStyle(ModuleBase):
                 if self.radius > 1e-10:
                     viewer.add_representation(
                         repr_type=self.style,
-                        selection=selection_hydrogens,
+                        selection=selection,
                         color=self.colorscheme,
                         radius=self.radius,
+                        multipleBond=self.bonds,
                         component=model,
                     )
                 if self.cartoon:
@@ -905,7 +1427,7 @@ class setStyle(ModuleBase):
                     viewer.add_representation(
                         repr_type="label",
                         labelType="res",
-                        selection=selection_hydrogens,
+                        selection=selection,  # selection_hydrogens,
                         showBorder=self.label_background,
                         borderColor="gray",
                         showBackground=self.label_background,
@@ -919,6 +1441,7 @@ class setStyle(ModuleBase):
                     selection=default_selection,
                     color=self.colorscheme,
                     radius=self.radius,
+                    multipleBond=self.bonds,
                     component=model,
                 )
             if self.cartoon:
@@ -1090,10 +1613,16 @@ class setSurface(ModuleBase):
             "SES": "ses",
             "AV": "av",
         }
+        for _colorscheme in (self.color, self.colorscheme):
+            if isinstance(_colorscheme, str) and _colorscheme.endswith("Carbon"):
+                self.add_element_selection_scheme(_colorscheme)
+
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        selection = _get_nglview_selection(pose, self.residue_selector, logger=_logger)
+        selection = _get_nglview_selection(
+            pose, self.residue_selector, show_hydrogens=True, logger=_logger
+        )
         if not selection:
             pass
         else:
@@ -1201,7 +1730,9 @@ class setZoomTo(ModuleBase):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        selection = _get_nglview_selection(pose, self.residue_selector, logger=_logger)
+        selection = _get_nglview_selection(
+            pose, self.residue_selector, show_hydrogens=True, logger=_logger
+        )
         if not selection:
             viewer.center(selection="*", component=model)
         else:
@@ -1210,4 +1741,27 @@ class setZoomTo(ModuleBase):
         return viewer
 
     def apply_pymol(self) -> NoReturn:
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
+
+
+@attr.s(kw_only=True, slots=True, frozen=True)
+class setTemplate(ModuleBase):
+    """Template class for developing new visualization modules."""
+
+    @requires_init
+    def apply_py3Dmol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[0])
+
+    @requires_init
+    def apply_nglview(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[1])
+
+    @requires_init
+    def apply_pymol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
         raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])

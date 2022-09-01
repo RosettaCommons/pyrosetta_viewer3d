@@ -23,6 +23,18 @@ from viewer3d.exceptions import ViewerInputError
 _logger: logging.Logger = logging.getLogger("viewer3d.converters")
 
 
+def _py3Dmol_to_nglview_style(style: str) -> str:
+    if style == "stick":
+        style = "licorice"
+    elif style == "sphere":
+        style = "spacefill"
+    elif style == "cross":
+        style = "point"
+    elif style == "line":
+        style = "line"
+    return style
+
+
 def _to_poses_pdbstrings(
     packed_and_poses_and_pdbs: Any,
 ) -> Tuple[
@@ -78,7 +90,7 @@ def _to_poses_pdbstrings(
 
     if isinstance(
         packed_and_poses_and_pdbs, collections.abc.Iterable
-    ) and not isinstance(packed_and_poses_and_pdbs, (Pose, PackedPose)):
+    ) and not isinstance(packed_and_poses_and_pdbs, (Pose, PackedPose, str)):
         poses, pdbstrings = map(
             to_dict,
             map(
@@ -141,6 +153,16 @@ def _to_backend(obj: Any) -> Union[NoReturn, Any]:
     return backend
 
 
+@singledispatch
+def _int_to_str(obj):
+    return obj
+
+
+@_int_to_str.register(int)
+def _to_str(obj):
+    return hex(obj).replace("0x", "#")
+
+
 def _to_widgets(objs) -> List[Widget]:
     @singledispatch
     def _to_widget(obj: Any) -> NoReturn:
@@ -186,10 +208,20 @@ def _pose_to_residue_chain_tuples(
 
 
 def _get_nglview_selection(
-    pose, residue_selector: ResidueSelector, logger: logging.Logger = _logger
+    pose,
+    residue_selector: ResidueSelector,
+    show_hydrogens: bool = False,
+    logger: logging.Logger = _logger,
 ) -> str:
+    def _format_residue(rc: Tuple[str, str]) -> str:
+        if show_hydrogens:
+            return f"({rc[0]}:{rc[1]})"
+        else:
+            return f"({rc[0]}:{rc[1]} and not _H)"
+
     resi, chain = _pose_to_residue_chain_tuples(pose, residue_selector, logger=_logger)
-    selection = " or ".join(map(lambda rc: f"({rc[0]}:{rc[1]})", zip(resi, chain)))
+    selection = " or ".join(map(_format_residue, zip(resi, chain)))
+
     return selection
 
 
@@ -210,6 +242,6 @@ def _pdbstring_to_pose(pdbstring, class_name, logger=_logger):
     return io.to_pose(io.pose_from_pdbstring(pdbstring))
 
 
-def _get_residue_chain_tuple(pose: Pose, res: int) -> Tuple[int, str]:
+def _get_residue_chain_tuple(pose: Pose, res: int) -> Tuple[str, str]:
     residue, chain = map(lambda x: x.strip(), pose.pdb_info().pose2pdb(res).split())
     return residue, chain
