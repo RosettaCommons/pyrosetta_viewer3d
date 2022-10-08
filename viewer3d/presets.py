@@ -262,21 +262,20 @@ def coreBoundarySurface(
     core_cutoff.observe(set_core_cutoff, names="value")
     surface_cutoff.observe(set_surface_cutoff, names="value")
 
-    # TODO description is currently not shown -- move it to dropdown in the future?
-    advanced_label = Label(
-        "Advanced parameters:",
-        description="""
-distance factor = 1 / (1 + exp( n*(d - m) ) ), where d is the distance of the neighbor from the residue CA, m is the midpoint of the distance falloff, and n is a falloff exponent factor that determines the sharpness of the distance falloff (with higher values giving sharper falloff near the midpoint distance).
-
-angle factor = ( (cos(theta)+a)/(1+a) )^b, where theta is the angle between the CA-CB vector and the CA-neighbor vector, a is an offset factor that widens the cone somewhat, and b is an exponent that determines the sharpness of the angular falloff (with lower values resulting in a broader cone with a sharper edge falloff).
-    """,
+    advanced_labels = map(
+        Label,
+        (
+            "Advanced parameters:",
+            "distance factor = 1 / (1 + exp( n*(d - m) ) ), where d is the distance of the neighbor from the residue CA, m is the midpoint of the distance falloff, and n is a falloff exponent factor that determines the sharpness of the distance falloff (with higher values giving sharper falloff near the midpoint distance).",
+            "angle factor = ( (cos(theta)+a)/(1+a) )^b, where theta is the angle between the CA-CB vector and the CA-neighbor vector, a is an offset factor that widens the cone somewhat, and b is an exponent that determines the sharpness of the angular falloff (with lower values resulting in a broader cone with a sharper edge falloff).",
+        ),
     )
 
     view.set_widgets(
         [
             core_cutoff,
             surface_cutoff,
-            advanced_label,
+            *advanced_labels,
             dist_exponent,
             dist_midpoint,
             angle_exponent,
@@ -457,9 +456,13 @@ def perResidueEnergyMetric(
         palette = list(bokeh.palettes.Greens256) + list(
             reversed(bokeh.palettes.Reds256)
         )
+    scorefxn_name = scorefxn.get_name()
+    weights_ext = ".wts"
+    if scorefxn_name.endswith(weights_ext):
+        scorefxn_name = scorefxn_name[: -len(weights_ext)]
     v += viewer3d.setPerResidueRealMetric(
         scoretype="res_energy",
-        colorbar_label=f"Per-Residue Energy ({scorefxn.get_name()})",
+        colorbar_label=f"Per-Residue Energy ({scorefxn_name})",
         vmin=vmin,
         vmax=vmax,
         radius=0.2,
@@ -585,8 +588,7 @@ def unsatSelector(
     __author__ = "Jason C. Klima"
 
     if scorefxn is None:
-        # TODO check if '-beta' is initialized and score with beta
-        scorefxn = pyrosetta.create_score_function("ref2015")
+        scorefxn = pyrosetta.get_fa_scorefxn()
 
     unsat_amine_selector = UnsatSelector()
     unsat_amine_selector.set_scorefxn(scorefxn)
@@ -767,8 +769,8 @@ def makeBundle(
     mb.set_reset_pose(True)
     mb.set_use_degrees(True)
     # TODO set crick parameters file
-    #mb.set
-    # TODO this is a bug in make bundle, because it does not expose the setters for residue name 
+    # mb.set
+    # TODO this is a bug in make bundle, because it does not expose the setters for residue name
     # mb.residue_name(aa)
     add_pdb_info_mover = AddPDBInfoMover()
 
@@ -869,23 +871,23 @@ def makeBundle(
     )
 
     z0_offset = FloatSlider(
-      min=-3,
-      max=3,
-      value=0,
-      step=0.1,
-      description="z0_offset",
-      style={"description_width": "initial"},
-      continuous_update=continuous_update,
+        min=-3,
+        max=3,
+        value=0,
+        step=0.1,
+        description="z0_offset",
+        style={"description_width": "initial"},
+        continuous_update=continuous_update,
     )
 
     z1_offset = FloatSlider(
-      min=-3,
-      max=3,
-      value=0,
-      step=0.1,
-      description="z1_offset",
-      style={"description_width": "initial"},
-      continuous_update=continuous_update,
+        min=-3,
+        max=3,
+        value=0,
+        step=0.1,
+        description="z1_offset",
+        style={"description_width": "initial"},
+        continuous_update=continuous_update,
     )
 
     invert = Checkbox(value=False, description="invert")
@@ -939,9 +941,6 @@ def rosettaViewer(
         2: perResidueSasaMetric
         3: unsatSelector
         4: ligandsAndMetals
-
-    TODO:
-        - If using `pyrosetta.pose_from_sequence`, `py3Dmol` may not show `perResidueClashMetric` correctly.
 
     Args:
         packed_and_poses_and_pdbs: An optional `PackedPose`, `Pose`, or `str` of a valid path
