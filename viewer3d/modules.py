@@ -193,6 +193,9 @@ class setDisulfides(ModuleBase):
         init=False,
     )
 
+    def get_cys_res(self, pose: Pose) -> List[int]:
+        return [i for i, aa in enumerate(pose.sequence(), start=1) if aa == "C"]
+
     @requires_init
     def apply_py3Dmol(
         self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
@@ -200,7 +203,7 @@ class setDisulfides(ModuleBase):
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        cys_res = [i for i, aa in enumerate(pose.sequence(), start=1) if aa == "C"]
+        cys_res = self.get_cys_res(pose)
         for (i, j) in itertools.product(cys_res, repeat=2):
             if is_disulfide_bond(pose.conformation(), i, j):
                 i_xyz = pose.xyz(
@@ -226,7 +229,10 @@ class setDisulfides(ModuleBase):
     def apply_nglview(
         self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
     ) -> Generic[ViewerType]:
-        cys_res = [i for i, aa in enumerate(pose.sequence(), start=1) if aa == "C"]
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        cys_res = self.get_cys_res(pose)
         selection_disulfides = []
         for (i, j) in itertools.product(cys_res, repeat=2):
             if is_disulfide_bond(pose.conformation(), i, j):
@@ -255,8 +261,24 @@ class setDisulfides(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self) -> NoReturn:
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
+    def apply_pymol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        cys_res = self.get_cys_res(pose)
+        for (i, j) in itertools.product(cys_res, repeat=2):
+            if is_disulfide_bond(pose.conformation(), i, j):
+                i_res, i_chain = _get_residue_chain_tuple(pose, i)
+                j_res, j_chain = _get_residue_chain_tuple(pose, j)
+                i_sele = f"(obj {model} and chain {i_chain} and resid {i_res} and name {self.sulfur_atom_name})"
+                j_sele = f"(obj {model} and chain {j_chain} and resid {j_res} and name {self.sulfur_atom_name})"
+                viewer.bond(i_sele, j_sele)
+                viewer.set_bond("stick_color", self.color, i_sele, j_sele)
+                viewer.set_bond("stick_radius", self.radius, i_sele, j_sele)
+
+        return viewer
 
 
 @attr.s(kw_only=False, slots=True)
