@@ -213,7 +213,7 @@ class PyMOLViewer(ViewerBase):
     def add_objects(
         self, _poses: List[Pose], _pdbstrings: List[str], _model: Optional[int]
     ) -> None:
-        if self._displayed:
+        if hasattr(self, "viewer"):
             if _model is None:
                 for _m in range(len(_poses)):
                     self.add_object(_poses, _pdbstrings, _m)
@@ -221,7 +221,7 @@ class PyMOLViewer(ViewerBase):
                 self.add_object(_poses, _pdbstrings, _model)
 
     def remove_objects(self, _model: Optional[int]) -> None:
-        if self._displayed:
+        if hasattr(self, "viewer"):
             if _model is None:
                 self.viewer.delete("all")
             elif isinstance(_model, int):
