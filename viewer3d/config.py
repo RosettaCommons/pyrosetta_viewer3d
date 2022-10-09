@@ -12,6 +12,8 @@ COLORBAR_ATTR = "__viewer3d_colorbar__"
 def _import_backend(backend: str) -> None:
     if backend == BACKENDS[0]:
         import py3Dmol
+        import subprocess
+        import xmlrpc.client
     elif backend == BACKENDS[1]:
         import nglview
     elif backend == BACKENDS[2]:

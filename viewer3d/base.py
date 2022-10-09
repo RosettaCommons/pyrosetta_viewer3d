@@ -6,7 +6,7 @@ from pyrosetta import Pose
 from typing import List, NoReturn, Optional
 
 from viewer3d.base3d import Base3D, expand_notebook
-from viewer3d.initialization import InitBase
+from viewer3d.initialization import InitBase, BACKENDS
 from viewer3d.pose import PoseBase
 from viewer3d.widgets import WidgetsBase
 
@@ -117,10 +117,14 @@ class ViewerBase(Base3D, InitBase, PoseBase, WidgetsBase):
 
     def show(self) -> None:
         """Display Viewer in Jupyter notebook."""
-        if self._in_notebook():
-            self._clear_output()
-            self._toggle_window(self.window_size)
-            self.display_widgets()
+        if self.backend == BACKENDS[2]:
             self.show_viewer()
-            self._toggle_scrolling()
             self._displayed = True
+        else:
+            if self._in_notebook():
+                self._clear_output()
+                self._toggle_window(self.window_size)
+                self.display_widgets()
+                self.show_viewer()
+                self._toggle_scrolling()
+                self._displayed = True

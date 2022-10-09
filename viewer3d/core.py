@@ -1,6 +1,8 @@
 import attr
 import logging
 import pyrosetta.distributed.io as io
+import sys
+import time
 
 from pyrosetta import Pose
 from pyrosetta.distributed.packed_pose.core import PackedPose
@@ -166,26 +168,67 @@ class NGLViewViewer(ViewerBase):
 class PyMOLViewer(ViewerBase):
     """Viewer object for the `pymol` backend."""
 
-    def __attrs_pre_init__(self):
+    def wait_for_gui(self) -> None:
+        timeout = 10.0  # seconds
+        start_time = time.time()
+        elapsed_time = time.time() - start_time
+        while elapsed_time < timeout:
+            try:
+                self.viewer.test()
+                self.viewer.delete("all")
+                break
+            except:
+                elapsed_time = time.time() - start_time
+        else:
+            raise RuntimeError("Launching PyMOL GUI exceeded timeout!")
+
+    def setup(self) -> None:
         self.pymol = self._maybe_import_backend()
-
-        raise NotImplementedError(
-            f"{self.__class__.__name__} is not currently supported."
+        command_line = (
+            f"pymol -R -W {int(self.window_size[0])} -H {int(self.window_size[1])}"
         )
+        sys.modules["subprocess"].Popen(command_line, shell=True)
+        self.viewer = sys.modules["xmlrpc.client"].ServerProxy("http://localhost:9123")
+        self.wait_for_gui()
 
-    def update_viewer(self, _pose, _pdbstring):
-        """Update PyMOLViewer."""
+    def add_object(
+        self, _poses: List[Pose], _pdbstrings: List[str], _model: Optional[int]
+    ) -> None:
+        _pose = _poses[_model]
+        if _pose is not None:
+            _pdbstring = io.to_pdbstring(_pose)
+        else:
+            _pdbstring = _pdbstrings[_model]
+        self.viewer.load_raw(_pdbstring, "pdb", str(_model))
+        self.apply_modules(_pose, _pdbstring, _model)
+
+    def add_objects(
+        self, _poses: List[Pose], _pdbstrings: List[str], _model: Optional[int]
+    ) -> None:
+        if _model is None:
+            for _m in range(len(_poses)):
+                self.add_object(_poses, _pdbstrings, _m)
+        elif isinstance(_model, int):
+            self.add_object(_poses, _pdbstrings, _model)
+
+    def remove_objects(self, _model: Optional[int]) -> None:
+        if _model is None:
+            self.viewer.delete("all")
+        elif isinstance(_model, int):
+            self.viewer.delete(str(_model))
+
+    def set_objects(
+        self, _poses: List[Pose], _pdbstrings: List[str], _model: Optional[int]
+    ) -> None:
+        self.remove_objects(_model)
+        self.add_objects(_poses, _pdbstrings, _model)
+
+    def update(self) -> None:
         pass
 
-    def show(self):
+    def show_viewer(self):
         """Display PyMOLViewer."""
-        _viewer = None  # TODO
-        for module in self.modules:
-            _viewer = module.apply_pymol(
-                _viewer,
-                _pose,
-                _pdbstring,
-            )
+        self.update_viewer(index=0)  # TODO: Supports all indices
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)

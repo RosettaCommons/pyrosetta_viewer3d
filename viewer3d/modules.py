@@ -141,8 +141,12 @@ class setBackgroundColor(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self) -> NoReturn:
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
+    def apply_pymol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        viewer.bg_color(self.color)
+
+        return viewer
 
 
 @attr.s(kw_only=False, slots=True)
@@ -1740,8 +1744,22 @@ class setZoomTo(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self) -> NoReturn:
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
+    def apply_pymol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        # selection = _get_pymol_selection(
+        #     pose, self.residue_selector, logger=_logger
+        # ) # TODO
+        selection = "all"
+        if not selection:
+            viewer.orient("all")
+        else:
+            viewer.orient(selection)
+
+        return viewer
 
 
 @attr.s(kw_only=True, slots=True, frozen=True)
