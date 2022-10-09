@@ -120,7 +120,8 @@ class ViewerBase(Base3D, InitBase, PoseBase, WidgetsBase):
         if self._in_notebook():
             if self.backend == BACKENDS[2]:
                 self.show_viewer()
-                self.update_viewer()  # TODO: display decoy widget for indices
+                self.display_widgets()
+                # self.update_viewer()  # TODO: display decoy widget for indices
             else:
                 self._clear_output()
                 self._toggle_window(self.window_size)
