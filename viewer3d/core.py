@@ -182,14 +182,21 @@ class PyMOLViewer(ViewerBase):
         else:
             raise RuntimeError("Launching PyMOL GUI exceeded timeout!")
 
-    def setup(self) -> None:
-        self.pymol = self._maybe_import_backend()
-        command_line = (
-            f"pymol -R -W {int(self.window_size[0])} -H {int(self.window_size[1])}"
+    def launch_pymol(self) -> None:
+        command_line = " ".join(
+            [
+                "pymol",
+                "-R",
+                f"-W {int(self.window_size[0])}",
+                f"-H {int(self.window_size[1])}",
+            ]
         )
         sys.modules["subprocess"].Popen(command_line, shell=True)
         self.viewer = sys.modules["xmlrpc.client"].ServerProxy("http://localhost:9123")
         self.wait_for_gui()
+
+    def setup(self) -> None:
+        self.pymol = self._maybe_import_backend()
 
     def add_object(
         self, _poses: List[Pose], _pdbstrings: List[str], _model: Optional[int]
@@ -228,7 +235,7 @@ class PyMOLViewer(ViewerBase):
 
     def show_viewer(self):
         """Display PyMOLViewer."""
-        self.update_viewer(index=0)  # TODO: Supports all indices
+        self.launch_pymol()
 
 
 @attr.s(kw_only=True, slots=False, frozen=False)

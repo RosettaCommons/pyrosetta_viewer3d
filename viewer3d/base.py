@@ -117,14 +117,14 @@ class ViewerBase(Base3D, InitBase, PoseBase, WidgetsBase):
 
     def show(self) -> None:
         """Display Viewer in Jupyter notebook."""
-        if self.backend == BACKENDS[2]:
-            self.show_viewer()
-            self._displayed = True
-        else:
-            if self._in_notebook():
+        if self._in_notebook():
+            if self.backend == BACKENDS[2]:
+                self.show_viewer()
+                self.update_viewer()  # TODO: display decoy widget for indices
+            else:
                 self._clear_output()
                 self._toggle_window(self.window_size)
                 self.display_widgets()
                 self.show_viewer()
                 self._toggle_scrolling()
-                self._displayed = True
+            self._displayed = True
