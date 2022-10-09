@@ -261,6 +261,7 @@ class setDisulfides(ModuleBase):
 
         return viewer
 
+    @requires_init
     def apply_pymol(
         self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
     ) -> Generic[ViewerType]:
@@ -429,8 +430,43 @@ class setHydrogenBonds(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self) -> NoReturn:
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
+    @requires_init
+    def apply_pymol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        hbond_id = 0
+        hbond_objs = []
+        hbond_set = pose.get_hbonds()
+        for i in range(1, pose.total_residue() + 1):
+            res_hbonds = hbond_set.residue_hbonds(i, False)
+            if res_hbonds:
+                for j in range(1, len(res_hbonds) + 1):
+                    r = res_hbonds[j]
+                    don_res = r.don_res()
+                    don_hatm_name = (
+                        pose.residue(don_res).atom_name(r.don_hatm()).strip()
+                    )
+                    don_residue, don_chain = _get_residue_chain_tuple(pose, don_res)
+                    don_sele = f"(obj {model} and chain {don_chain} and resid {don_residue} and name {don_hatm_name})"
+                    acc_res = r.acc_res()
+                    acc_atm_name = pose.residue(acc_res).atom_name(r.acc_atm()).strip()
+                    acc_residue, acc_chain = _get_residue_chain_tuple(pose, acc_res)
+                    acc_sele = f"(obj {model} and chain {acc_chain} and resid {acc_residue} and name {acc_atm_name})"
+                    hbond_obj = f"{model}_hbond_{hbond_id}"
+                    viewer.distance(hbond_obj, don_sele, acc_sele, 9999.9, 0)
+                    hbond_objs.append(hbond_obj)
+                    hbond_id += 1
+
+        if hbond_objs:
+            group_name = f"{model}_hbonds"
+            viewer.group(group_name, " ".join(hbond_objs))
+            viewer.set("dash_radius", self.radius, group_name)
+            viewer.set("dash_color", self.color, group_name)
+            viewer.hide("labels", group_name)
+        return viewer
 
 
 @attr.s(kw_only=False, slots=True)
