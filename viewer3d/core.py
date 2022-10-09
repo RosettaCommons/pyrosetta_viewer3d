@@ -187,6 +187,7 @@ class PyMOLViewer(ViewerBase):
             [
                 "pymol",
                 "-R",
+                "-q",
                 f"-W {int(self.window_size[0])}",
                 f"-H {int(self.window_size[1])}",
             ]
