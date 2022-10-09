@@ -15,7 +15,7 @@ _logger: logging.Logger = logging.getLogger("viewer3d.widgets")
 @attr.s(kw_only=False, slots=False)
 class WidgetsBase:
     def get_decoy_widget(self) -> Widget:
-        self.update_decoy(index=0)
+        # self.update_decoy(index=0) # TODO double check if needed
         return interactive(
             self.update_decoy,
             index=IntSlider(
