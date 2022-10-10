@@ -485,7 +485,9 @@ class setHydrogens(ModuleBase):
     second : optional
         `radius`
 
-        `float` or `int` indicating the radius of the hydrogen atom stick represnetations.
+        `float` or `int` indicating the radius of the hydrogen atom stick representations.
+        Note that for the `pymol` backend, this parameter controls the 'set_h_scale' setting,
+        which typically has a value of `0.4`.
         Default: 0.05
 
     third : optional
@@ -614,7 +616,7 @@ class setHydrogens(ModuleBase):
                                 else:
                                     j_name = r.atom_name(j).strip()
                                     j_sele = f"{residue}:{chain}.{j_name}"
-                                    sele = f"{i_sele} or {j_sele}"
+                                    sele = f"({i_sele} or {j_sele})"
                                     selection.append(sele)
 
             selection_hydrogens = " or ".join(selection)
@@ -628,8 +630,50 @@ class setHydrogens(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self) -> NoReturn:
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
+    @requires_init
+    def apply_pymol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        resi, chain = _pose_to_residue_chain_tuples(
+            pose, self.residue_selector, logger=_logger
+        )
+        residue_chain_tuples = list(zip(map(str, resi), chain))
+        if pose.is_fullatom():
+            selection = []
+            for i in range(1, pose.total_residue() + 1):
+                residue, chain = _get_residue_chain_tuple(pose, i)
+                if (residue, chain) in residue_chain_tuples:
+                    r = pose.residue(i)
+                    h_begin = r.attached_H_begin()
+                    h_end = r.attached_H_end()
+                    for h in range(1, len(h_begin) + 1):
+                        i_index = h_begin[h]
+                        j_index = h_end[h]
+                        if all(q != 0 for q in [i_index, j_index]):
+                            i_name = r.atom_name(h).strip()
+                            i_sele = f"(obj {model} and chain {chain} and resid {residue} and name {i_name})"
+                            for j in range(i_index, j_index + 1):
+                                if self.polar_only:
+                                    if r.atom_is_polar_hydrogen(j):
+                                        j_name = r.atom_name(j).strip()
+                                        j_sele = f"(obj {model} and chain {chain} and resid {residue} and name {j_name})"
+                                        sele = f"({i_sele} or {j_sele})"
+                                        selection.append(sele)
+                                else:
+                                    j_name = r.atom_name(j).strip()
+                                    j_sele = f"(obj {model} and chain {chain} and resid {residue} and name {j_name})"
+                                    sele = f"({i_sele} or {j_sele})"
+                                    selection.append(sele)
+
+        selection_hydrogens = " or ".join(selection)
+        viewer.show("sticks", selection_hydrogens)
+        viewer.color(self.color, f"({selection_hydrogens}) and (elem h)")
+        viewer.set("stick_h_scale", self.radius)
+
+        return viewer
 
 
 @attr.s(kw_only=True, slots=True)
