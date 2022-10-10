@@ -35,6 +35,18 @@ def _py3Dmol_to_nglview_style(style: str) -> str:
     return style
 
 
+def _py3Dmol_to_pymol_style(style: str) -> str:
+    if style == "stick":
+        style = "sticks"
+    elif style == "sphere":
+        style = "spheres"
+    elif style == "cross":
+        style = "dots"
+    elif style == "line":
+        style = "lines"
+    return style
+
+
 def _to_poses_pdbstrings(
     packed_and_poses_and_pdbs: Any,
 ) -> Tuple[
@@ -221,6 +233,26 @@ def _get_nglview_selection(
 
     resi, chain = _pose_to_residue_chain_tuples(pose, residue_selector, logger=_logger)
     selection = " or ".join(map(_format_residue, zip(resi, chain)))
+
+    return selection
+
+
+def _get_pymol_selection(
+    pose,
+    residue_selector: ResidueSelector,
+    show_hydrogens: bool = False,
+    logger: logging.Logger = _logger,
+) -> str:
+    resi, chain = _pose_to_residue_chain_tuples(pose, residue_selector, logger=_logger)
+    residue_chain_tuples = list(zip(map(str, resi), chain))
+    selection = " or ".join(
+        [
+            f"(chain {_chain} and resid {_resi})"
+            for _resi, _chain in residue_chain_tuples
+        ]
+    )
+    if not show_hydrogens:
+        selection = f"({selection}) and not elem h"
 
     return selection
 

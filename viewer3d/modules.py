@@ -40,11 +40,13 @@ from viewer3d.colors import default_element_colors
 from viewer3d.config import BACKENDS, COLORBAR_ATTR
 from viewer3d.converters import (
     _get_nglview_selection,
+    _get_pymol_selection,
     _get_residue_chain_tuple,
     _int_to_str,
     _pdbstring_to_pose,
     _pose_to_residue_chain_tuples,
     _py3Dmol_to_nglview_style,
+    _py3Dmol_to_pymol_style,
     _to_hex,
     _to_0_if_le_0,
     _to_1_if_gt_1,
@@ -466,6 +468,7 @@ class setHydrogenBonds(ModuleBase):
             viewer.set("dash_radius", self.radius, group_name)
             viewer.set("dash_color", self.color, group_name)
             viewer.hide("labels", group_name)
+
         return viewer
 
 
@@ -485,7 +488,9 @@ class setHydrogens(ModuleBase):
     second : optional
         `radius`
 
-        `float` or `int` indicating the radius of the hydrogen atom stick represnetations.
+        `float` or `int` indicating the radius of the hydrogen atom stick representations.
+        Note that for the `pymol` backend, this parameter controls the 'set_h_scale' setting,
+        which typically has a value of `0.4`.
         Default: 0.05
 
     third : optional
@@ -614,7 +619,7 @@ class setHydrogens(ModuleBase):
                                 else:
                                     j_name = r.atom_name(j).strip()
                                     j_sele = f"{residue}:{chain}.{j_name}"
-                                    sele = f"{i_sele} or {j_sele}"
+                                    sele = f"({i_sele} or {j_sele})"
                                     selection.append(sele)
 
             selection_hydrogens = " or ".join(selection)
@@ -628,8 +633,50 @@ class setHydrogens(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self) -> NoReturn:
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
+    @requires_init
+    def apply_pymol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        resi, chain = _pose_to_residue_chain_tuples(
+            pose, self.residue_selector, logger=_logger
+        )
+        residue_chain_tuples = list(zip(map(str, resi), chain))
+        if pose.is_fullatom():
+            selection = []
+            for i in range(1, pose.total_residue() + 1):
+                residue, chain = _get_residue_chain_tuple(pose, i)
+                if (residue, chain) in residue_chain_tuples:
+                    r = pose.residue(i)
+                    h_begin = r.attached_H_begin()
+                    h_end = r.attached_H_end()
+                    for h in range(1, len(h_begin) + 1):
+                        i_index = h_begin[h]
+                        j_index = h_end[h]
+                        if all(q != 0 for q in [i_index, j_index]):
+                            i_name = r.atom_name(h).strip()
+                            i_sele = f"(obj {model} and chain {chain} and resid {residue} and name {i_name})"
+                            for j in range(i_index, j_index + 1):
+                                if self.polar_only:
+                                    if r.atom_is_polar_hydrogen(j):
+                                        j_name = r.atom_name(j).strip()
+                                        j_sele = f"(obj {model} and chain {chain} and resid {residue} and name {j_name})"
+                                        sele = f"({i_sele} or {j_sele})"
+                                        selection.append(sele)
+                                else:
+                                    j_name = r.atom_name(j).strip()
+                                    j_sele = f"(obj {model} and chain {chain} and resid {residue} and name {j_name})"
+                                    sele = f"({i_sele} or {j_sele})"
+                                    selection.append(sele)
+
+        selection_hydrogens = " or ".join(selection)
+        viewer.show("sticks", selection_hydrogens)
+        viewer.color(self.color, f"({selection_hydrogens}) and (elem h)")
+        viewer.set("stick_h_scale", self.radius)
+
+        return viewer
 
 
 @attr.s(kw_only=True, slots=True)
@@ -1110,6 +1157,12 @@ class setStyle(ModuleBase):
     only to the selected residues. If the `command` argument is provided, override all other arguments and pass
     `py3Dmol.view.setStyle()` commands to the Viewer.
 
+    Label arguments with no effect in `pymol` backend:
+        label
+        label_fontsize
+        label_background
+        label_fontcolor
+
     Parameters
     ----------
     first : optional
@@ -1519,8 +1572,74 @@ class setStyle(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self) -> NoReturn:
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
+    @requires_init
+    def apply_pymol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+
+        viewer.spectrum("count", "rainbow", "all")
+        viewer.color("atomic", "not elem C")
+
+        # Set defaults
+        if self.cartoon_color is None:
+            self.cartoon_color = "rainbow"
+        if isinstance(self.colorscheme, str) and self.colorscheme.endswith("Carbon"):
+            self.colorscheme = self.colorscheme[: -len("Carbon")]
+        self.style = _py3Dmol_to_pymol_style(self.style)
+        default_selection = (
+            f"obj {model}" if self.show_hydrogens else f"obj {model} and not elem h"
+        )
+
+        if self.command:
+            if isinstance(self.command, (list, tuple)):
+                viewer.set(*self.command)
+        else:
+            if self.residue_selector:
+                if pose is None:
+                    pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+                selection = _get_pymol_selection(
+                    pose,
+                    self.residue_selector,
+                    show_hydrogens=self.show_hydrogens,
+                    logger=_logger,
+                )
+                if not selection:
+                    pass
+                else:
+                    selection = f"obj {model} and ({selection})"
+                    if self.radius > 1e-10:
+                        viewer.show("sticks", selection)
+                        viewer.set("stick_radius", self.radius)
+                    if self.cartoon:
+                        try:
+                            viewer.spectrum("index", self.cartoon_color, selection)
+                        except Exception:
+                            viewer.set("cartoon_color", self.cartoon_color, selection)
+                    viewer.color("atomic", "not elem C")
+                    # if self.label: # TODO viewer.label raises Fault exceptions
+                    #     resi, chain = _pose_to_residue_chain_tuples(
+                    #         pose, self.residue_selector, logger=_logger
+                    #     )
+                    #     for _resi, _chain in zip(resi, chain):
+                    #         viewer.label(
+                    #             f"obj {model} and chain {_chain} and resid {_resi}",
+                    #             f"{_resi}-{_chain}",
+                    #         )
+            else:
+                if self.radius > 1e-10:
+                    viewer.show("sticks", default_selection)
+                    viewer.set("stick_radius", self.radius)
+                if self.cartoon:
+                    try:
+                        viewer.spectrum("index", self.cartoon_color, default_selection)
+                    except Exception:
+                        viewer.set(
+                            "cartoon_color", self.cartoon_color, default_selection
+                        )
+                viewer.color("atomic", "not elem C")
+
+        return viewer
 
 
 @attr.s(kw_only=False, slots=True)
