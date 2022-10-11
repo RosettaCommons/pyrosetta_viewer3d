@@ -1921,20 +1921,18 @@ class setZoomTo(ModuleBase):
 
         return viewer
 
+    @requires_init
     def apply_pymol(
         self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
     ) -> Generic[ViewerType]:
         if pose is None:
             pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
 
-        # selection = _get_pymol_selection(
-        #     pose, self.residue_selector, logger=_logger
-        # ) # TODO
-        selection = "all"
+        selection = _get_pymol_selection(pose, self.residue_selector, logger=_logger)
         if not selection:
-            viewer.orient("all")
+            viewer.orient(f"obj {model}")
         else:
-            viewer.orient(selection)
+            viewer.orient(f"obj {model} and ({selection})")
 
         return viewer
 
