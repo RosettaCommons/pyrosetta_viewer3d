@@ -1826,7 +1826,8 @@ class setZoom(ModuleBase):
     """
     Set the zoom magnification factor of each initialized `.pdb` file, `Pose` or `PackedPose` object.
     For the `py3Dmol` backend, values >1 zoom in, and values <1 zoom out.
-    For the `nglview` backend, values >0 zoom in, and values <0 zoom out.
+    For the `nglview` backends, values >0 zoom in, and values <0 zoom out.
+    For the `pymol` backend, values <0 zoom in, and values >0 zoom out.
 
     Parameters
     ----------
@@ -1859,8 +1860,11 @@ class setZoom(ModuleBase):
         viewer.control.zoom(self.factor)
         return viewer
 
-    def apply_pymol(self) -> NoReturn:
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
+    def apply_pymol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        viewer.zoom(model, self.factor)
+        return viewer
 
 
 @attr.s(kw_only=False, slots=True)
