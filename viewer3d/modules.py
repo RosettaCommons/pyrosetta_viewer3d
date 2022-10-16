@@ -1576,10 +1576,6 @@ class setStyle(ModuleBase):
     def apply_pymol(
         self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
     ) -> Generic[ViewerType]:
-
-        viewer.spectrum("count", "rainbow", "all")
-        viewer.color("atomic", "not elem C")
-
         # Set defaults
         if self.cartoon_color is None:
             self.cartoon_color = "rainbow"
@@ -1659,13 +1655,18 @@ class setSurface(ModuleBase):
     second : optional
         `surface_type`
 
-        `str` indicating surface type to be displayed. py3Dmol supports the following options:
+        `str` indicating surface type to be displayed. The `py3Dmol` and `nglview` backends support the following options:
             "VDW": Van der Waals surface
             "MS": Molecular surface
             "SES": Solvent excluded surface
             "SAS": Solvent accessible surface
             "AV": High quality molecular surface (only supported for `nglview` backend)
         Default: "VDW"
+
+        The `pymol` backend currently supports the "SAS" option to show solvent-accessible surface,
+        otherwise by default it shows the solvent-excluded surface. Additional surface properties may be set
+        by adding the `viewer3d.setStyle(command=...)` module; e.g., to set the surface type as dots,
+        add `viewer3d.setStyle(command=("surface_type", 1))`. The surface may also be configured within the GUI.
 
     third : optional
         `opacity`
@@ -1698,7 +1699,7 @@ class setSurface(ModuleBase):
             "chainHetatm": chain Hetatm colorscheme
         Default: None
         Reference: https://3dmol.csb.pitt.edu/doc/types.html#ColorschemeSpec
-        Not currently supported for `nglview` backend.
+        Not currently supported for `nglview` or `pymol` backends.
 
     Returns
     -------
@@ -1817,8 +1818,33 @@ class setSurface(ModuleBase):
 
         return viewer
 
-    def apply_pymol(self) -> NoReturn:
-        raise ModuleNotImplementedError(self.__class__.name__, BACKENDS[2])
+    @requires_init
+    def apply_pymol(
+        self, viewer: Generic[ViewerType], pose: Pose, pdbstring: str, model: int
+    ) -> Generic[ViewerType]:
+        for _colorscheme in (self.color, self.colorscheme):
+            if isinstance(_colorscheme, str) and _colorscheme.endswith("Carbon"):
+                self.color = self.color[: -len("Carbon")]
+
+        if pose is None:
+            pose = _pdbstring_to_pose(pdbstring, self.__class__.__name__)
+
+        selection = _get_pymol_selection(
+            pose, self.residue_selector, show_hydrogens=True, logger=_logger
+        )
+        if not selection:
+            pass
+        else:
+            viewer.show("surface", f"obj {model} and {selection}")
+            viewer.set("transparency", 1 - self.opacity)
+            if isinstance(self.color, str):
+                viewer.set("surface_color", self.color)
+            if self.surface_type == "SAS":
+                viewer.set("surface_solvent", True)
+            else:
+                viewer.set("surface_solvent", False)
+
+        return viewer
 
 
 @attr.s(kw_only=False, slots=True)
