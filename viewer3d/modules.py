@@ -1301,8 +1301,9 @@ class setStyle(ModuleBase):
     fifteenth : optional
         `bonds`
 
-        `str` object for the `nglview` backend to show double bonds.
+        `str` object for the `nglview` and `pymol` backends to show double bonds.
         Options are: "off", "symmetric", "offset"
+
         Defualt: "symmetric"
 
     Returns
@@ -1634,6 +1635,15 @@ class setStyle(ModuleBase):
                             "cartoon_color", self.cartoon_color, default_selection
                         )
                 viewer.color("atomic", "not elem C")
+
+        if self.bonds == "off":
+            viewer.set("valence", 0)
+        else:
+            viewer.set("valence", 1)
+            if self.bonds == "symmetric":
+                viewer.set("valence_mode", 1)
+            elif self.bonds == "offset":
+                viewer.set("valence_mode", 0)
 
         return viewer
 
