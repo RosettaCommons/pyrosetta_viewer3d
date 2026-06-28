@@ -6,7 +6,7 @@
 <hr>
 
 Interactively visualize `PackedPose` objects, `Pose` objects, PDB files and PDB strings
-within Jupyter Notebook, JupyterLab, and Google Colab with py3Dmol, NGLview, and PyMOL
+within Jupyter Notebook, JupyterLab, and Google Colab with _py3Dmol_, _NGLview_, and _PyMOL_
 backends.
 
 
@@ -26,7 +26,7 @@ the `Viewer` object or using the provided visualization presets, passing `Pose` 
 or `PackedPose` object or iterable of `Pose` or `PackedPose` objects are provided to
 `viewer3d`, the underlying `Pose`(s) pointer location(s) in memory remain fixed, and
 therefore the visualization can dynamically update upon `Pose` conformational changes by
-calling the methods on the instantiated `Py3DmolViewer`, `NGLViewViewer`, or `PyMOLViewer`
+calling methods on the instantiated `Py3DmolViewer`, `NGLViewViewer`, or `PyMOLViewer`
 object.
 
 # Installation
@@ -38,25 +38,25 @@ See our official PyPI project: https://pypi.org/project/pyrosetta-viewer3d/
 
 ### Using _uv_:
 
-Recommended (py3Dmol, NGLview, and PyMOL backends):
+Recommended (_py3Dmol_, _NGLview_, and _PyMOL_ backends):
 
 ```
 uv pip install pyrosetta-viewer3d[all] --find-links https://west.rosettacommons.org/pyrosetta/quarterly/release.cxx11thread.serialization/
 ```
 
-For py3Dmol-only backend:
+For _py3Dmol_-only backend:
 
 ```
 uv pip install pyrosetta-viewer3d[py3dmol] --find-links https://west.rosettacommons.org/pyrosetta/quarterly/release.cxx11thread.serialization/
 ```
 
-For NGLview-only backend:
+For _NGLview_-only backend:
 
 ```
 uv pip install pyrosetta-viewer3d[nglview] --find-links https://west.rosettacommons.org/pyrosetta/quarterly/release.cxx11thread.serialization/
 ```
 
-For PyMOL-only backend:
+For _PyMOL_-only backend:
 
 ```
 uv pip install pyrosetta-viewer3d[pymol] --find-links https://west.rosettacommons.org/pyrosetta/quarterly/release.cxx11thread.serialization/
