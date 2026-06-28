@@ -1,0 +1,89 @@
+[project]
+name = "viewer3d"
+authors = [
+    {name = "Jason C. Klima"},
+    {name = "Ajasja Ljubetic"},
+]
+version = "1.0.0"
+description = "uv project for PyRosetta-Viewer3D"
+requires-python = ">=3.9"
+readme = {file = "README.md", content-type = "text/markdown"}
+license = "MIT"
+dependencies = [
+    "attrs>=21.4.0",
+    "blosc>=1.8.3",
+    "bokeh>=2.4.2",
+    "ipywidgets>=7.6.0",
+    "jupyter>=1.0.0",
+    "matplotlib>=3.5.2",
+    "pyrosetta>=2026.3",
+    "typing-extensions>=4.0.0; python_version < '3.11'"
+]
+[project.urls]
+Repository = "https://github.com/RosettaCommons/pyrosetta_viewer3d"
+
+[tool.uv]
+find-links = [
+    # U.S. West mirror for PyRosetta installation
+    "https://west.rosettacommons.org/pyrosetta/quarterly/release.cxx11thread.serialization/",
+    # U.S. East mirror for PyRosetta installation
+    # "https://graylab.jhu.edu/download/PyRosetta4/archive/release-quarterly/release.cxx11thread.serialization/",
+]
+conflicts = [
+    # With Python-3.9, 'biotite' requires 'numpy<2' but 'pymol-open-source' requires 'numpy>=2'
+    [
+      { extra = "pymol" },
+      { group = "tests_py39" },
+    ],
+    [
+      { extra = "all" },
+      { group = "tests_py39" },
+    ],
+]
+
+[project.optional-dependencies]
+nglview = ["nglview>=3.0.3"]
+py3Dmol = ["py3Dmol>=0.8.0"]
+pymol = ["pymol-open-source>=3.1.0"]
+all = ["viewer3d[nglview,py3Dmol,pymol]"]
+
+[build-system]
+requires = ["uv_build >= 0.11.6, <0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "viewer3d[all]",
+    "biotite>=0.20.0",
+    "mkdocs>=1.6.1",
+    "mkdocs-macros-plugin>=1.5.0",
+    "mkdocs-material>=9.7.6",
+    "mkdocstrings[python]>=0.30.1",
+    "jupyter-black>=0.4.0",
+    "nglview==3.1.4",
+    "ipywidgets==8.1.8",
+    "jupyterlab==4.5.6",
+    "jupyterlab-pygments==0.3.0",
+    "jupyterlab-server==2.28.0",
+    "jupyterlab-widgets==3.0.16",
+    "setuptools==81.0.0",
+    "papermill>=2.6.0",
+]
+tests = [
+    "papermill>=2.6.0",
+    "biotite>=0.20.0",
+]
+tests_py39 = [
+    "numpy<2; python_version < '3.10'",
+    {include-group = "tests"},
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 79
+target-version = ["py38"]

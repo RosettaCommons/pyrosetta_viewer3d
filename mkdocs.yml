@@ -1,0 +1,30 @@
+site_name: PyRosetta-Viewer3D
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.tabs
+    - navigation.instant
+  logo: images/icon.png
+  favicon: images/icon.png
+repo_url: https://github.com/RosettaCommons/pyrosetta_viewer3d/
+repo_name: RosettaCommons/pyrosetta_viewer3d
+extra:
+  version: "{{ version }}"
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/RosettaCommons
+plugins:
+  - search
+  - macros
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_bases: false
+            show_source: true
+            show_signature: false
+            docstring_style: google
+watch:
+  - src
