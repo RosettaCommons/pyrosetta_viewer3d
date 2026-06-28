@@ -1,0 +1,26 @@
+name: Build Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - run: curl -Ls https://astral.sh/uv/install.sh | sh
+
+      - name: Build package
+        run: |
+          uv build --no-sources
+
+      - name: Check artifacts exist
+        run: |
+          ls -lh dist/

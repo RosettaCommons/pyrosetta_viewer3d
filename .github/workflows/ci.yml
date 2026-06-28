@@ -1,0 +1,61 @@
+name: CI Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      VENV: ".venv_tests"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        extras: ["pymol", "nglview", "py3dmol", "all"]
+        exclude:
+          # With Python-3.9, 'biotite' requires 'numpy<2' but 'pymol-open-source' requires 'numpy>=2'
+          - python-version: "3.9"
+            extras: "pymol"
+          - python-version: "3.9"
+            extras: "all"
+          # With Python-3.14, 'pymol-open-source' is not available (TODO: enable once available)
+          - python-version: "3.14"
+            extras: "pymol"
+          - python-version: "3.14"
+            extras: "all"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        run: curl -Ls https://astral.sh/uv/install.sh | sh
+
+      - name: Create venv and copy files
+        run: |
+          uv venv $VENV
+          cp -r src pyproject.toml README.md $VENV
+
+      - name: Run tests
+        run: |
+          if [ "${{ matrix.python-version }}" == "3.9" ]; then
+            GROUP="tests_py39" # With Python-3.9, 'biotite' requires 'numpy<2'
+          else
+            GROUP="tests"
+          fi
+          uv run \
+            --project $VENV \
+            --extra ${{ matrix.extras }} \
+            --python ${{ matrix.python-version }} \
+            --group $GROUP \
+            --no-dev \
+            python -m unittest
