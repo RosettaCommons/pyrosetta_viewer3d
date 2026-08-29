@@ -105,7 +105,7 @@ v.update_pdbstrings(pdbstrings, index=None, update_viewer=True)
 ### Modifying visualization modules
 
 To programmatically add visualization modules, simply add  (`+`) them to the instantiated
-`Viewer` object. To programatically set visualization modules, either initialize the
+`Viewer` object. To programmatically set visualization modules, either initialize the
 `Viewer` object with `viewer3d.init(modules=[...])` syntax, or call the
 `Viewer.set_modules(...)` method to overwrite the current `list` of visualization modules.
 Otherwise, call the `Viewer.clear_modules()` method, then add the new visualization
