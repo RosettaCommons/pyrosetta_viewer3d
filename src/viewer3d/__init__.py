@@ -27,7 +27,7 @@ v = viewer3d.init(poses)
 The `Viewer` object can manage multiple `Pose` objects and PDB strings to allow overlaying
 decoys for structural comparisons. Each `index` corresponds to a separate visualization
 controlled by the interactive "Decoys" slider, and one or more `model` numbers may be
-overlaid within each `index`. Models are internally cached according the following scheme:
+overlaid within each `index`. Models are internally cached according to the following scheme:
 
 ```
 {
